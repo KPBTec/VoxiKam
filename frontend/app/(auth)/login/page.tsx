@@ -42,7 +42,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="text-brand-500 text-4xl font-bold mb-2 tracking-tight">Kapla<span className="text-white">Billing</span></div>
-          <p className="text-[var(--color-text-2)] text-sm">Plataforma SIP Class 4/5</p>
+          <p className="text-[var(--color-text-2)] text-sm">Plataforma SIP Class 4</p>
         </div>
 
         <form onSubmit={submit}
