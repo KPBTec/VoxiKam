@@ -113,7 +113,7 @@ Kamailio puede usarla para iterar solo sobre longitudes conocidas en lugar de ha
 
 ## 📜 Licencia
 
-Este proyecto está licenciado bajo los términos de la [Licencia MIT](../LICENSE), lo que permite su uso, copia, modificación y distribución con fines personales, académicos o comerciales.
+Este proyecto está licenciado bajo los términos de la [Licencia AGPL v3](../LICENSE), que requiere que cualquier modificación distribuida o usada como servicio de red sea publicada bajo los mismos términos.
 
 > **Autoría**: Este software fue creado y es mantenido por [@KPBTec](https://github.com/KPBTec).  
 > Aunque es de código abierto, se agradece el reconocimiento correspondiente en derivados o menciones públicas.
