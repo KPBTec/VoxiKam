@@ -1,0 +1,11 @@
+# AUTO-GENERADO por gen_nftables.py — NO editar manualmente
+# Modificar desde: https://{{ domain }}:{{ web_port }}/admin/firewall
+# Última actualización: {{ generated_at }}
+
+{% if ips %}
+define {{ set_name }} = { {{ ips | join(', ') }} }
+ip saddr ${{ set_name }} udp dport { 5060, 20000-40000 } accept
+ip saddr ${{ set_name }} tcp dport 5060 accept
+{% else %}
+# Sin {{ set_name }} configurados
+{% endif %}

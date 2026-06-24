@@ -1,0 +1,49 @@
+# ── Python ────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# ── Environment / secrets ─────────────────────────────────────────────
+.env
+.env.*
+*.env
+credentials.conf
+*.key
+*.pem
+*.p12
+
+# ── Node / Next.js ────────────────────────────────────────────────────
+node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env
+frontend/.env.*
+
+# ── Generated / runtime ───────────────────────────────────────────────
+*.pdf
+*.log
+*.pid
+*.sock
+
+# ── AI assistant context (internal only) ─────────────────────────────
+CLAUDE.md
+.claude/
+
+# ── OS ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo

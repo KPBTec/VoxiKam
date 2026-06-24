@@ -1,0 +1,20 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Resumen CDR nocturno (día anterior → cdr_summary_day + cdr_summary_month)
+5 0 * * * kaplabilling __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_summary.py >> __INSTALL_DIR__/logs/cron.log 2>&1
+
+# Timeseries por minuto (→ calls_timeseries, retención 25h)
+* * * * * kaplabilling __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_timeseries.py >> __INSTALL_DIR__/logs/timeseries.log 2>&1
+
+# Snapshot dlg.stats_active → /var/lib/kaplabilling/live_snapshot.json (leído por la API live)
+* * * * * root __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_dlg_stats.py >> __LOG_DIR__/dlg_stats.log 2>&1
+
+# ASR Quality por minuto (→ traffic_quality_hourly, retención 35 días)
+* * * * * kaplabilling __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_quality.py >> __INSTALL_DIR__/logs/quality.log 2>&1
+
+# Sync firewall: genera /etc/nftables.d/ desde DB y recarga nft
+*/5 * * * * kaplabilling __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/gen_nftables.py >> __INSTALL_DIR__/logs/nft.log 2>&1
+
+# Sync dispatcher Kamailio: regenera dispatcher.list y llama kamcmd
+*/5 * * * * kaplabilling __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/gen_dispatcher.py >> __INSTALL_DIR__/logs/dispatcher.log 2>&1

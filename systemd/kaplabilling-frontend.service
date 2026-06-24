@@ -1,0 +1,21 @@
+[Unit]
+Description=la plataforma anterior — Next.js frontend
+After=network.target kaplabilling-backend.service
+
+[Service]
+Type=simple
+User=kaplabilling
+Group=kaplabilling
+WorkingDirectory=__INSTALL_DIR__/frontend
+Environment=PORT=3000
+Environment=NODE_ENV=production
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/node __INSTALL_DIR__/frontend/.next/standalone/server.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kaplabilling-frontend
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,426 @@
+#!KAMAILIO
+# =============================================================================
+# la plataforma anterior SBC — kamailio.cfg
+# Generado por install.sh — NO editar manualmente en fresh install
+# En upgrade, el archivo existente se conserva (ver install.sh PASO 8)
+#
+# Dual-NIC:
+#   LAN  {{ private_ip }}:5060  ←→  Asterisk/ViciBox (Grupo 1 dispatcher)
+#   WAN  {{ public_ip }}:5060   ←→  Carriers          (Grupo 100+customer_id dispatcher)
+#
+# Flujo saliente:
+#   Asterisk → INVITE sip:{techprefix}{numero}@sbc
+#   → kaplabilling-routes.cfg quita techprefix + asigna $var(grp)
+#   → dispatcher selecciona carrier del grupo + aplica prefix= si corresponde
+#
+# Flujo entrante:
+#   Carrier → INVITE → Asterisk (round-robin / failover, Grupo 1)
+#
+# Operación en caliente (sin reiniciar):
+#   kamcmd dispatcher.reload              # recargar dispatcher.list
+#   kamcmd pv.shvSet carrier_alg int 4   # 4=round-robin, 8=prioridad, 9=peso
+#   kamcmd pv.shvSet carrier_failover int 0   # apagar failover
+#   kamcmd dispatcher.set_state dx 101 sip:IP:5060  # deshabilitar carrier
+#   kamcmd dispatcher.set_state ap 101 sip:IP:5060  # reactivar carrier
+# =============================================================================
+
+####### Parámetros globales #######
+debug=2
+log_stderror=no
+log_facility=LOG_LOCAL0
+fork=yes
+children=8
+disable_tcp=yes
+auto_aliases=no
+open_files_limit=65536
+mlock_pages=yes
+tos=0x18
+
+listen=udp:{{ private_ip }}:5060 advertise {{ private_ip }}:5060
+listen=udp:{{ public_ip }}:5060  advertise {{ public_ip }}:5060
+
+####### Módulos #######
+mpath="/usr/lib/x86_64-linux-gnu/kamailio/modules/"
+loadmodule "tm.so"
+loadmodule "tmx.so"
+loadmodule "sl.so"
+loadmodule "rr.so"
+loadmodule "pv.so"
+loadmodule "maxfwd.so"
+loadmodule "textops.so"
+loadmodule "siputils.so"
+loadmodule "xlog.so"
+loadmodule "ctl.so"
+loadmodule "rtpengine.so"
+loadmodule "dispatcher.so"
+loadmodule "db_mysql.so"
+loadmodule "sqlops.so"
+loadmodule "dialog.so"
+loadmodule "siptrace.so"
+
+####### Parámetros de módulos #######
+modparam("rr", "enable_full_lr", 1)
+modparam("rr", "append_fromtag", 1)
+
+# fr_timer: 3s sin 100 Trying → 408 → dispara failover al siguiente carrier
+# fr_inv_timer: tras el 1xx espera hasta 120s la respuesta final
+modparam("tm", "fr_timer", 3000)
+modparam("tm", "fr_inv_timer", 120000)
+
+modparam("rtpengine", "rtpengine_sock", "udp:127.0.0.1:2223")
+
+# Variables de control en caliente (kamcmd pv.shvSet <var> int <val>)
+modparam("pv", "shvset", "carrier_alg=i:8")       # 8=prioridad+failover, 4=round-robin
+modparam("pv", "shvset", "carrier_failover=i:1")  # 1=ON, 0=OFF
+modparam("pv", "shvset", "asterisk_alg=i:4")      # 4=round-robin entre ViciBox
+modparam("pv", "shvset", "asterisk_failover=i:1")
+
+# Dispatcher: health-check via OPTIONS cada 10s
+# El atributo socket= en dispatcher.list controla por qué NIC sale cada ping
+modparam("dispatcher", "list_file", "/etc/kamailio/dispatcher.list")
+modparam("dispatcher", "flags", 2)                # habilitar failover XAVP
+modparam("dispatcher", "xavp_dst", "_dsdst_")
+modparam("dispatcher", "xavp_ctx", "_dsctx_")
+modparam("dispatcher", "ds_ping_method", "OPTIONS")
+modparam("dispatcher", "ds_ping_interval", 10)
+modparam("dispatcher", "ds_probing_threshold", 2)
+modparam("dispatcher", "ds_inactive_threshold", 3)
+modparam("dispatcher", "ds_ping_reply_codes", "class=2;code=401;code=403;code=404")
+modparam("dispatcher", "ds_probing_mode", 1)
+modparam("dispatcher", "ds_ping_from", "sip:sbc@{{ public_ip }}")
+modparam("dispatcher", "ds_ping_latency_stats", 1)
+modparam("dispatcher", "ds_latency_estimator_alpha", 900)
+
+# SIP trace → mini-Homer (hep_listener.py escucha en :9060)
+modparam("siptrace", "duplicate_uri", "sip:127.0.0.1:9060")
+modparam("siptrace", "hep_mode_on", 1)
+modparam("siptrace", "hep_version", 3)
+modparam("siptrace", "hep_capture_id", 1)
+modparam("siptrace", "trace_to_database", 0)
+modparam("siptrace", "trace_flag", 28)
+
+# CDR tracking via dialog + sqlops
+modparam("sqlops", "sqlcon", "kb=>mysql://{{ db_user }}:{{ db_pass }}@127.0.0.1:{{ db_port }}/{{ db_name }}")
+modparam("dialog", "db_url", "mysql://{{ db_user }}:{{ db_pass }}@127.0.0.1:{{ db_port }}/{{ db_name }}")
+modparam("dialog", "db_mode", 0)
+modparam("dialog", "enable_stats", 1)
+modparam("dialog", "hash_size", 4096)
+
+####### Ruta principal #######
+
+request_route {
+    if (!mf_process_maxfwd_header("10")) {
+        sl_send_reply("483", "Too Many Hops");
+        exit;
+    }
+
+    # OPTIONS keepalive (sin diálogo) → responder directo
+    if (is_method("OPTIONS") && !has_totag()) {
+        sl_send_reply("200", "Keepalive");
+        exit;
+    }
+
+    # Trunk SBC: sin registro
+    if (is_method("REGISTER")) {
+        sl_send_reply("403", "Trunk SBC - No Registration Allowed");
+        exit;
+    }
+
+    # Ocultar identidad interna
+    remove_hf("User-Agent");
+    append_hf("User-Agent: la plataforma anterior-SBC\r\n");
+
+    # Peticiones dentro de diálogo (BYE, reINVITE, UPDATE, ACK 2xx…)
+    if (has_totag()) {
+        if (loose_route()) {
+            if ((is_method("INVITE") || is_method("UPDATE")) && has_body("application/sdp")) {
+                rtpengine_manage();
+            }
+            if (is_method("BYE")) {
+                # Comparar $si (IP origen del BYE) con $dlg_var(src_ip) (IP del INVITE inicial).
+                # Si coinciden → el cliente/Asterisk cortó. Si no → el carrier cortó.
+                # $Ri (interfaz de recepción) no sirve porque Asterisk usa WAN (.33→.41).
+                if ($si == $dlg_var(src_ip)) {
+                    $dlg_var(hangup_by) = "CLIENTE";
+                    sql_query("kb",
+                        "UPDATE cdrs SET hangup_cause='CLIENTE' WHERE call_id='$(ci{s.escape.common})'",
+                        "r");
+                    xlog("L_INFO", "[$(ci{s.select,0,@})] BYE from=$fU to=$tU — cortó CLIENTE ($si)\n");
+                } else {
+                    $dlg_var(hangup_by) = "CARRIER";
+                    sql_query("kb",
+                        "UPDATE cdrs SET hangup_cause='CARRIER' WHERE call_id='$(ci{s.escape.common})'",
+                        "r");
+                    xlog("L_INFO", "[$(ci{s.select,0,@})] BYE from=$fU to=$tU — cortó CARRIER ($si)\n");
+                }
+            }
+            route(RELAY);
+            exit;
+        } else {
+            if (is_method("ACK")) {
+                if (t_check_trans()) { route(RELAY); }
+                exit;
+            }
+            sl_send_reply("404", "Not here");
+            exit;
+        }
+    }
+
+    if (is_method("CANCEL")) {
+        if (t_check_trans()) { route(RELAY); }
+        exit;
+    }
+
+    if (!is_method("INVITE")) {
+        sl_send_reply("405", "Method Not Allowed");
+        exit;
+    }
+
+    record_route();
+
+    # Detectar dirección por techprefix: si el R-URI tiene un techprefix conocido
+    # → llamada saliente (cliente). Si no coincide → llamada entrante (carrier).
+    # Funciona igual para clientes LAN y WAN.
+    $var(grp) = 0;
+#!include_file "/etc/kamailio/kaplabilling-routes.cfg"
+    if ($var(grp) != 0) {
+        route(OUTBOUND_TO_CARRIER);
+    } else {
+        route(INBOUND_TO_ASTERISK);
+    }
+    exit;
+}
+
+####### SALIENTE: Asterisk → Carrier #######
+
+route[OUTBOUND_TO_CARRIER] {
+    if (has_body("application/sdp")) {
+        # Si Asterisk conectó por LAN (priv) → asignar priv para su RTP
+        # Si Asterisk conectó por WAN (pub)  → asignar pub para su RTP (no tiene ruta a la LAN)
+        if ($Ri == "{{ private_ip }}") {
+            rtpengine_manage("direction=priv direction=pub replace-origin replace-session-connection");
+        } else {
+            rtpengine_manage("direction=pub direction=pub replace-origin replace-session-connection");
+        }
+    }
+
+    # $var(grp) y $rU ya vienen listos desde request_route (include ya ejecutado)
+    $avp(orig_rU) = $rU;
+
+    if (!ds_select_dst($var(grp), $shv(carrier_alg))) {
+        xlog("L_ERR", "OUTBOUND: sin carriers activos en grupo $var(grp) para $fU→$rU\n");
+        t_reply("503", "No Carriers Available");
+        exit;
+    }
+
+    route(SET_CARRIER_DST);
+
+    # Traza SIP → mini-Homer (activa toda la sesión vía flag 28)
+    setflag(28);
+    sip_trace();
+
+    # Iniciar tracking del diálogo para CDR y llamadas activas
+    $var(cid) = $var(grp) - 100;
+    $dlg_var(customer_id) = $var(cid);
+    $dlg_var(src_ip)      = $si;
+    $dlg_var(src_number)  = $fU;
+    $dlg_var(dst_number)  = $avp(orig_rU);
+    $dlg_var(start_ts)    = $TS;
+    dlg_manage();
+
+    if ($shv(carrier_failover) == 1) {
+        t_on_failure("CARRIER_FAILOVER");
+    }
+    route(RELAY);
+}
+
+# Prepara el envío al carrier seleccionado.
+# Se llama en el intento inicial y en cada salto de failover.
+# Siempre parte de orig_rU para que el prefix= no se encadene.
+route[SET_CARRIER_DST] {
+    $fs = "udp:{{ public_ip }}:5060";
+
+    $rU = $avp(orig_rU);
+    $var(pfx) = $(xavp(_dsdst_=>attrs){param.value,prefix});
+    if ($var(pfx) != "") {
+        $rU = $var(pfx) + $rU;
+    }
+
+    $rd = $(du{uri.host});
+    $rp = $(du{uri.port});
+
+    # Leer carrier_id del atributo carid= del dispatcher.list
+    # y actualizar dlg_var (en failover se llama de nuevo → queda el carrier real)
+    $var(carrier_id) = $(xavp(_dsdst_=>attrs){param.value,carid});
+    $dlg_var(carrier_id) = $var(carrier_id);
+    $dlg_var(dst_raw)    = $rU;
+
+    xlog("L_INFO", "[$(ci{s.select,0,@})] OUTBOUND: src=$si from=$fU orig=$avp(orig_rU) rUri=$rU carrier=$du grp=$var(grp)\n");
+}
+
+####### ENTRANTE: Carrier → Asterisk #######
+
+route[INBOUND_TO_ASTERISK] {
+    setflag(28);
+    sip_trace();
+
+    if (has_body("application/sdp")) {
+        rtpengine_manage("direction=pub direction=priv replace-origin replace-session-connection");
+    }
+
+    if (!ds_select_dst("1", $shv(asterisk_alg))) {
+        xlog("L_ERR", "INBOUND: sin Asterisk activos (grupo 1) src=$si\n");
+        t_reply("503", "All Asterisk Nodes Down");
+        exit;
+    }
+
+    $fs = "udp:{{ private_ip }}:5060";
+    $rd = $(du{uri.host});
+    $rp = $(du{uri.port});
+
+    xlog("L_INFO", "[$(ci{s.select,0,@})] INBOUND: src=$si from=$fU to=$rU → $du\n");
+
+    if ($shv(asterisk_failover) == 1) {
+        t_on_failure("ASTERISK_FAILOVER");
+    }
+    route(RELAY);
+}
+
+####### Relay #######
+
+route[RELAY] {
+    t_on_reply("MANAGE_REPLY");
+    if (!t_relay()) {
+        sl_reply_error();
+    }
+    exit;
+}
+
+onreply_route[MANAGE_REPLY] {
+    xlog("L_INFO", "[$(ci{s.select,0,@})] REPLY: $rs desde $si\n");
+    if ($rs >= 300) { $dlg_var(last_code) = $rs; }
+    if (has_body("application/sdp")) {
+        rtpengine_manage();
+    }
+}
+
+####### Failover carriers (saliente) #######
+# Solo reintenta en 5xx o 408. NO reintenta 4xx legítimos (404, 486, 487…)
+
+failure_route[CARRIER_FAILOVER] {
+    if (t_is_canceled()) { exit; }
+
+    if (t_check_status("5[0-9][0-9]") || t_check_status("408")) {
+        xlog("L_WARN", "[$(ci{s.select,0,@})] FAILOVER carrier: src=$si from=$fU to=$avp(orig_rU) — $du falló ($T_reply_code)\n");
+
+        if (ds_next_dst()) {
+            route(SET_CARRIER_DST);  # actualiza dlg_var(carrier_id) al nuevo carrier
+            t_on_failure("CARRIER_FAILOVER");
+            route(RELAY);
+            exit;
+        }
+
+        xlog("L_ERR", "FAILOVER carrier: todos los carriers del grupo $var(grp) fallaron\n");
+        t_reply("503", "All Carriers Failed");
+        exit;
+    }
+}
+
+####### Failover Asterisk (entrante) #######
+
+failure_route[ASTERISK_FAILOVER] {
+    if (t_is_canceled()) { exit; }
+
+    if (t_check_status("5[0-9][0-9]") || t_check_status("408")) {
+        if (ds_next_dst()) {
+            $fs = "udp:{{ private_ip }}:5060";
+            $rd = $(du{uri.host});
+            $rp = $(du{uri.port});
+            xlog("L_WARN", "[$(ci{s.select,0,@})] FAILOVER Asterisk: → $du\n");
+            t_on_failure("ASTERISK_FAILOVER");
+            route(RELAY);
+            exit;
+        }
+        t_reply("503", "All Asterisk Failed");
+        exit;
+    }
+}
+
+####### CDR — dialog events #######
+
+# Llamada contestada (primer 200 OK del carrier)
+event_route[dialog:start] {
+    $dlg_var(answer_ts) = $TS;
+    sql_query("kb",
+        "INSERT INTO active_calls
+            (call_id, customer_id, carrier_id, src_ip, src_number, dst_number, started_at)
+         VALUES
+            ('$(ci{s.escape.common})',
+             $dlg_var(customer_id),
+             NULLIF('$dlg_var(carrier_id)', ''),
+             '$dlg_var(src_ip)',
+             '$dlg_var(src_number)',
+             '$dlg_var(dst_number)',
+             FROM_UNIXTIME($dlg_var(start_ts)))
+         ON DUPLICATE KEY UPDATE started_at=started_at",
+        "r");
+    xlog("L_INFO", "[$(ci{s.select,0,@})] CDR-START: cust=$dlg_var(customer_id) carrier=$dlg_var(carrier_id) src=$dlg_var(src_number) dst=$dlg_var(dst_number)\n");
+}
+
+# Llamada terminada (BYE procesado)
+event_route[dialog:end] {
+    $var(sessiontime) = $TS - $dlg_var(start_ts);
+    if ($dlg_var(answer_ts) != "") {
+        $var(billsec) = $TS - $dlg_var(answer_ts);
+        $var(disp)    = "ANSWERED";
+    } else {
+        $var(billsec) = 0;
+        $var(disp)    = "NO_ANSWER";
+    }
+
+    sql_query("kb",
+        "DELETE FROM active_calls WHERE call_id='$(ci{s.escape.common})'",
+        "r");
+
+    sql_query("kb",
+        "INSERT INTO cdrs
+            (call_id, customer_id, carrier_id, src_ip, src_number,
+             dst_number, dst_number_raw,
+             start_ts, answer_ts, end_ts,
+             sessiontime, billsec, disposition, hangup_cause)
+         VALUES
+            ('$(ci{s.escape.common})',
+             $dlg_var(customer_id),
+             NULLIF('$dlg_var(carrier_id)', ''),
+             '$dlg_var(src_ip)',
+             '$dlg_var(src_number)',
+             '$dlg_var(dst_number)',
+             '$dlg_var(dst_raw)',
+             FROM_UNIXTIME($dlg_var(start_ts)),
+             IF('$dlg_var(answer_ts)' != '', FROM_UNIXTIME($dlg_var(answer_ts)), NULL),
+             NOW(3),
+             $var(sessiontime), $var(billsec), '$var(disp)',
+             NULLIF('$dlg_var(hangup_by)', ''))",
+        "r");
+
+    xlog("L_INFO", "[$(ci{s.select,0,@})] CDR-END: $var(disp) dur=$var(sessiontime)s bill=$var(billsec)s\n");
+}
+
+# Llamada fallida (sin answer antes de que termine)
+event_route[dialog:failed] {
+    sql_query("kb",
+        "INSERT INTO cdrs_failed
+            (call_id, customer_id, carrier_id, src_ip, src_number, dst_number, start_ts, sip_code)
+         VALUES
+            ('$(ci{s.escape.common})',
+             $dlg_var(customer_id),
+             NULLIF('$dlg_var(carrier_id)', ''),
+             '$dlg_var(src_ip)',
+             '$dlg_var(src_number)',
+             '$dlg_var(dst_number)',
+             FROM_UNIXTIME($dlg_var(start_ts)),
+             $dlg_var(last_code))",
+        "r");
+
+    xlog("L_WARN", "[$(ci{s.select,0,@})] CDR-FAILED: code=$dlg_var(last_code) cust=$dlg_var(customer_id) dst=$dlg_var(dst_number)\n");
+}
