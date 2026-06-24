@@ -59,11 +59,11 @@
 
   <!-- By KPBTec -->
   <text x="88" y="60" font-family="Inter, -apple-system, sans-serif"
-        font-size="9" font-weight="600" fill="#475569" letter-spacing="0.3">
+        font-size="9" font-weight="700" fill="#94a3b8" letter-spacing="0.5">
     By KPBTec
   </text>
   <text x="88" y="72" font-family="Inter, -apple-system, sans-serif"
-        font-size="7.5" font-weight="400" fill="#334155" letter-spacing="0.2">
+        font-size="7.5" font-weight="400" fill="#64748b" letter-spacing="0.2">
     Knowledge · Protection · Business · Technology
   </text>
 </svg>

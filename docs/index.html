@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="la plataforma anterior — Plataforma SIP Class 4 de billing, monitoreo y control de tráfico. KPBTec.">
+<meta name="description" content="la plataforma anterior — Plataforma SIP Class 4 de billing, monitoreo y control de tráfico. By KPBTec.">
 <meta property="og:title" content="la plataforma anterior — Plataforma SIP Class 4">
 <meta property="og:description" content="Billing, monitoreo y control de tráfico SIP para operadores y revendedores de voz.">
 <meta property="og:type" content="website">
@@ -51,11 +51,7 @@ nav {
   display: flex; align-items: center; justify-content: space-between;
   height: 56px;
 }
-.nav-brand {
-  font-size: 17px; font-weight: 800; color: #fff;
-  letter-spacing: -0.3px; display: flex; align-items: center; gap: 6px;
-}
-.nav-brand span { color: var(--blue-l); }
+.nav-logo { display: flex; align-items: center; }
 .nav-links { display: flex; gap: 6px; align-items: center; }
 .nav-links a {
   color: #94a3b8; font-size: 13px; font-weight: 500;
@@ -401,7 +397,9 @@ footer {
 
 <!-- NAV -->
 <nav>
-  <div class="nav-brand">⚡ <span>Kapla</span>Billing</div>
+  <a href="https://kaplabilling.kpbtec.com" style="display:flex;align-items:center;text-decoration:none;">
+    <img src="logo.svg" alt="la plataforma anterior" style="height:32px;width:auto;">
+  </a>
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#admin">Operador</a>
@@ -414,7 +412,9 @@ footer {
 
 <!-- HERO -->
 <section class="hero">
-  <img src="logo.svg" alt="la plataforma anterior" style="width:340px;max-width:90%;margin-bottom:28px;filter:drop-shadow(0 0 24px rgba(37,99,235,0.35))">
+  <a href="https://kaplabilling.kpbtec.com" style="display:inline-block;margin-bottom:28px;">
+    <img src="logo.svg" alt="la plataforma anterior" style="width:340px;max-width:90%;filter:drop-shadow(0 0 24px rgba(37,99,235,0.35))">
+  </a>
   <p class="hero-sub">Billing · Monitoreo · Control de Tráfico SIP</p>
   <p class="hero-desc">
     Plataforma diseñada para operadores y revendedores de voz que necesitan saber exactamente
@@ -878,16 +878,18 @@ footer {
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-brand">⚡ <span>Kapla</span>Billing</div>
-  <div class="footer-sub">Plataforma SIP Class 4 · By KPBTec</div>
+  <a href="https://kaplabilling.kpbtec.com" style="display:inline-block;margin-bottom:12px;">
+    <img src="logo.svg" alt="la plataforma anterior" style="height:52px;width:auto;filter:drop-shadow(0 0 12px rgba(37,99,235,0.3))">
+  </a>
+  <div class="footer-sub">By KPBTec · Knowledge, Protection &amp; Business Technology</div>
   <div class="footer-links">
     <a href="https://github.com/KPBTec/la plataforma anterior" target="_blank">🐙 GitHub</a>
     <a href="https://t.me/KPBTec" target="_blank">💬 Telegram</a>
     <a href="https://github.com/KPBTec/la plataforma anterior/blob/main/CHANGELOG.md" target="_blank">📋 Changelog</a>
-    <a href="https://github.com/KPBTec/la plataforma anterior/blob/main/LICENSE" target="_blank">⚖️ MIT License</a>
+    <a href="https://github.com/KPBTec/la plataforma anterior/blob/main/LICENSE" target="_blank">⚖️ AGPL v3</a>
     <a href="https://github.com/KPBTec" target="_blank">@KPBTec</a>
   </div>
-  <div class="footer-copy">© 2026 KPBTec · Todos los derechos reservados.</div>
+  <div class="footer-copy">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · Todos los derechos reservados.</div>
 </footer>
 
 </body>
