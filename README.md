@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ la plataforma anterior
+<img src="docs/logo.svg" alt="la plataforma anterior" width="380"/>
 
 ### Plataforma SIP Class 4 — Billing, Monitoreo y Control de Tráfico
 
