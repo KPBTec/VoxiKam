@@ -2,7 +2,7 @@
 
 # ⚡ la plataforma anterior
 
-### Plataforma SIP Class 4 — Billing, Monitoreo y Control de Tráfico
+### Plataforma SIP Class 4/5 — Billing, Monitoreo y Control de Tráfico
 
 [![Version](https://img.shields.io/badge/version-2.2-blue?style=flat-square)](CHANGELOG.md)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue?style=flat-square)](LICENSE)
@@ -11,6 +11,8 @@
 
 *Diseñada para operadores, revendedores de voz y empresas que necesitan saber*
 *exactamente por dónde sale cada llamada, cuánto les cuesta y qué margen les genera.*
+
+**Un producto de [KPBTec](https://github.com/KPBTec) · Knowledge, Protection & Business Technology**
 
 </div>
 

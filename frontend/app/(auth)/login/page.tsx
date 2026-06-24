@@ -47,6 +47,7 @@ export default function LoginPage() {
 
         <form onSubmit={submit}
           className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-8 space-y-5 shadow-xl">
+
           <h1 className="text-xl font-semibold text-[var(--color-text)]">Iniciar sesión</h1>
 
           {error && (
@@ -82,6 +83,10 @@ export default function LoginPage() {
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
+
+        <p className="text-center text-xs text-[var(--color-text-2)] mt-6 opacity-50">
+          KPBTec · Knowledge, Protection &amp; Business Technology
+        </p>
       </div>
     </div>
   );

@@ -28,9 +28,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }, [router, path]);
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar role="client" />
-      <main className="ml-56 flex-1 p-8 overflow-auto">{children}</main>
+    <div className="flex min-h-screen flex-col">
+      <div className="flex flex-1">
+        <Sidebar role="client" />
+        <main className="ml-56 flex-1 p-8 overflow-auto">{children}</main>
+      </div>
+      <footer className="ml-56 px-8 py-3 border-t border-[var(--color-border)] flex items-center justify-between">
+        <span className="text-xs text-[var(--color-text-2)] opacity-40">la plataforma anterior · SIP Class 4/5</span>
+        <span className="text-xs text-[var(--color-text-2)] opacity-40">KPBTec · Knowledge, Protection &amp; Business Technology</span>
+      </footer>
     </div>
   );
 }
