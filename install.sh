@@ -2,7 +2,7 @@
 # =============================================================================
 # la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
 #
-# Copyright (c) 2025 KPBTec
+# Copyright (c) 2026 KPBTec
 # MIT License — https://github.com/KPBTec/kaplabilling/blob/main/LICENSE
 # Contact & support: https://t.me/KPBTec
 #

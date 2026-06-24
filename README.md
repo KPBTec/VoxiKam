@@ -232,4 +232,4 @@ Este proyecto está licenciado bajo los términos de la [Licencia MIT](LICENSE),
 ## 👤 Autor
 
 Desarrollado por [@KPBTec](https://github.com/KPBTec)  
-© 2025 – Todos los derechos reservados.
+© 2026 – Todos los derechos reservados.

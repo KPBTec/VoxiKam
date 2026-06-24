@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
-# Copyright (c) 2025 KPBTec
+# Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
-# © 2025 – Todos los derechos reservados.
+# © 2026 – Todos los derechos reservados.
 
 """
 Valida el parsing de kamcmd dlg.briefing en el SBC.
