@@ -1,56 +1,71 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 85" width="340" height="85">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90" width="360" height="90">
   <defs>
-    <linearGradient id="bolt-grad" x1="0%" y1="0%" x2="50%" y2="100%">
+    <linearGradient id="bolt" x1="0%" y1="0%" x2="30%" y2="100%">
       <stop offset="0%" style="stop-color:#fef08a"/>
-      <stop offset="100%" style="stop-color:#f59e0b"/>
+      <stop offset="60%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
     </linearGradient>
-    <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1d4ed8;stop-opacity:0.5"/>
-      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:0.12"/>
+    <linearGradient id="circle-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a5f;stop-opacity:0.9"/>
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:0.95"/>
     </linearGradient>
-    <filter id="bolt-glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3" result="blur"/>
+    <linearGradient id="kapla-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <filter id="bolt-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
       <feColorMatrix in="blur" type="matrix"
-        values="1 0.8 0 0 0.2  0.8 0.6 0 0 0.1  0 0 0 0 0  0 0 0 0.8 0" result="glow"/>
+        values="1 0.7 0 0 0.3  0.7 0.5 0 0 0.1  0 0 0 0 0  0 0 0 0.9 0" result="glow"/>
       <feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="ring-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+    <filter id="ring-glow" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="1.2" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
 
-  <!-- Outer glow ring -->
-  <circle cx="42" cy="42" r="36" fill="none" stroke="#3b82f6" stroke-width="0.8" stroke-dasharray="3 4" opacity="0.3" filter="url(#ring-glow)"/>
+  <!-- Outer dashed ring -->
+  <circle cx="45" cy="45" r="38" fill="none" stroke="#3b82f6" stroke-width="0.7"
+    stroke-dasharray="3 5" opacity="0.3" filter="url(#ring-glow)"/>
 
   <!-- Main circle -->
-  <circle cx="42" cy="42" r="32" fill="url(#ring-grad)" stroke="#2563eb" stroke-width="1.2" opacity="0.9"/>
+  <circle cx="45" cy="45" r="34" fill="url(#circle-bg)"
+    stroke="#2563eb" stroke-width="1.4" opacity="1"/>
 
-  <!-- Signal arc left inner -->
-  <path d="M 17 30 Q 10 42 17 54" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" opacity="0.6"/>
-  <!-- Signal arc left outer -->
-  <path d="M 10 23 Q 0 42 10 61" fill="none" stroke="#3b82f6" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
+  <!-- Signal arcs left -->
+  <path d="M 18 31 Q 10 45 18 59" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+  <path d="M 10 23 Q -1 45 10 67"  fill="none" stroke="#3b82f6" stroke-width="1.3" stroke-linecap="round" opacity="0.3"/>
 
-  <!-- Signal arc right inner -->
-  <path d="M 67 30 Q 74 42 67 54" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" opacity="0.6"/>
-  <!-- Signal arc right outer -->
-  <path d="M 74 23 Q 84 42 74 61" fill="none" stroke="#3b82f6" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
+  <!-- Signal arcs right -->
+  <path d="M 72 31 Q 80 45 72 59" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+  <path d="M 80 23 Q 91 45 80 67"  fill="none" stroke="#3b82f6" stroke-width="1.3" stroke-linecap="round" opacity="0.3"/>
 
-  <!-- Lightning bolt — yellow/amber vibrant -->
+  <!-- Lightning bolt — thicker, more prominent -->
   <g filter="url(#bolt-glow)">
-    <polygon points="35,14 44,36 39,36 49,70 40,48 45,48" fill="url(#bolt-grad)"/>
+    <polygon
+      points="38,12  50,38  43,38  52,78  40,52  47,52"
+      fill="url(#bolt)"/>
   </g>
 
-  <!-- la plataforma anterior wordmark -->
-  <text x="96" y="40" font-family="Inter, -apple-system, sans-serif" font-size="28" font-weight="900" letter-spacing="-1.2" fill="#3b82f6">Kapla</text>
-  <text x="194" y="40" font-family="Inter, -apple-system, sans-serif" font-size="28" font-weight="900" letter-spacing="-1.2" fill="#94a3b8">Billing</text>
+  <!-- la plataforma anterior — one word, two colors via tspan -->
+  <text font-family="Inter, -apple-system, sans-serif" font-size="30"
+        font-weight="900" letter-spacing="-1.5" x="100" y="44">
+    <tspan fill="url(#kapla-grad)">Kapla</tspan><tspan fill="#94a3b8">Billing</tspan>
+  </text>
 
-  <!-- Divider line -->
-  <line x1="96" y1="47" x2="315" y2="47" stroke="#1e3a5f" stroke-width="0.6" opacity="0.6"/>
+  <!-- Separator line -->
+  <line x1="100" y1="51" x2="332" y2="51" stroke="#1e3a5f" stroke-width="0.7" opacity="0.7"/>
 
   <!-- Tagline -->
-  <text x="96" y="60" font-family="Inter, -apple-system, sans-serif" font-size="9.5" font-weight="500" letter-spacing="2" fill="#475569">SIP CLASS 4 · BILLING &amp; MONITORING</text>
+  <text x="100" y="64" font-family="Inter, -apple-system, sans-serif"
+        font-size="9" font-weight="600" letter-spacing="2.2" fill="#475569">
+    SIP CLASS 4 · BILLING &amp; MONITORING
+  </text>
 
   <!-- KPBTec -->
-  <text x="96" y="75" font-family="Inter, -apple-system, sans-serif" font-size="8" font-weight="400" fill="#334155" letter-spacing="0.3">KPBTec · Knowledge, Protection &amp; Business Technology</text>
+  <text x="100" y="79" font-family="Inter, -apple-system, sans-serif"
+        font-size="8" font-weight="400" fill="#334155" letter-spacing="0.2">
+    KPBTec · Knowledge, Protection &amp; Business Technology
+  </text>
 </svg>
