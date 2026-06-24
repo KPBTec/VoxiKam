@@ -1,0 +1,22 @@
+---
+name: Feature request
+about: Suggest an idea or improvement
+title: '[FEATURE] '
+labels: enhancement
+assignees: KPBTec
+---
+
+**What problem does this solve?**
+A clear description of the problem or limitation.
+
+**Proposed solution**
+What you'd like to see implemented.
+
+**Alternatives considered**
+Any alternative solutions you've thought about.
+
+**Additional context**
+Add any other context, screenshots, or references.
+
+---
+*By KPBTec · https://t.me/KPBTec*

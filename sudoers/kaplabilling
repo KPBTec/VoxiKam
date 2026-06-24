@@ -1,0 +1,11 @@
+# KPBTec VoxiKam — permisos sudo para el usuario kaplabilling
+# Copiado por install.sh a /etc/sudoers.d/kaplabilling
+# Validar con: visudo -c -f /etc/sudoers.d/kaplabilling
+
+# Permite recargar nftables (firewall desde panel web)
+kaplabilling ALL=(ALL) NOPASSWD: /usr/sbin/nft
+
+# Permite recargar dispatcher de Kamailio (cuando se cambia carrier/cliente)
+kaplabilling ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd
+
+# NO se permite ningún otro comando sudo

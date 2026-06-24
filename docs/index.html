@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="la plataforma anterior — Plataforma SIP Class 4 de billing, monitoreo y control de tráfico. By KPBTec.">
+<meta property="og:title" content="la plataforma anterior — Plataforma SIP Class 4">
+<meta property="og:description" content="Billing, monitoreo y control de tráfico SIP para operadores y revendedores de voz.">
+<meta property="og:type" content="website">
+<title>la plataforma anterior — SIP Class 4 Platform</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --blue:   #2563eb;
+  --blue-l: #3b82f6;
+  --blue-d: #1d4ed8;
+  --dark:   #0f172a;
+  --dark2:  #1e293b;
+  --dark3:  #334155;
+  --muted:  #64748b;
+  --border: #e2e8f0;
+  --surf:   #f8fafc;
+  --white:  #ffffff;
+  --green:  #059669;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--dark2);
+  background: var(--white);
+}
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── NAV ──────────────────────────────────────────────────────────── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(15,23,42,0.97);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.nav-logo { display: flex; align-items: center; }
+.nav-links { display: flex; gap: 6px; align-items: center; }
+.nav-links a {
+  color: #94a3b8; font-size: 13px; font-weight: 500;
+  padding: 6px 12px; border-radius: 6px;
+  transition: color .15s, background .15s;
+}
+.nav-links a:hover { color: #fff; background: rgba(255,255,255,0.07); text-decoration: none; }
+.nav-cta {
+  background: var(--blue) !important; color: #fff !important;
+  font-weight: 600 !important; border-radius: 7px !important;
+}
+.nav-cta:hover { background: var(--blue-d) !important; }
+
+/* ── HERO ─────────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%);
+  color: #fff;
+  padding: 96px 32px 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 800px 500px at 50% 0%, rgba(37,99,235,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(37,99,235,0.2); border: 1px solid rgba(59,130,246,0.4);
+  color: var(--blue-l); font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+  padding: 4px 12px; border-radius: 100px; margin-bottom: 24px;
+  text-transform: uppercase;
+}
+.hero h1 {
+  font-size: clamp(42px, 7vw, 72px);
+  font-weight: 900; letter-spacing: -2px; line-height: 1;
+  margin-bottom: 10px;
+}
+.hero h1 span { color: var(--blue-l); }
+.hero-sub {
+  font-size: clamp(15px, 2.5vw, 20px);
+  color: #94a3b8; font-weight: 400; margin-bottom: 8px;
+}
+.hero-desc {
+  max-width: 560px; margin: 0 auto 36px;
+  color: #64748b; font-size: 14px; line-height: 1.7;
+}
+.hero-buttons {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px; border-radius: 9px; font-size: 14px;
+  font-weight: 600; cursor: pointer; transition: all .15s;
+  text-decoration: none !important;
+}
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary:hover { background: var(--blue-d); transform: translateY(-1px); }
+.btn-outline {
+  background: transparent; color: #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-outline:hover { background: rgba(255,255,255,0.07); transform: translateY(-1px); }
+.btn-tg { background: #229ed9; color: #fff; }
+.btn-tg:hover { background: #1a8cc4; transform: translateY(-1px); }
+
+.hero-stats {
+  display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;
+}
+.hero-stat { text-align: center; }
+.hero-stat .num {
+  font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px;
+}
+.hero-stat .lbl { font-size: 12px; color: #64748b; font-weight: 500; }
+
+/* ── SECTION COMMON ───────────────────────────────────────────────── */
+section { padding: 72px 32px; }
+.section-inner { max-width: 1060px; margin: 0 auto; }
+.section-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--blue); margin-bottom: 8px;
+}
+h2.section-title {
+  font-size: clamp(24px, 4vw, 36px); font-weight: 800;
+  letter-spacing: -0.5px; margin-bottom: 12px; color: var(--dark);
+}
+.section-lead { color: var(--muted); font-size: 15px; max-width: 640px; }
+
+/* ── WHY CARDS ────────────────────────────────────────────────────── */
+.why-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px; margin-top: 40px;
+}
+.why-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; background: var(--surf);
+  transition: box-shadow .2s, transform .2s;
+}
+.why-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.why-icon { font-size: 28px; margin-bottom: 12px; }
+.why-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.why-card p { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+/* ── VISTA SECTIONS ───────────────────────────────────────────────── */
+.vista-section { padding: 64px 32px; }
+.vista-section.dark { background: var(--dark); color: #fff; }
+.vista-section.blue { background: var(--blue-d); color: #fff; }
+.vista-section.dark .section-title,
+.vista-section.blue .section-title { color: #fff; }
+.vista-section.dark .section-tag { color: #60a5fa; }
+.vista-section.blue .section-tag { color: #bfdbfe; }
+.vista-section.dark .section-lead { color: #94a3b8; }
+.vista-section.blue .section-lead { color: #bfdbfe; }
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px; margin-top: 36px;
+}
+.mod {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 18px 16px;
+  transition: background .15s, transform .15s;
+}
+.mod:hover { background: rgba(255,255,255,0.09); transform: translateY(-2px); }
+.mod-ico { font-size: 22px; margin-bottom: 8px; }
+.mod-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: #fff; }
+.mod-desc { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.5; }
+
+/* detail expand */
+details.mod-detail { margin-top: 32px; }
+details.mod-detail summary {
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  color: rgba(255,255,255,0.8); list-style: none; user-select: none;
+}
+details.mod-detail summary:hover { background: rgba(255,255,255,0.12); }
+details.mod-detail[open] summary::after { content: ' ▲'; }
+details.mod-detail summary::after { content: ' ▼'; }
+.mod-detail-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px; margin-top: 16px;
+}
+.mod-detail-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px; padding: 12px 14px;
+}
+.mod-detail-item .k { font-size: 11px; font-weight: 700; color: #60a5fa; }
+.mod-detail-item .v { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+/* client modules */
+.client-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px; margin-top: 36px;
+}
+.client-mod {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px; padding: 16px 18px;
+  display: flex; gap: 14px; align-items: flex-start;
+  transition: background .15s;
+}
+.client-mod:hover { background: rgba(255,255,255,0.12); }
+.client-ico { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.client-info .name { font-size: 14px; font-weight: 700; color: #fff; }
+.client-info .desc { font-size: 12.5px; color: rgba(255,255,255,0.6); margin-top: 3px; }
+
+.profile-note {
+  margin-top: 28px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-left: 3px solid #60a5fa;
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px; font-size: 13px; color: rgba(255,255,255,0.7);
+}
+.profile-note strong { color: #93c5fd; }
+
+/* ── SECURITY ─────────────────────────────────────────────────────── */
+.sec-section { background: var(--surf); }
+.sec-layers {
+  display: flex; flex-direction: column; gap: 0;
+  margin-top: 40px; max-width: 700px;
+}
+.sec-layer {
+  display: flex; gap: 0; position: relative;
+}
+.sec-layer::before {
+  content: ''; position: absolute; left: 21px; top: 44px;
+  width: 2px; height: calc(100% - 4px);
+  background: linear-gradient(to bottom, var(--blue-l), transparent);
+}
+.sec-layer:last-child::before { display: none; }
+.sec-dot {
+  width: 44px; flex-shrink: 0; display: flex;
+  align-items: flex-start; justify-content: center; padding-top: 12px;
+}
+.sec-dot span {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--blue); display: flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.sec-content {
+  padding: 12px 16px 24px; flex: 1;
+  border: 1px solid transparent;
+}
+.sec-content h4 { font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+.sec-content p { font-size: 13px; color: var(--muted); }
+
+.sec-extras {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px; margin-top: 32px;
+}
+.sec-extra {
+  border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+  background: #fff;
+}
+.sec-extra .ico { font-size: 20px; margin-bottom: 8px; }
+.sec-extra h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.sec-extra p { font-size: 12px; color: var(--muted); }
+
+/* ── RELEASES ─────────────────────────────────────────────────────── */
+.releases-section { background: var(--white); }
+.releases-grid {
+  display: flex; flex-direction: column; gap: 16px;
+  margin-top: 40px;
+}
+.release-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden;
+}
+.release-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px; background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; user-select: none;
+}
+.release-header:hover { background: #f1f5f9; }
+.release-tag {
+  background: var(--blue); color: #fff;
+  font-size: 12px; font-weight: 700; padding: 3px 10px;
+  border-radius: 100px; white-space: nowrap;
+  font-family: 'JetBrains Mono', monospace;
+}
+.release-tag.latest { background: var(--green); }
+.release-title { font-size: 14px; font-weight: 600; flex: 1; }
+.release-date { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.release-chevron { color: var(--muted); font-size: 11px; transition: transform .2s; }
+details.release-card[open] .release-chevron { transform: rotate(180deg); }
+.release-body {
+  padding: 16px 20px;
+}
+.release-body ul {
+  padding-left: 18px; display: flex; flex-direction: column; gap: 4px;
+}
+.release-body li { font-size: 13px; color: var(--dark3); }
+.release-body li code {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  background: #f1f5f9; color: var(--blue-d); padding: 1px 4px; border-radius: 3px;
+}
+
+/* ── INSTALL ──────────────────────────────────────────────────────── */
+.install-section { background: var(--dark); color: #fff; }
+.install-section .section-title { color: #fff; }
+.install-section .section-tag { color: #60a5fa; }
+.install-section .section-lead { color: #94a3b8; }
+.install-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 36px;
+}
+@media(max-width: 680px) { .install-grid { grid-template-columns: 1fr; } }
+.code-block {
+  background: #0d1117; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 18px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: #e2e8f0; line-height: 1.7;
+  white-space: pre; overflow-x: auto;
+}
+.code-block .comment { color: #4a5568; }
+.code-block .cmd { color: #86efac; }
+.code-block .flag { color: #93c5fd; }
+.install-table {
+  width: 100%; border-collapse: collapse; margin-top: 36px;
+  border-radius: 10px; overflow: hidden;
+}
+.install-table th {
+  background: rgba(255,255,255,0.05); color: #94a3b8;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 10px 14px; text-align: left;
+}
+.install-table td {
+  padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 13px; color: #e2e8f0;
+}
+.install-table td code {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px;
+  color: #93c5fd;
+}
+
+/* ── FOOTER ───────────────────────────────────────────────────────── */
+footer {
+  background: #060c17; color: #64748b;
+  padding: 40px 32px; text-align: center;
+}
+.footer-brand {
+  font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 6px;
+}
+.footer-brand span { color: var(--blue-l); }
+.footer-sub { font-size: 13px; margin-bottom: 20px; }
+.footer-links {
+  display: flex; gap: 20px; justify-content: center;
+  flex-wrap: wrap; margin-bottom: 24px;
+}
+.footer-links a {
+  color: #64748b; font-size: 13px;
+  transition: color .15s;
+}
+.footer-links a:hover { color: #fff; text-decoration: none; }
+.footer-copy { font-size: 12px; color: #374151; }
+
+/* ── RESPONSIVE ───────────────────────────────────────────────────── */
+@media(max-width: 768px) {
+  nav { padding: 0 16px; }
+  .nav-links a:not(.nav-cta) { display: none; }
+  section, .vista-section, .install-section { padding: 52px 20px; }
+  .hero { padding: 72px 20px 60px; }
+  .hero-stats { gap: 24px; }
+  .modules-grid { grid-template-columns: 1fr 1fr; }
+  .client-grid { grid-template-columns: 1fr; }
+}
+@media(max-width: 480px) {
+  .modules-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="https://kaplabilling.kpbtec.com" style="display:flex;align-items:center;text-decoration:none;">
+    <img src="logo.svg" alt="la plataforma anterior" style="height:32px;width:auto;">
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#admin">Operador</a>
+    <a href="#client">Cliente</a>
+    <a href="#releases">Releases</a>
+    <a href="#install">Instalar</a>
+    <a href="https://t.me/KPBTec" class="btn-cta nav-cta" target="_blank">💬 Soporte</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <a href="https://kaplabilling.kpbtec.com" style="display:inline-block;margin-bottom:28px;">
+    <img src="logo.svg" alt="la plataforma anterior" style="width:340px;max-width:90%;filter:drop-shadow(0 0 24px rgba(37,99,235,0.35))">
+  </a>
+  <p class="hero-sub">Billing · Monitoreo · Control de Tráfico SIP</p>
+  <p class="hero-desc">
+    Plataforma diseñada para operadores y revendedores de voz que necesitan saber exactamente
+    por dónde sale cada llamada, cuánto les cuesta y qué margen les genera — desde un panel web,
+    sin tocar consola.
+  </p>
+  <div class="hero-buttons">
+    <a href="https://github.com/KPBTec/la plataforma anterior/archive/refs/heads/main.zip" class="btn btn-primary" target="_blank">
+      ⬇ Descargar v2.2
+    </a>
+    <a href="https://github.com/KPBTec/la plataforma anterior" class="btn btn-outline" target="_blank">
+      🐙 Ver en GitHub
+    </a>
+    <a href="https://t.me/KPBTec" class="btn btn-tg" target="_blank">
+      💬 Telegram
+    </a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">12</div><div class="lbl">Módulos Admin</div></div>
+    <div class="hero-stat"><div class="num">6</div><div class="lbl">Módulos Cliente</div></div>
+    <div class="hero-stat"><div class="num">~10</div><div class="lbl">min instalación</div></div>
+    <div class="hero-stat"><div class="num">v2.2</div><div class="lbl">Versión actual</div></div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-tag">¿Por qué la plataforma anterior?</div>
+    <h2 class="section-title">Todo lo que necesitas para operar tráfico SIP</h2>
+    <p class="section-lead">Sin consola, sin scripts sueltos. Un solo panel para billing, monitoreo, firewall y portal para tus clientes.</p>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-icon">🔀</div>
+        <h3>SIP Class 4 — Kamailio + RTPEngine</h3>
+        <p>SBC de producción: LCR, failover automático, ACL por IP y captura de trazas HEP. la plataforma anterior no intercepta llamadas activas — actúa solo al finalizar para calcular costos.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">💰</div>
+        <h3>Billing en tiempo real</h3>
+        <p>Longest-prefix match por prefijo E.164. Costo de compra (carrier) vs costo de venta (cliente) calculados por CDR. Balance prepago descontado automáticamente. Margen visible en cada registro.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🛡️</div>
+        <h3>Firewall desde el panel web</h3>
+        <p>Reglas ALLOW / DENY / JAIL por IP o CIDR gestionadas desde la interfaz. Sin SSH, sin editar archivos. Los cambios aplican en segundos — nftables regenerado automáticamente.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">👤</div>
+        <h3>Portal cliente modular</h3>
+        <p>Cada cliente ve solo lo que el operador habilita: llamadas, calidad ASR, reportes, facturas y trunk guide. Perfiles de módulos reutilizables asignables a múltiples clientes.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🔍</div>
+        <h3>Trazas SIP sin Homer</h3>
+        <p>Mini-Homer embebido. Kamailio envía mensajes SIP vía HEP al backend. Ladder diagram visual desde el panel: INVITE, 180, 200 OK, BYE — diagnostica en segundos sin consola.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon">🚀</div>
+        <h3>Un comando para instalar</h3>
+        <p>Debian 12+, ~10 minutos, sin dependencias previas. Detecta IPs, configura Kamailio, RTPEngine, MariaDB, Nginx y todos los servicios. Actualización sin cortar llamadas activas.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VISTA OPERADOR -->
+<section class="vista-section dark" id="admin">
+  <div class="section-inner">
+    <div class="section-tag">Panel de Administración</div>
+    <h2 class="section-title">🔧 Vista Operador</h2>
+    <p class="section-lead">Control total del sistema desde una sola interfaz. Solo accesible para administradores — validado en cada endpoint del backend.</p>
+
+    <div class="modules-grid">
+      <div class="mod">
+        <div class="mod-ico">📈</div>
+        <div class="mod-name">Dashboard</div>
+        <div class="mod-desc">KPIs del día en tiempo real: llamadas activas, completadas, minutos, ingresos y ASR global con gráfico por cliente.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">🔴</div>
+        <div class="mod-name">Live</div>
+        <div class="mod-desc">Monitor de llamadas activas ahora mismo: cliente, carrier, origen, destino y duración en curso. Fuente: Kamailio dlg.briefing.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">👤</div>
+        <div class="mod-name">Clientes</div>
+        <div class="mod-desc">CRUD de trunks SIP: techprefix, tarifas, IPs autorizadas, carriers, balance prepago, límites y perfil de módulos del portal.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">🧩</div>
+        <div class="mod-name">Perfiles</div>
+        <div class="mod-desc">Conjuntos de módulos del portal asignables a múltiples clientes. Cambia un perfil y aplica a todos los clientes asignados.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">🌐</div>
+        <div class="mod-name">Carriers</div>
+        <div class="mod-desc">Gateways SIP de salida con rates de compra por prefijo. Failover automático por prioridad si el carrier falla.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">💰</div>
+        <div class="mod-name">Tarifas</div>
+        <div class="mod-desc">Rate plans con precio por minuto, cargo de conexión y tiempo mínimo por prefijo E.164. Vinculados a clientes para billing automático.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">📋</div>
+        <div class="mod-name">CDRs</div>
+        <div class="mod-desc">Historial completo de llamadas: costo de compra, costo de venta y margen por registro. Tabs separados: contestadas y no establecidas.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">🔍</div>
+        <div class="mod-name">Trazas SIP</div>
+        <div class="mod-desc">Ladder diagram de mensajes SIP capturados vía HEP desde Kamailio. Diagnostica llamadas sin abrir consola en segundos.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">📡</div>
+        <div class="mod-name">Calidad ASR</div>
+        <div class="mod-desc">Answer Seizure Ratio por cliente y hora. Desglose de códigos de fallo: 487, 486, 404, 503. Detecta carriers problemáticos antes de que impacten.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">📊</div>
+        <div class="mod-name">Reportes</div>
+        <div class="mod-desc">Rentabilidad consolidada por cliente y período: llamadas, minutos, costo de compra, venta y margen. Sin exportar datos.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">🧾</div>
+        <div class="mod-name">Facturas</div>
+        <div class="mod-desc">Generación automática de PDF desde CDRs del período seleccionado. El cliente puede descargarlo desde su portal si el operador lo habilita.</div>
+      </div>
+      <div class="mod">
+        <div class="mod-ico">🛡️</div>
+        <div class="mod-name">Firewall</div>
+        <div class="mod-desc">Reglas ALLOW / DENY / JAIL por IP o CIDR por servicio (SIP, RTP, SSH). Cambios aplicados en segundos — nftables regenerado automáticamente.</div>
+      </div>
+    </div>
+
+    <details class="mod-detail">
+      <summary>⚙️ Configuración por cliente</summary>
+      <div class="mod-detail-grid">
+        <div class="mod-detail-item"><div class="k">🏷️ Techprefix</div><div class="v">Identificador único — Kamailio lo usa para reconocer al cliente en cada INVITE</div></div>
+        <div class="mod-detail-item"><div class="k">💰 Plan de tarifas</div><div class="v">Rate plan asignado — define cuánto se cobra por minuto según destino</div></div>
+        <div class="mod-detail-item"><div class="k">⚡ Calls máx / CPS</div><div class="v">Límite de llamadas simultáneas y calls-per-second, aplicados en tiempo real</div></div>
+        <div class="mod-detail-item"><div class="k">🔒 IPs autorizadas</div><div class="v">Lista blanca de IPs y CIDRs — INVITEs de IPs no autorizadas son descartados</div></div>
+        <div class="mod-detail-item"><div class="k">🌐 Carriers de salida</div><div class="v">Carriers con prioridad — failover automático si el primero falla</div></div>
+        <div class="mod-detail-item"><div class="k">💳 Balance prepago</div><div class="v">Saldo descontado automáticamente por cada CDR contestado</div></div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- VISTA CLIENTE -->
+<section class="vista-section blue" id="client">
+  <div class="section-inner">
+    <div class="section-tag">Portal Personal</div>
+    <h2 class="section-title">👤 Vista Cliente</h2>
+    <p class="section-lead">Cada cliente accede a su propio portal con visibilidad exclusiva sobre su tráfico. Sin acceso a datos de otros clientes ni a funciones de administración.</p>
+
+    <div class="client-grid">
+      <div class="client-mod">
+        <div class="client-ico">🏠</div>
+        <div class="client-info">
+          <div class="name">Resumen</div>
+          <div class="desc">Actividad del día: llamadas, minutos y costo. Gráfico de tráfico en tiempo real con rangos 1h / 3h / 6h / 12h.</div>
+        </div>
+      </div>
+      <div class="client-mod">
+        <div class="client-ico">📞</div>
+        <div class="client-info">
+          <div class="name">Mis llamadas</div>
+          <div class="desc">Historial paginado de CDRs propios con filtros de fecha: origen, destino, duración y costo de cada llamada.</div>
+        </div>
+      </div>
+      <div class="client-mod">
+        <div class="client-ico">📡</div>
+        <div class="client-info">
+          <div class="name">Calidad ASR</div>
+          <div class="desc">Dashboard de calidad del tráfico propio. Detecta problemas de terminación por destino sin llamar al soporte.</div>
+        </div>
+      </div>
+      <div class="client-mod">
+        <div class="client-ico">📊</div>
+        <div class="client-info">
+          <div class="name">Reportes</div>
+          <div class="desc">Resumen mensual con desglose día a día: llamadas, minutos y costo total. Monitorea el consumo antes de recibir la factura.</div>
+        </div>
+      </div>
+      <div class="client-mod">
+        <div class="client-ico">🧾</div>
+        <div class="client-info">
+          <div class="name">Facturas</div>
+          <div class="desc">Facturas emitidas por el operador, descargables directamente desde el portal.</div>
+        </div>
+      </div>
+      <div class="client-mod">
+        <div class="client-ico">📖</div>
+        <div class="client-info">
+          <div class="name">Trunk Guide</div>
+          <div class="desc">Guía de configuración personalizada con los datos propios del cliente: IP, puerto SIP, techprefix y ejemplos de dial plan.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-note">
+      <strong>Visibilidad controlada por el operador.</strong> El operador decide qué ve cada cliente mediante perfiles de módulos — desde acceso mínimo solo con resumen, hasta visibilidad completa con facturas incluidas.
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section class="sec-section" id="security">
+  <div class="section-inner">
+    <div class="section-tag">Seguridad</div>
+    <h2 class="section-title">🔐 Defensa en profundidad desde el kernel</h2>
+    <p class="section-lead">Cada capa activa por defecto desde el día uno — sin configuración adicional.</p>
+
+    <div class="sec-layers">
+      <div class="sec-layer">
+        <div class="sec-dot"><span>1</span></div>
+        <div class="sec-content">
+          <h4>🧱 nftables (nivel kernel)</h4>
+          <p>Bloqueo por IP/CIDR antes de que el paquete llegue a ningún servicio. Reglas gestionadas desde el panel web — sin tocar consola. ALLOW / DENY / JAIL por servicio: SIP, RTP, SSH.</p>
+        </div>
+      </div>
+      <div class="sec-layer">
+        <div class="sec-dot"><span>2</span></div>
+        <div class="sec-content">
+          <h4>🔁 Nginx — rate limiting + bloqueo de scanners</h4>
+          <p>Rate limiting por endpoint. Bloqueo automático de user-agents maliciosos: sqlmap, nikto, masscan, nmap. Headers de seguridad HTTP activos por defecto.</p>
+        </div>
+      </div>
+      <div class="sec-layer">
+        <div class="sec-dot"><span>3</span></div>
+        <div class="sec-content">
+          <h4>⚙️ FastAPI — rate limiting de API</h4>
+          <p>10 req/60s en login, 300 req/60s en API. Headers: X-Frame-Options DENY, CSP estricto, Referrer-Policy. Cada endpoint protegido por dependencia de rol — no por convención de URL.</p>
+        </div>
+      </div>
+      <div class="sec-layer">
+        <div class="sec-dot"><span>4</span></div>
+        <div class="sec-content">
+          <h4>🎫 JWT HS256 + bcrypt</h4>
+          <p>Tokens con expiración de 8 horas. Passwords hasheados con bcrypt (cost 12). Sin sesiones en servidor — sin riesgo de session fixation.</p>
+        </div>
+      </div>
+      <div class="sec-layer">
+        <div class="sec-dot"><span>5</span></div>
+        <div class="sec-content">
+          <h4>🗄️ MariaDB — aislada por diseño</h4>
+          <p>Bind exclusivo en 127.0.0.1. Puerto no estándar (33100–33999). Usuario dedicado con permisos mínimos. Sin acceso remoto posible.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-extras">
+      <div class="sec-extra">
+        <div class="ico">🔒</div>
+        <h4>ACL SIP en Kamailio</h4>
+        <p>Cada INVITE verificado contra la lista blanca del cliente. IPs no autorizadas descartadas silenciosamente — sin revelar que el servidor existe.</p>
+      </div>
+      <div class="sec-extra">
+        <div class="ico">👁️</div>
+        <h4>Aislamiento de datos</h4>
+        <p>Un cliente solo puede ver sus propios CDRs. La restricción está en la capa de base de datos, no en el frontend — un bug de UI no puede filtrar datos.</p>
+      </div>
+      <div class="sec-extra">
+        <div class="ico">👥</div>
+        <h4>Separación de roles</h4>
+        <p>Admin y cliente son roles incompatibles. Acceder a <code>/api/admin/*</code> sin rol admin devuelve 403 — independientemente de lo que muestre el frontend.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RELEASES -->
+<section class="releases-section" id="releases">
+  <div class="section-inner">
+    <div class="section-tag">Historial de versiones</div>
+    <h2 class="section-title">📋 Releases</h2>
+    <p class="section-lead">Historial completo en <a href="https://github.com/KPBTec/la plataforma anterior/blob/main/CHANGELOG.md">CHANGELOG.md</a> · Versión activa definida en <a href="https://github.com/KPBTec/la plataforma anterior/blob/main/release.conf">release.conf</a></p>
+
+    <div class="releases-grid">
+
+      <details class="release-card" open>
+        <summary class="release-header">
+          <span class="release-tag latest">v2.2 latest</span>
+          <span class="release-title">Live desde Kamailio · CDRs refactorizados · Modo --update</span>
+          <span class="release-date">2026-06-22</span>
+          <span class="release-chevron">▼</span>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Live dashboard usa <code>kamcmd dlg.briefing</code> como fuente de verdad — sin llamadas zombie</li>
+            <li>CDRs en dos tabs: Contestadas (200 OK) y No establecidas con códigos SIP reales</li>
+            <li>Búsqueda por número de teléfono + filtros rápidos por código (487, 486, 404, 503)</li>
+            <li>Timeseries: snapshot real de Kamailio por minuto (reemplaza conteo de CDRs)</li>
+            <li>Nuevo modo <code>./install.sh --update</code> — actualiza código sin tocar Kamailio</li>
+            <li>RTPEngine: <code>listen-cli</code> para estadísticas de jitter y packet loss</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag">v2.1</span>
+          <span class="release-title">Fix: Llamadas zombie + búsqueda de trazas 14s → &lt;100ms</span>
+          <span class="release-date">2026-06-22</span>
+          <span class="release-chevron">▼</span>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Kamailio: <code>dlg_set_timeout(5400)</code> y <code>event_route[dialog:expired]</code> — limpieza automática de zombies</li>
+            <li>Detección inteligente en trazas: Call-ID usa índice → <code>&lt;100ms</code> vs 14s anterior</li>
+            <li>Índice compuesto <code>(call_id, captured_at)</code> en <code>sip_traces</code></li>
+            <li>Botón "Limpiar colgadas" en panel Live</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag">v2.0</span>
+          <span class="release-title">Performance Layer — System Tuning</span>
+          <span class="release-date">2026-06-22</span>
+          <span class="release-chevron">▼</span>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>sysctl: <code>rmem_max/wmem_max = 64MB</code>, <code>nf_conntrack</code> tuneado — elimina drops RTP</li>
+            <li>Kamailio: <code>mlock_pages=yes</code>, <code>hash_size</code> aumentado, DSCP QoS</li>
+            <li>RTPEngine: <code>num-threads=0</code> (auto), buffer 4MB, cap de sesiones</li>
+            <li>MariaDB: <code>innodb_buffer_pool_size</code> auto-calculado por RAM disponible</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag">v1.9</span>
+          <span class="release-title">Dashboard timeseries + Call State en CDRs</span>
+          <span class="release-date">2026-06-22</span>
+          <span class="release-chevron">▼</span>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Tabla <code>calls_timeseries</code>: snapshot por minuto, retención 25h</li>
+            <li>Gráfico SVG de líneas en dashboard admin y portal cliente con selector 1h/3h/6h/12h</li>
+            <li>Columna <code>call_state</code> en CDRs: COMPLETED, BUSY, CANCELLED, REJECTED</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag">v1.7</span>
+          <span class="release-title">Portal cliente + Firewall por servicio + Normalización E.164</span>
+          <span class="release-date">2026-06-21</span>
+          <span class="release-chevron">▼</span>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Admin crea acceso portal desde el detalle del cliente (crear, eliminar, cambiar contraseña)</li>
+            <li>Firewall por servicio: SIP, RTP, SSH — reglas con restricción de puerto específico</li>
+            <li>Normalización de <code>dst_number</code>: strip de techprefix y outbound_prefix antes del billing</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag">v1.6</span>
+          <span class="release-title">Mini-Homer embebido — Trazas SIP desde el panel</span>
+          <span class="release-date">2026-06-21</span>
+          <span class="release-chevron">▼</span>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Servicio HEP3 receiver en Python asyncio — captura mensajes SIP de Kamailio</li>
+            <li>Ladder diagram multicolumna dinámico: Asterisk | SBC | Carrier</li>
+            <li>Stream en vivo de tráfico SIP + búsqueda por número o Call-ID</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag">v1.5</span>
+          <span class="release-title">Portal cliente + Facturación + Modos de instalación</span>
+          <span class="release-date">—</span>
+          <span class="release-chevron">▼</span>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Portal cliente <code>/my/*</code>: resumen, llamadas, trunk guide, facturas</li>
+            <li>Generación de facturas PDF automática desde CDRs del período</li>
+            <li>Modos <code>--upgrade</code> y <code>--reinstall</code> en el instalador</li>
+            <li><code>release.conf</code>: nombre y versión centralizados para re-branding</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag">v1.0</span>
+          <span class="release-title">Release inicial</span>
+          <span class="release-date">—</span>
+          <span class="release-chevron">▼</span>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Instalador Debian 12 single-command (~10 min, sin dependencias previas)</li>
+            <li>Backend FastAPI async: auth JWT, billing, carriers, clientes, tarifas, firewall, reportes</li>
+            <li>Frontend Next.js 15 standalone: panel admin completo, dark mode</li>
+            <li>Kamailio SBC + RTPEngine configurados automáticamente</li>
+          </ul>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section class="install-section" id="install">
+  <div class="section-inner">
+    <div class="section-tag">Instalación</div>
+    <h2 class="section-title">🚀 Un comando para empezar</h2>
+    <p class="section-lead">Debian 12+. Configura Kamailio, RTPEngine, MariaDB, Nginx, servicios systemd y crontabs automáticamente.</p>
+
+    <div class="install-grid">
+      <div>
+        <div class="code-block"><span class="comment"># Instalación inicial</span>
+<span class="cmd">git clone</span> &lt;repo&gt; /opt/kaplabilling
+<span class="cmd">cd</span> /opt/kaplabilling
+<span class="cmd">sudo ./install.sh</span></div>
+      </div>
+      <div>
+        <div class="code-block"><span class="comment"># Reiniciar servicios</span>
+<span class="cmd">systemctl restart</span> \
+  kaplabilling-backend \
+  kaplabilling-frontend \
+  kaplabilling-hep
+
+<span class="comment"># Ver logs</span>
+<span class="cmd">journalctl</span> <span class="flag">-u</span> kaplabilling-backend <span class="flag">-f</span></div>
+      </div>
+    </div>
+
+    <table class="install-table">
+      <thead>
+        <tr><th>Comando</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>./install.sh</code></td><td>Primera instalación completa</td></tr>
+        <tr><td><code>./install.sh --update</code></td><td>✅ Código + DB + frontend. Kamailio no se toca — sin corte de llamadas</td></tr>
+        <tr><td><code>./install.sh --upgrade</code></td><td>Como --update pero también reinicia Kamailio</td></tr>
+        <tr><td><code>./install.sh --reinstall</code></td><td>Reinstalación completa desde cero</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="https://kaplabilling.kpbtec.com" style="display:inline-block;margin-bottom:12px;">
+    <img src="logo.svg" alt="la plataforma anterior" style="height:52px;width:auto;filter:drop-shadow(0 0 12px rgba(37,99,235,0.3))">
+  </a>
+  <div class="footer-sub">By KPBTec · Knowledge, Protection &amp; Business Technology</div>
+  <div class="footer-links">
+    <a href="https://github.com/KPBTec/la plataforma anterior" target="_blank">🐙 GitHub</a>
+    <a href="https://t.me/KPBTec" target="_blank">💬 Telegram</a>
+    <a href="https://github.com/KPBTec/la plataforma anterior/blob/main/CHANGELOG.md" target="_blank">📋 Changelog</a>
+    <a href="https://github.com/KPBTec/la plataforma anterior/blob/main/LICENSE" target="_blank">⚖️ AGPL v3</a>
+    <a href="https://github.com/KPBTec" target="_blank">@KPBTec</a>
+  </div>
+  <div class="footer-copy">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · Todos los derechos reservados.</div>
+</footer>
+
+</body>
+</html>

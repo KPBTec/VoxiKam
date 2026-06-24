@@ -1,0 +1,20 @@
+[Unit]
+Description=la plataforma anterior — HEP3 SIP trace receiver
+After=network.target mariadb.service
+Requires=mariadb.service
+
+[Service]
+Type=simple
+User=kaplabilling
+Group=kaplabilling
+WorkingDirectory=__INSTALL_DIR__/backend
+EnvironmentFile=__INSTALL_DIR__/backend/.env
+ExecStart=__INSTALL_DIR__/venv/bin/python3 hep_listener.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kaplabilling-hep
+
+[Install]
+WantedBy=multi-user.target
