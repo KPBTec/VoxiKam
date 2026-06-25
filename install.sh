@@ -25,6 +25,8 @@
 # =============================================================================
 set -euo pipefail
 
+INSTALL_START=$SECONDS   # timer global — se muestra en el resumen final
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$SCRIPT_DIR"             # puede cambiar si hay instalación previa en otra ruta
 MARKER_FILE="/etc/kaplabilling.conf"   # ubicación fija — siempre encontrable
@@ -445,13 +447,19 @@ EOF
             || { err "$_svc no está corriendo — journalctl -u $_svc -n 20"; _ALL_OK=false; }
     done
 
+    _ELAPSED=$(( SECONDS - INSTALL_START ))
+    _ELAPSED_FMT="$(( _ELAPSED / 60 ))m $(( _ELAPSED % 60 ))s"
+
     echo ""
     if $_ALL_OK; then
         echo -e "  ${BOLD}${GREEN}✓ Actualización completada — Kamailio no fue tocado${NC}"
     else
         echo -e "  ${BOLD}${YELLOW}⚠ Actualización con advertencias — revisar servicios${NC}"
     fi
-    echo -e "  ${BOLD}Log:${NC} $LOG_FILE"
+    echo -e "  ${BOLD}Tiempo total:${NC} $_ELAPSED_FMT"
+    echo -e "  ${BOLD}Log:${NC}          $LOG_FILE"
+    echo ""
+    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/la plataforma anterior"
     echo ""
     exit 0
 fi
@@ -462,6 +470,7 @@ fi
 bash "$INSTALL_DIR/scripts/setup/01_check_os.sh"
 bash "$INSTALL_DIR/scripts/setup/02_disable_fw.sh"
 bash "$INSTALL_DIR/scripts/setup/03_install_deps.sh"
+bash "$INSTALL_DIR/scripts/setup/04_install_sip_stack.sh"
 
 # Helpers de input (disponibles tanto para fresh como para upgrade si se re-preguntan)
 ask() {
@@ -1375,6 +1384,9 @@ chk_http "Nginx"    "$WEB_PORT" "/health"
 # =============================================================================
 # RESUMEN
 # =============================================================================
+_ELAPSED=$(( SECONDS - INSTALL_START ))
+_ELAPSED_FMT="$(( _ELAPSED / 60 ))m $(( _ELAPSED % 60 ))s"
+
 echo ""
 if [[ "$ALL_OK" == false ]]; then
     echo -e "${BOLD}${YELLOW}"
@@ -1400,8 +1412,12 @@ if [[ "$ALL_OK" == false ]]; then
     echo "  ║  journalctl -u kaplabilling-backend -n 30 --no-pager     ║"
     echo "  ║  journalctl -u kaplabilling-frontend -n 30 --no-pager    ║"
     echo "  ║  journalctl -u kaplabilling-hep -n 30 --no-pager         ║"
+    echo "  ╠══════════════════════════════════════════════════╣"
+    printf "  ║  Tiempo:  %-39s║\n" "$_ELAPSED_FMT"
     echo "  ╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
+    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/la plataforma anterior"
+    echo ""
 else
     echo -e "${BOLD}${GREEN}"
     if [[ "$MODE" == "upgrade" ]]; then
@@ -1421,6 +1437,10 @@ else
         printf "  ║  Creds:  %-39s║\n" "$CREDS_FILE"
         printf "  ║  Log:    %-39s║\n" "$LOG_FILE"
     fi
+    echo "  ╠══════════════════════════════════════════════════╣"
+    printf "  ║  Tiempo:  %-39s║\n" "$_ELAPSED_FMT"
     echo "  ╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
+    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/la plataforma anterior"
+    echo ""
 fi

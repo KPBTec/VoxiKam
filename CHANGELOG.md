@@ -6,6 +6,31 @@ Todas las versiones siguen el esquema `MAJOR.MINOR`:
 
 ---
 
+## v2.3 — 2026-06-25
+
+### Instalador autónomo: Kamailio 5.7 + RTPEngine 10.x · Timer · Feedback
+
+**Instalación del stack SIP desde cero (`scripts/setup/04_install_sip_stack.sh`):**
+- El instalador ya no requiere Kamailio ni RTPEngine pre-instalados — los instala automáticamente si no están presentes
+- Kamailio 5.7.x desde el repo oficial `deb.kamailio.org/kamailio57` (Debian 12 Bookworm)
+- RTPEngine 10.x desde el repo Sipwise `deb.sipwise.com/spce/mr10.5/`
+- Incluye módulos requeridos: `kamailio-mysql-modules`, `kamailio-extra-modules`, `kamailio-utils-modules`, `kamailio-tls-modules`
+- Si ya están instalados, los detecta y omite sin tocar nada (safe en servidores existentes)
+- Confirmación interactiva antes de instalar — el operador puede cancelar para instalar manualmente
+- `rtpengine.service` habilitado automáticamente tras la instalación (sin arrancar — la config la aplica el instalador en el paso siguiente)
+
+**Tiempo de instalación en el resumen final:**
+- Todos los modos (`fresh`, `--upgrade`, `--update`) muestran el tiempo total al finalizar (formato `Xm Ys`)
+
+**Feedback en el resumen:**
+- El resumen final incluye el link a `github.com/KPBTec/la plataforma anterior` para reportes y comentarios
+
+**Upgrade:**
+- `./install.sh --upgrade` detecta Kamailio/RTPEngine existentes y los omite — sin cambios en servidores v2.2
+- Para servidores nuevos: `./install.sh` instala el stack completo desde cero incluyendo el SIP stack
+
+---
+
 ## v2.2 — 2026-06-22
 
 ### Live dashboard desde Kamailio · CDRs refactorizados · Modo --update
