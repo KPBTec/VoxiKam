@@ -12,18 +12,18 @@ export interface AuthUser {
 }
 
 export function saveAuth(token: string, user: AuthUser) {
-  localStorage.setItem("kaplabilling_token", token);
-  localStorage.setItem("kaplabilling_user", JSON.stringify(user));
+  localStorage.setItem("voxikam_token", token);
+  localStorage.setItem("voxikam_user", JSON.stringify(user));
 }
 
 export function getUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem("kaplabilling_user");
+  const raw = localStorage.getItem("voxikam_user");
   return raw ? JSON.parse(raw) : null;
 }
 
 export function logout() {
-  localStorage.removeItem("kaplabilling_token");
-  localStorage.removeItem("kaplabilling_user");
+  localStorage.removeItem("voxikam_token");
+  localStorage.removeItem("voxikam_user");
   window.location.href = "/login";
 }

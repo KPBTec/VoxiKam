@@ -4,7 +4,7 @@ Config de Nginx que actúa como reverse proxy y sirve los archivos estáticos de
 
 ## Archivo
 
-`kaplabilling.conf` — config con `__PLACEHOLDER__`. install.sh la copia con `apply_conf()` a `/etc/nginx/sites-available/` y crea el symlink en `sites-enabled/`.
+`voxikam.conf` — config con `__PLACEHOLDER__`. install.sh la copia con `apply_conf()` a `/etc/nginx/sites-available/` y crea el symlink en `sites-enabled/`.
 
 ## Placeholders usados
 
@@ -13,7 +13,7 @@ Config de Nginx que actúa como reverse proxy y sirve los archivos estáticos de
 | `__PUBLIC_IP__` | IP pública del servidor |
 | `__PRIVATE_IP__` | IP privada del servidor |
 | `__WEB_PORT__` | Puerto de acceso web (default 7666) |
-| `__INSTALL_DIR__` | Path de instalación (default /opt/kaplabilling) |
+| `__INSTALL_DIR__` | Path de instalación (default /opt/voxikam) |
 | `__DOMAIN__` | Dominio (ej: sip.kpbtec.com) |
 
 ## Locations clave
@@ -58,7 +58,7 @@ El backend tiene su propio rate limiting en memoria como segunda capa.
 
 ## Cambiar el puerto web
 
-Editar `/etc/nginx/sites-available/kaplabilling.conf`, cambiar `listen <WEB_PORT>`, y `systemctl reload nginx`. También actualizar `NEXT_PUBLIC_API_URL` en `frontend/.env.local` y reconstruir el frontend.
+Editar `/etc/nginx/sites-available/voxikam.conf`, cambiar `listen <WEB_PORT>`, y `systemctl reload nginx`. También actualizar `NEXT_PUBLIC_API_URL` en `frontend/.env.local` y reconstruir el frontend.
 
 ## Verificar config
 

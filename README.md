@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/logo.svg" alt="la plataforma anterior" width="380"/>
+<img src="docs/logo.svg" alt="VoxiKam" width="380"/>
 
 ### Plataforma SIP Class 4 — Billing, Monitoreo y Control de Tráfico
 
@@ -18,13 +18,13 @@
 
 ---
 
-## 🎯 ¿Por qué la plataforma anterior?
+## 🎯 ¿Por qué VoxiKam?
 
-La mayoría de plataformas de billing SIP fueron diseñadas para equipos técnicos: configuración en consola, sin visibilidad en tiempo real y con portales cliente básicos o inexistentes. la plataforma anterior cambia ese paradigma.
+La mayoría de plataformas de billing SIP fueron diseñadas para equipos técnicos: configuración en consola, sin visibilidad en tiempo real y con portales cliente básicos o inexistentes. VoxiKam cambia ese paradigma.
 
 > **Un operador no debería necesitar acceso SSH para agregar una IP al firewall, ver cuánto está generando un cliente hoy o detectar que un carrier está fallando.**
 
-la plataforma anterior reúne en un solo panel todo lo que un operador necesita para administrar su tráfico SIP, controlar sus márgenes y darle a cada cliente visibilidad sobre su propio consumo — sin tocar una consola.
+VoxiKam reúne en un solo panel todo lo que un operador necesita para administrar su tráfico SIP, controlar sus márgenes y darle a cada cliente visibilidad sobre su propio consumo — sin tocar una consola.
 
 ---
 
@@ -40,7 +40,7 @@ la plataforma anterior reúne en un solo panel todo lo que un operador necesita 
 
 ## 🏗️ Arquitectura técnica
 
-la plataforma anterior es una plataforma **Class 4**: switching de tránsito y billing. No incluye IVR, voicemail ni colas (Class 5). Construida sobre tres componentes probados en producción:
+VoxiKam es una plataforma **Class 4**: switching de tránsito y billing. No incluye IVR, voicemail ni colas (Class 5). Construida sobre tres componentes probados en producción:
 
 ```
 📞 Cliente SIP (Asterisk / softphone)
@@ -79,13 +79,13 @@ la plataforma anterior es una plataforma **Class 4**: switching de tránsito y b
 └──────────────────────────────────────────────────────┘
 ```
 
-> **Kamailio maneja el SIP en tiempo real — la plataforma anterior no intercepta ninguna llamada activa.** Solo entra al finalizar cada llamada para calcular costos y actualizar saldos, garantizando que un problema en la capa de aplicación nunca afecte el tráfico en curso.
+> **Kamailio maneja el SIP en tiempo real — VoxiKam no intercepta ninguna llamada activa.** Solo entra al finalizar cada llamada para calcular costos y actualizar saldos, garantizando que un problema en la capa de aplicación nunca afecte el tráfico en curso.
 
 ---
 
 ## 🔑 Dos vistas, dos mundos
 
-la plataforma anterior tiene dos portales completamente separados: uno para el operador que administra el sistema, y otro para cada cliente que usa el servicio. Cada uno con su propio acceso, sus propios datos y sus propias funciones.
+VoxiKam tiene dos portales completamente separados: uno para el operador que administra el sistema, y otro para cada cliente que usa el servicio. Cada uno con su propio acceso, sus propios datos y sus propias funciones.
 
 ---
 
@@ -111,7 +111,7 @@ Acceso exclusivo para administradores. Control total del sistema desde una sola 
 <details>
 <summary>⚙️ Configuración por cliente (expandir)</summary>
 
-Cada cliente en la plataforma anterior es un trunk SIP independiente con su propia configuración:
+Cada cliente en VoxiKam es un trunk SIP independiente con su propia configuración:
 
 | Campo | Descripción |
 |---|---|
@@ -146,9 +146,9 @@ Cada cliente accede a su propio portal con visibilidad exclusiva sobre su tráfi
 
 ## 🔐 Seguridad en Capas
 
-> **La seguridad no debería ser una configuración opcional — debería estar encendida desde el día uno.** En la plataforma anterior, cada capa de protección está activa por defecto, sin configuración adicional.
+> **La seguridad no debería ser una configuración opcional — debería estar encendida desde el día uno.** En VoxiKam, cada capa de protección está activa por defecto, sin configuración adicional.
 
-La mayoría de plataformas SIP exponen su panel en el puerto 80 sin rate limiting, con contraseñas en texto plano y sin separación real entre usuarios. la plataforma anterior fue diseñado con el modelo opuesto: defensa en profundidad desde el kernel hasta la base de datos.
+La mayoría de plataformas SIP exponen su panel en el puerto 80 sin rate limiting, con contraseñas en texto plano y sin separación real entre usuarios. VoxiKam fue diseñado con el modelo opuesto: defensa en profundidad desde el kernel hasta la base de datos.
 
 ```
 🌐 Internet
@@ -187,8 +187,8 @@ La mayoría de plataformas SIP exponen su panel en el puerto 80 sin rate limitin
 ## 🚀 Instalación
 
 ```bash
-git clone <repo> /opt/kaplabilling
-cd /opt/kaplabilling
+git clone <repo> /opt/voxikam
+cd /opt/voxikam
 sudo ./install.sh
 ```
 
@@ -207,15 +207,15 @@ Corre en **Debian 12+**. Detecta IPs del servidor, solicita configuración míni
 | Recurso | Ubicación |
 |---|---|
 | 🌐 Panel web | `http://<DOMAIN>:<WEB_PORT>` (puerto default: `7666`) |
-| 🔑 Credenciales | `/kaplabilling-install/logs-configs/credentials.conf` |
-| 📄 Logs | `/kaplabilling-install/logs-configs/install-YYYYMMDD.log` |
+| 🔑 Credenciales | `/voxikam-install/logs-configs/credentials.conf` |
+| 📄 Logs | `/voxikam-install/logs-configs/install-YYYYMMDD.log` |
 
 ```bash
 # Reiniciar servicios
-systemctl restart kaplabilling-backend kaplabilling-frontend kaplabilling-hep
+systemctl restart voxikam-backend voxikam-frontend voxikam-hep
 
 # Ver logs en tiempo real
-journalctl -u kaplabilling-backend -n 50 -f
+journalctl -u voxikam-backend -n 50 -f
 ```
 
 > 📋 Ver historial de versiones en [CHANGELOG.md](CHANGELOG.md) · Versión actual en [release.conf](release.conf)

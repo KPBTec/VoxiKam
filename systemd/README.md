@@ -6,7 +6,7 @@ Unit files para los dos servicios de la plataforma. Contienen `__INSTALL_DIR__` 
 
 ### sip-backend.service
 - **Ejecuta:** `uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2`
-- **User/Group:** kaplabilling
+- **User/Group:** voxikam
 - **WorkingDirectory:** `__INSTALL_DIR__/backend`
 - **EnvironmentFile:** `__INSTALL_DIR__/backend/.env`
 - **Depende de:** mariadb.service (`After` + `Requires`)
@@ -14,7 +14,7 @@ Unit files para los dos servicios de la plataforma. Contienen `__INSTALL_DIR__` 
 
 ### sip-frontend.service
 - **Ejecuta:** `node __INSTALL_DIR__/frontend/.next/standalone/server.js`
-- **User/Group:** kaplabilling
+- **User/Group:** voxikam
 - **WorkingDirectory:** `__INSTALL_DIR__/frontend`
 - **Env:** `PORT=3000`, `NODE_ENV=production`, `HOSTNAME=127.0.0.1`
 - **Depende de:** sip-backend.service (`After`)

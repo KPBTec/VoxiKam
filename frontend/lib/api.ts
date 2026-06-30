@@ -3,7 +3,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 export async function apiFetch(path: string, options: RequestInit = {}) {
   let token: string | null = null;
   if (typeof window !== "undefined") {
-    token = localStorage.getItem("kaplabilling_token");
+    token = localStorage.getItem("voxikam_token");
   }
 
   const res = await fetch(`${BASE}${path}`, {
@@ -17,7 +17,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
   if (res.status === 401) {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("kaplabilling_token");
+      localStorage.removeItem("voxikam_token");
       window.location.href = "/login";
     }
   }

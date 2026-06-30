@@ -90,7 +90,7 @@ El response incluye `"capped": true` cuando se llega al límite para que el fron
 ## Variables de entorno (.env generado por install.sh)
 
 ```
-DATABASE_URL=mysql+aiomysql://kaplabilling:<pass>@127.0.0.1:<port>/sip_platform
+DATABASE_URL=mysql+aiomysql://voxikam:<pass>@127.0.0.1:<port>/sip_platform
 JWT_SECRET=<hex32>
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=480

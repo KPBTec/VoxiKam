@@ -1,4 +1,4 @@
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # MIT License · https://t.me/KPBTec · By KPBTec
 
@@ -135,7 +135,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="la plataforma anterior API",
+    title="VoxiKam API",
     version="2.2",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -158,4 +158,4 @@ register_routes(app)
 
 @app.get("/api/health", tags=["System"])
 async def health():
-    return {"status": "ok", "service": "kaplabilling", "version": "2.2"}
+    return {"status": "ok", "service": "voxikam", "version": "2.2"}

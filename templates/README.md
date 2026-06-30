@@ -56,11 +56,11 @@ Todas las variables disponibles para `backend.env.j2` y `frontend.env.j2`:
 | `db_host` | Siempre 127.0.0.1 |
 | `db_port` | Aleatorio 33100-33999 |
 | `db_name` | Siempre sip_platform |
-| `db_user` | Siempre kaplabilling |
+| `db_user` | Siempre voxikam |
 | `db_pass` | Aleatorio generado en install |
 | `jwt_secret` | Aleatorio hex32 |
 | `install_dir` | Path del repo |
-| `log_dir` | /kaplabilling-install/logs-configs |
+| `log_dir` | /voxikam-install/logs-configs |
 
 ---
 

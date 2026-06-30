@@ -34,7 +34,7 @@ if (is_method("INVITE") && !has_totag()) {
     # 1. Verificar que el cliente está autorizado por IP
     if (!ds_is_in_list("$si", "", "1")) {
         # Si no está en el dispatcher group 1 (Asterisk LAN), verificar en customer_ips
-        sql_query("kaplabilling",
+        sql_query("voxikam",
             "SELECT c.id, c.techprefix FROM customers c
              JOIN customer_ips ci ON ci.customer_id = c.id
              WHERE ci.ip = '$si' AND c.status = 'active' LIMIT 1",
@@ -69,7 +69,7 @@ if (is_method("INVITE") && !has_totag()) {
     # gracias al atributo prefix= en dispatcher.list (gen_dispatcher.py lo genera)
 
     # 4. Registrar llamada activa en DB
-    sql_query("kaplabilling",
+    sql_query("voxikam",
         "INSERT INTO active_calls (call_id, customer_id, carrier_id, src_number, dst_number, started_at)
          VALUES ('$ci', $var(customer_id), carrier_id, '$fU', '$rU', NOW())",
         "$var(r)"

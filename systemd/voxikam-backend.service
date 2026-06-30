@@ -1,12 +1,12 @@
 [Unit]
-Description=la plataforma anterior — FastAPI backend
+Description=VoxiKam — FastAPI backend
 After=network.target mariadb.service
 Requires=mariadb.service
 
 [Service]
 Type=simple
-User=kaplabilling
-Group=kaplabilling
+User=voxikam
+Group=voxikam
 WorkingDirectory=__INSTALL_DIR__/backend
 EnvironmentFile=__INSTALL_DIR__/backend/.env
 ExecStart=__INSTALL_DIR__/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2
@@ -14,7 +14,7 @@ Restart=always
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=kaplabilling-backend
+SyslogIdentifier=voxikam-backend
 
 [Install]
 WantedBy=multi-user.target

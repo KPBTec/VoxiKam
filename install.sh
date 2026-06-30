@@ -1,9 +1,9 @@
 #!/bin/bash
 # =============================================================================
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 #
 # Copyright (c) 2026 KPBTec
-# MIT License — https://github.com/KPBTec/kaplabilling/blob/main/LICENSE
+# MIT License — https://github.com/KPBTec/voxikam/blob/main/LICENSE
 # Contact & support: https://t.me/KPBTec
 #
 # By KPBTec
@@ -11,8 +11,8 @@
 # Instalador
 #
 # Uso recomendado:
-#   git clone <repo> /opt/kaplabilling
-#   cd /opt/kaplabilling
+#   git clone <repo> /opt/voxikam
+#   cd /opt/voxikam
 #   sudo ./install.sh
 #
 # Flags opcionales (omitir para menú interactivo):
@@ -21,7 +21,7 @@
 #   --reinstall  Borrar todo y reinstalar desde cero
 #
 # El directorio de instalación es donde está este script.
-# Queda guardado en /etc/kaplabilling.conf para referencia futura.
+# Queda guardado en /etc/voxikam.conf para referencia futura.
 # =============================================================================
 set -euo pipefail
 
@@ -29,7 +29,7 @@ INSTALL_START=$SECONDS   # timer global — se muestra en el resumen final
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$SCRIPT_DIR"             # puede cambiar si hay instalación previa en otra ruta
-MARKER_FILE="/etc/kaplabilling.conf"   # ubicación fija — siempre encontrable
+MARKER_FILE="/etc/voxikam.conf"   # ubicación fija — siempre encontrable
 
 # Cargar metadatos del release (nombre, versión, defaults)
 # Editar release.conf para cambiar nombre o versión — no tocar este script
@@ -54,7 +54,7 @@ done
 
 source "$INSTALL_DIR/scripts/_colors.sh"
 
-LOG_DIR="/kaplabilling-install/logs-configs"
+LOG_DIR="/voxikam-install/logs-configs"
 CREDS_FILE="$LOG_DIR/credentials.conf"
 
 [[ $EUID -ne 0 ]] && { err "Ejecutar como root: sudo ./install.sh"; exit 1; }
@@ -71,7 +71,7 @@ echo "  ╚═══════════════════════
 echo -e "${NC}"
 echo -e "  ${BOLD}Plataforma:${NC} $PLATFORM_NAME v$PLATFORM_VERSION"
 echo -e "  ${BOLD}Directorio origen:${NC} $SCRIPT_DIR"
-echo -e "  ${BOLD}Usuario:${NC}           kaplabilling  (sin shell, sin login — solo servicios)"
+echo -e "  ${BOLD}Usuario:${NC}           voxikam  (sin shell, sin login — solo servicios)"
 echo -e "  ${BOLD}Log:${NC}               $LOG_FILE"
 echo ""
 
@@ -87,8 +87,8 @@ _drop_db() {
     [[ -n "$pass" ]] && args+=(--password="$pass")
     mysql "${args[@]}" \
         -e "DROP DATABASE IF EXISTS sip_platform; \
-            DROP USER IF EXISTS 'kaplabilling'@'127.0.0.1'; \
-            DROP USER IF EXISTS 'kaplabilling'@'localhost'; \
+            DROP USER IF EXISTS 'voxikam'@'127.0.0.1'; \
+            DROP USER IF EXISTS 'voxikam'@'localhost'; \
             FLUSH PRIVILEGES;" 2>/dev/null
 }
 
@@ -179,7 +179,7 @@ if [[ "$MODE" == "upgrade" || "$MODE" == "reinstall" || "$MODE" == "update" ]]; 
     # Detener servicios ANTES de tocar archivos (solo upgrade/reinstall — update hace hot-reload)
     if [[ "$MODE" != "update" ]]; then
         hdr "Deteniendo servicios"
-        for _svc in kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
+        for _svc in voxikam-backend voxikam-frontend voxikam-hep; do
             if systemctl is-active --quiet "$_svc" 2>/dev/null; then
                 systemctl stop "$_svc" && ok "Detenido: $_svc"
             else
@@ -207,9 +207,9 @@ if [[ "$MODE" == "upgrade" || "$MODE" == "reinstall" || "$MODE" == "update" ]]; 
         echo ""
     fi
 else
-    # Fresh: el destino SIEMPRE es /opt/kaplabilling, independientemente de donde
+    # Fresh: el destino SIEMPRE es /opt/voxikam, independientemente de donde
     # se ejecutó el install. Si el origen es distinto, se copia antes de continuar.
-    INSTALL_DIR="/opt/kaplabilling"
+    INSTALL_DIR="/opt/voxikam"
     if [[ "$SCRIPT_DIR" != "$INSTALL_DIR" ]]; then
         hdr "Copiando archivos → $INSTALL_DIR"
         info "Origen:  $SCRIPT_DIR"
@@ -360,20 +360,20 @@ if [[ "$MODE" == "update" ]]; then
 
     # ── Crontab ────────────────────────────────────────────────────────────────
     hdr "Crontab"
-    # Directorio de logs para crons de usuario kaplabilling (LOG_DIR es root-only)
+    # Directorio de logs para crons de usuario voxikam (LOG_DIR es root-only)
     mkdir -p "$INSTALL_DIR/logs"
-    chown kaplabilling:kaplabilling "$INSTALL_DIR/logs"
+    chown voxikam:voxikam "$INSTALL_DIR/logs"
     chmod 755 "$INSTALL_DIR/logs"
     rm -f /etc/cron.d/sip-platform   # limpiar nombre anterior
     sed \
         -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
         -e "s|__LOG_DIR__|$LOG_DIR|g"         \
-        "$INSTALL_DIR/cron/kaplabilling" > /etc/cron.d/kaplabilling
-    chmod 644 /etc/cron.d/kaplabilling
-    ok "Crontab configurado — logs kaplabilling en $INSTALL_DIR/logs/"
+        "$INSTALL_DIR/cron/voxikam" > /etc/cron.d/voxikam
+    chmod 644 /etc/cron.d/voxikam
+    ok "Crontab configurado — logs voxikam en $INSTALL_DIR/logs/"
 
     # ── Directorio de datos runtime ────────────────────────────────────────────
-    mkdir -p /var/lib/kaplabilling
+    mkdir -p /var/lib/voxikam
     # Generar snapshot inicial de dlg.stats_active para que la API live no arranque en blanco
     "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/scripts/cron_dlg_stats.py" 2>/dev/null || true
 
@@ -404,16 +404,16 @@ EOF
         || warn "rsyslog no pudo iniciarse — revisar: journalctl -u rsyslog"
 
     # ── Permisos scripts ───────────────────────────────────────────────────────
-    chown -R kaplabilling:kaplabilling "$INSTALL_DIR"
+    chown -R voxikam:voxikam "$INSTALL_DIR"
     chmod +x "$INSTALL_DIR/scripts/"*.py
-    # Grupo kamailio: kaplabilling necesita acceder al socket kamcmd para timeseries
-    getent group kamailio > /dev/null 2>&1 && usermod -aG kamailio kaplabilling && \
-        ok "kaplabilling → grupo kamailio (kamcmd accessible)" || true
+    # Grupo kamailio: voxikam necesita acceder al socket kamcmd para timeseries
+    getent group kamailio > /dev/null 2>&1 && usermod -aG kamailio voxikam && \
+        ok "voxikam → grupo kamailio (kamcmd accessible)" || true
     ok "Permisos aplicados"
 
-    # ── Actualizar service files (rename sip- → kaplabilling-) ───────────────
+    # ── Actualizar service files (rename sip- → voxikam-) ───────────────
     hdr "Actualizando servicios systemd"
-    for svc in kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
+    for svc in voxikam-backend voxikam-frontend voxikam-hep; do
         sed -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
             "$INSTALL_DIR/systemd/${svc}.service" \
             > "/etc/systemd/system/${svc}.service"
@@ -429,8 +429,8 @@ EOF
     # ── Reiniciar servicios de aplicación (Kamailio NO se toca) ───────────────
     hdr "Reiniciando servicios"
     systemctl daemon-reload
-    systemctl enable kaplabilling-backend kaplabilling-frontend kaplabilling-hep 2>/dev/null || true
-    for _svc in kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
+    systemctl enable voxikam-backend voxikam-frontend voxikam-hep 2>/dev/null || true
+    for _svc in voxikam-backend voxikam-frontend voxikam-hep; do
         systemctl restart "$_svc" \
             && ok "Reiniciado: $_svc" \
             || warn "$_svc falló — revisar: journalctl -u $_svc -n 20"
@@ -441,7 +441,7 @@ EOF
     sleep 4
     echo ""
     _ALL_OK=true
-    for _svc in kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
+    for _svc in voxikam-backend voxikam-frontend voxikam-hep; do
         systemctl is-active --quiet "$_svc" \
             && ok "$_svc activo" \
             || { err "$_svc no está corriendo — journalctl -u $_svc -n 20"; _ALL_OK=false; }
@@ -459,7 +459,7 @@ EOF
     echo -e "  ${BOLD}Tiempo total:${NC} $_ELAPSED_FMT"
     echo -e "  ${BOLD}Log:${NC}          $LOG_FILE"
     echo ""
-    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/la plataforma anterior"
+    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/VoxiKam"
     echo ""
     exit 0
 fi
@@ -584,7 +584,7 @@ else
 
     DB_PORT=$(shuf -i 33100-33999 -n 1)
     DB_ROOT_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
-    DB_USER="kaplabilling"
+    DB_USER="voxikam"
     DB_PASS=$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)
     DB_NAME="sip_platform"
     JWT_SECRET=$(openssl rand -hex 32)
@@ -629,7 +629,7 @@ EOF
     ok "Credenciales → $CREDS_FILE"
 
     cat > "$MARKER_FILE" <<EOF
-# KPBTec la plataforma anterior — archivo de configuración del sistema
+# KPBTec VoxiKam — archivo de configuración del sistema
 # Generado por install.sh — no editar manualmente
 INSTALL_DIR=$INSTALL_DIR
 LOG_DIR=$LOG_DIR
@@ -654,7 +654,7 @@ fi
 if [[ "$MODE" != "upgrade" ]]; then
     hdr "Configurando MariaDB"
 
-    cat > /etc/mysql/mariadb.conf.d/99-kaplabilling.cnf <<EOF
+    cat > /etc/mysql/mariadb.conf.d/99-voxikam.cnf <<EOF
 [mysqld]
 port                    = $DB_PORT
 bind-address            = 127.0.0.1
@@ -734,7 +734,7 @@ $MC "$DB_NAME" < "$INSTALL_DIR/db/schema.sql"
 # Upsert de settings que el instalador conoce (funciona en fresh y upgrade)
 $MC "$DB_NAME" -e "
 INSERT INTO settings (key_name, value, description) VALUES
-  ('platform_version', '${INSTALLER_VERSION}', 'Versión instalada de la plataforma anterior'),
+  ('platform_version', '${INSTALLER_VERSION}', 'Versión instalada de VoxiKam'),
   ('ssh_port',         '${SSH_PORT}',           'Puerto SSH del servidor (para reglas firewall)'),
   ('lan_peers',        '',                      'IPs Asterisk/ViciBox LAN (host:puerto, coma-separados) — genera Grupo 1 dispatcher')
 ON DUPLICATE KEY UPDATE value = VALUES(value), description = VALUES(description);
@@ -899,7 +899,7 @@ apply_conf() {
     ok "$dst"
 }
 
-apply_conf "$INSTALL_DIR/nginx/kaplabilling.conf"  "/etc/nginx/sites-available/kaplabilling.conf"
+apply_conf "$INSTALL_DIR/nginx/voxikam.conf"  "/etc/nginx/sites-available/voxikam.conf"
 apply_conf "$INSTALL_DIR/nftables/nftables.conf"   "/etc/nftables.conf"
 apply_conf "$INSTALL_DIR/rtpengine/rtpengine.conf" "/etc/rtpengine/rtpengine.conf"
 
@@ -930,8 +930,8 @@ python3 "$INSTALL_DIR/scripts/gen_configs.py" \
 hdr "Performance tuning del sistema"
 
 # ── sysctl: buffers de red, conntrack, file descriptors ──────────────────────
-cat > /etc/sysctl.d/99-kaplabilling.conf << 'EOF'
-# la plataforma anterior v2.0 — SIP/RTP performance tuning
+cat > /etc/sysctl.d/99-voxikam.conf << 'EOF'
+# VoxiKam v2.0 — SIP/RTP performance tuning
 
 # Buffers de socket UDP (RTPEngine necesita buffers grandes para bursts)
 net.core.rmem_max           = 67108864
@@ -958,12 +958,12 @@ net.netfilter.nf_conntrack_udp_timeout_stream   = 30
 net.netfilter.nf_conntrack_generic_timeout      = 120
 EOF
 
-sysctl -p /etc/sysctl.d/99-kaplabilling.conf > /dev/null 2>&1 \
+sysctl -p /etc/sysctl.d/99-voxikam.conf > /dev/null 2>&1 \
     && ok "sysctl aplicado" \
     || warn "sysctl: algunos parámetros no disponibles en este kernel (normal en VMs)"
 
 # ── Blacklist nf_conntrack_sip — interfiere con RTPEngine ────────────────────
-cat > /etc/modprobe.d/kaplabilling-blacklist.conf << 'EOF'
+cat > /etc/modprobe.d/voxikam-blacklist.conf << 'EOF'
 # El helper SIP del kernel parsea y reescribe SDPs — entra en conflicto con RTPEngine
 blacklist nf_conntrack_sip
 install nf_conntrack_sip /bin/true
@@ -974,7 +974,7 @@ ok "nf_conntrack_sip desactivado"
 # ── Systemd override para Kamailio ───────────────────────────────────────────
 if systemctl list-units --full -all 2>/dev/null | grep -qE "kamailio(\.service)?"; then
     mkdir -p /etc/systemd/system/kamailio.service.d
-    cat > /etc/systemd/system/kamailio.service.d/kaplabilling-limits.conf << EOF
+    cat > /etc/systemd/system/kamailio.service.d/voxikam-limits.conf << EOF
 [Service]
 LimitNOFILE=65536
 LimitMEMLOCK=infinity
@@ -989,7 +989,7 @@ fi
 # ── Systemd override para RTPEngine ──────────────────────────────────────────
 if systemctl list-units --full -all 2>/dev/null | grep -q "rtpengine.service"; then
     mkdir -p /etc/systemd/system/rtpengine.service.d
-    cat > /etc/systemd/system/rtpengine.service.d/kaplabilling-limits.conf << 'EOF'
+    cat > /etc/systemd/system/rtpengine.service.d/voxikam-limits.conf << 'EOF'
 [Service]
 LimitNOFILE=65536
 LimitMEMLOCK=infinity
@@ -1004,7 +1004,7 @@ systemctl daemon-reload 2>/dev/null || true
 # ── Kamailio logging — rsyslog LOCAL0 → /var/log/kamailio.log ────────────────
 mkdir -p /etc/rsyslog.d /etc/logrotate.d
 cat > /etc/rsyslog.d/40-kamailio.conf << 'EOF'
-# la plataforma anterior — captura logs de Kamailio (facility LOCAL0)
+# VoxiKam — captura logs de Kamailio (facility LOCAL0)
 # kamailio.cfg: log_facility=LOG_LOCAL0 log_stderror=no
 if $syslogfacility-text == 'local0' then /var/log/kamailio.log
 & stop
@@ -1054,8 +1054,8 @@ if systemctl is-active mariadb &>/dev/null || systemctl is-active mysql &>/dev/n
         INNODB_POOL_MB=512
     fi
 
-    cat > /etc/mysql/mariadb.conf.d/99-kaplabilling-perf.cnf << EOF
-# la plataforma anterior v2.0 — MariaDB performance tuning
+    cat > /etc/mysql/mariadb.conf.d/99-voxikam-perf.cnf << EOF
+# VoxiKam v2.0 — MariaDB performance tuning
 # Auto-calculado: RAM=${TOTAL_MEM_MB}MB → InnoDB pool=${INNODB_POOL_MB}MB
 [mysqld]
 innodb_buffer_pool_size        = ${INNODB_POOL_MB}M
@@ -1073,8 +1073,8 @@ fi
 
 # ── NIC ring buffers via udev + aplicar ahora ────────────────────────────────
 if command -v ethtool &>/dev/null; then
-    cat > /etc/udev/rules.d/71-kaplabilling-nic.rules << 'EOF'
-# la plataforma anterior v2.0 — ring buffers 4096 en todas las NICs físicas
+    cat > /etc/udev/rules.d/71-voxikam-nic.rules << 'EOF'
+# VoxiKam v2.0 — ring buffers 4096 en todas las NICs físicas
 ACTION=="add", SUBSYSTEM=="net", KERNEL!="lo", DRIVERS=="?*", \
     RUN+="/sbin/ethtool -G $name rx 4096 tx 4096 2>/dev/null || true"
 EOF
@@ -1192,61 +1192,61 @@ nft -f /etc/nftables.conf
 ok "nftables activo"
 
 # =============================================================================
-# PASO 12 — Usuario kaplabilling + permisos + sudoers + servicios systemd
+# PASO 12 — Usuario voxikam + permisos + sudoers + servicios systemd
 # =============================================================================
 hdr "Usuario del sistema y permisos"
 
 # Crear usuario dedicado sin shell (no puede hacer login)
-id kaplabilling &>/dev/null || useradd \
+id voxikam &>/dev/null || useradd \
     --system \
     --no-create-home \
     --shell /usr/sbin/nologin \
     --comment "KPBTec VoxiKam service account" \
-    kaplabilling
-ok "Usuario kaplabilling listo"
+    voxikam
+ok "Usuario voxikam listo"
 
 # Propiedad completa del directorio de instalación
-chown -R kaplabilling:kaplabilling "$INSTALL_DIR"
+chown -R voxikam:voxikam "$INSTALL_DIR"
 chmod 750 "$INSTALL_DIR"
 
 # www-data necesita traversar el directorio para servir estáticos de Next.js
 # nginx corre como www-data — sin esta membresía: Permission denied en /_next/static/
-usermod -aG kaplabilling www-data
-ok "www-data agregado al grupo kaplabilling (nginx puede leer estáticos)"
+usermod -aG voxikam www-data
+ok "www-data agregado al grupo voxikam (nginx puede leer estáticos)"
 
-# kaplabilling necesita acceder al socket de Kamailio para kamcmd dlg.briefing
+# voxikam necesita acceder al socket de Kamailio para kamcmd dlg.briefing
 # el socket /run/kamailio/kamailio_ctl es del grupo kamailio — sin esto: Permission denied
 if getent group kamailio > /dev/null 2>&1; then
-    usermod -aG kamailio kaplabilling
-    ok "kaplabilling agregado al grupo kamailio (kamcmd accessible)"
+    usermod -aG kamailio voxikam
+    ok "voxikam agregado al grupo kamailio (kamcmd accessible)"
 fi
 
-# Scripts Python ejecutables por kaplabilling
+# Scripts Python ejecutables por voxikam
 chmod +x "$INSTALL_DIR/scripts/"*.py
 chmod +x "$INSTALL_DIR/scripts/setup/"*.sh
 
-ok "Propiedad de $INSTALL_DIR → kaplabilling (scripts ejecutables)"
+ok "Propiedad de $INSTALL_DIR → voxikam (scripts ejecutables)"
 
-# /etc/nftables.d/ — kaplabilling escribe los .nft desde gen_nftables.py
-chown root:kaplabilling /etc/nftables.d
+# /etc/nftables.d/ — voxikam escribe los .nft desde gen_nftables.py
+chown root:voxikam /etc/nftables.d
 chmod 775 /etc/nftables.d
-chown kaplabilling:kaplabilling /etc/nftables.d/*.nft 2>/dev/null || true
-ok "Permisos /etc/nftables.d → kaplabilling puede escribir"
+chown voxikam:voxikam /etc/nftables.d/*.nft 2>/dev/null || true
+ok "Permisos /etc/nftables.d → voxikam puede escribir"
 
 # /etc/kamailio/ — dispatcher.list + kamailio.cfg
 if [[ -d /etc/kamailio ]]; then
     # dispatcher.list — escrito por gen_dispatcher.py
     touch /etc/kamailio/dispatcher.list 2>/dev/null || true
-    chown kaplabilling:kaplabilling /etc/kamailio/dispatcher.list 2>/dev/null || true
-    ok "Permisos /etc/kamailio/dispatcher.list → kaplabilling"
+    chown voxikam:voxikam /etc/kamailio/dispatcher.list 2>/dev/null || true
+    ok "Permisos /etc/kamailio/dispatcher.list → voxikam"
 
-    # kaplabilling-routes.cfg — generado por gen_dispatcher.py, debe existir
+    # voxikam-routes.cfg — generado por gen_dispatcher.py, debe existir
     # antes de que kamailio arranque (lo usa #!include_file en kamailio.cfg)
-    if [[ ! -f /etc/kamailio/kaplabilling-routes.cfg ]]; then
+    if [[ ! -f /etc/kamailio/voxikam-routes.cfg ]]; then
         echo "# AUTO-GENERADO por gen_dispatcher.py — vacío hasta primer sync" \
-            > /etc/kamailio/kaplabilling-routes.cfg
-        chown kaplabilling:kaplabilling /etc/kamailio/kaplabilling-routes.cfg 2>/dev/null || true
-        ok "kaplabilling-routes.cfg creado (vacío inicial)"
+            > /etc/kamailio/voxikam-routes.cfg
+        chown voxikam:voxikam /etc/kamailio/voxikam-routes.cfg 2>/dev/null || true
+        ok "voxikam-routes.cfg creado (vacío inicial)"
     fi
 
     # kamailio.cfg — siempre se regenera desde template (fresh y upgrade)
@@ -1265,12 +1265,12 @@ else
     warn "/etc/kamailio no existe — instalar Kamailio y luego ejecutar: sudo ./install.sh --upgrade"
 fi
 
-# sudoers: kaplabilling puede ejecutar SOLO nft y kamcmd como root (sin password)
-cp "$INSTALL_DIR/sudoers/kaplabilling" /etc/sudoers.d/kaplabilling
-chmod 440 /etc/sudoers.d/kaplabilling
+# sudoers: voxikam puede ejecutar SOLO nft y kamcmd como root (sin password)
+cp "$INSTALL_DIR/sudoers/voxikam" /etc/sudoers.d/voxikam
+chmod 440 /etc/sudoers.d/voxikam
 # Validar que el archivo no rompe sudo
-visudo -c -f /etc/sudoers.d/kaplabilling && ok "Sudoers configurado — kaplabilling puede: nft, kamcmd" \
-    || { err "Error en sudoers — revisar $INSTALL_DIR/sudoers/kaplabilling"; exit 1; }
+visudo -c -f /etc/sudoers.d/voxikam && ok "Sudoers configurado — voxikam puede: nft, kamcmd" \
+    || { err "Error en sudoers — revisar $INSTALL_DIR/sudoers/voxikam"; exit 1; }
 
 hdr "Servicios systemd"
 
@@ -1282,7 +1282,7 @@ for old in sip-backend sip-frontend sip-hep; do
 done
 
 # Aplicar INSTALL_DIR a los service files (reemplazo de __INSTALL_DIR__)
-for svc in kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
+for svc in voxikam-backend voxikam-frontend voxikam-hep; do
     sed "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
         "$INSTALL_DIR/systemd/${svc}.service" \
         > "/etc/systemd/system/${svc}.service"
@@ -1290,8 +1290,8 @@ for svc in kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
 done
 
 systemctl daemon-reload
-systemctl enable --now kaplabilling-backend kaplabilling-frontend kaplabilling-hep
-ok "kaplabilling-backend, kaplabilling-frontend y kaplabilling-hep habilitados"
+systemctl enable --now voxikam-backend voxikam-frontend voxikam-hep
+ok "voxikam-backend, voxikam-frontend y voxikam-hep habilitados"
 
 # =============================================================================
 # PASO 12b — Regenerar dispatcher.list + routes.cfg desde DB
@@ -1334,7 +1334,7 @@ hdr "Nginx"
 
 # Limpiar nombre anterior si existe
 rm -f /etc/nginx/sites-enabled/sip-platform.conf /etc/nginx/sites-available/sip-platform.conf
-ln -sf /etc/nginx/sites-available/kaplabilling.conf /etc/nginx/sites-enabled/kaplabilling.conf
+ln -sf /etc/nginx/sites-available/voxikam.conf /etc/nginx/sites-enabled/voxikam.conf
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl reload nginx
 ok "Nginx en puerto $WEB_PORT"
@@ -1345,15 +1345,15 @@ ok "Nginx en puerto $WEB_PORT"
 hdr "Tareas programadas"
 
 mkdir -p "$INSTALL_DIR/logs"
-chown kaplabilling:kaplabilling "$INSTALL_DIR/logs"
+chown voxikam:voxikam "$INSTALL_DIR/logs"
 chmod 755 "$INSTALL_DIR/logs"
 rm -f /etc/cron.d/sip-platform
 sed \
     -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
     -e "s|__LOG_DIR__|$LOG_DIR|g"         \
-    "$INSTALL_DIR/cron/kaplabilling" > /etc/cron.d/kaplabilling
-chmod 644 /etc/cron.d/kaplabilling
-ok "Crontab configurado — logs kaplabilling en $INSTALL_DIR/logs/"
+    "$INSTALL_DIR/cron/voxikam" > /etc/cron.d/voxikam
+chmod 644 /etc/cron.d/voxikam
+ok "Crontab configurado — logs voxikam en $INSTALL_DIR/logs/"
 
 # =============================================================================
 # PASO 15 — Health checks
@@ -1374,9 +1374,9 @@ chk_http() {
 
 chk_svc mariadb
 chk_svc nginx
-chk_svc kaplabilling-backend
-chk_svc kaplabilling-frontend
-chk_svc kaplabilling-hep
+chk_svc voxikam-backend
+chk_svc voxikam-frontend
+chk_svc voxikam-hep
 chk_http "FastAPI"  8000      "/api/health"
 chk_http "Next.js"  3000      "/"
 chk_http "Nginx"    "$WEB_PORT" "/health"
@@ -1409,14 +1409,14 @@ if [[ "$ALL_OK" == false ]]; then
     fi
     echo "  ╠══════════════════════════════════════════════════╣"
     echo "  ║  Diagnóstico:                                    ║"
-    echo "  ║  journalctl -u kaplabilling-backend -n 30 --no-pager     ║"
-    echo "  ║  journalctl -u kaplabilling-frontend -n 30 --no-pager    ║"
-    echo "  ║  journalctl -u kaplabilling-hep -n 30 --no-pager         ║"
+    echo "  ║  journalctl -u voxikam-backend -n 30 --no-pager     ║"
+    echo "  ║  journalctl -u voxikam-frontend -n 30 --no-pager    ║"
+    echo "  ║  journalctl -u voxikam-hep -n 30 --no-pager         ║"
     echo "  ╠══════════════════════════════════════════════════╣"
     printf "  ║  Tiempo:  %-39s║\n" "$_ELAPSED_FMT"
     echo "  ╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
-    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/la plataforma anterior"
+    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/VoxiKam"
     echo ""
 else
     echo -e "${BOLD}${GREEN}"
@@ -1441,6 +1441,6 @@ else
     printf "  ║  Tiempo:  %-39s║\n" "$_ELAPSED_FMT"
     echo "  ╚══════════════════════════════════════════════════╝"
     echo -e "${NC}"
-    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/la plataforma anterior"
+    echo -e "  ${BOLD}Visítanos en:${NC} github.com/KPBTec/VoxiKam"
     echo ""
 fi

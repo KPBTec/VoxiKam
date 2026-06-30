@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
@@ -8,7 +8,7 @@
 cron_dlg_stats.py — Snapshot de Kamailio cada 10 segundos.
 
 Ejecuta en un loop interno (5 × 10s = 50s) dentro del cron por-minuto.
-Guarda en /var/lib/kaplabilling/live_snapshot.json el JSON completo con:
+Guarda en /var/lib/voxikam/live_snapshot.json el JSON completo con:
   - resumen:            totales (activas, timbrando, total)
   - resumen_por_prefijo: por techprefix (para el widget "Activas por cliente")
   - llamadas:           detalle state=4 (contestadas confirmadas)
@@ -20,7 +20,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-SNAPSHOT_FILE = Path("/var/lib/kaplabilling/live_snapshot.json")
+SNAPSHOT_FILE = Path("/var/lib/voxikam/live_snapshot.json")
 INTERVAL      = 10   # segundos entre capturas
 ITERATIONS    = 5    # 5 × 10s = 50s → deja 10s buffer antes del siguiente cron
 
@@ -179,7 +179,7 @@ def main():
         try:
             snap = capture()
             SNAPSHOT_FILE.write_text(json.dumps(snap))
-            SNAPSHOT_FILE.chmod(0o644)   # legible por kaplabilling (cron_timeseries)
+            SNAPSHOT_FILE.chmod(0o644)   # legible por voxikam (cron_timeseries)
             r = snap.get("resumen", {})
             print(f"  ✓ {snap['ts']} activas={r.get('llamadas_activas',0)} "
                   f"timbrando={r.get('timbrando',0)} total={r.get('total',0)}")

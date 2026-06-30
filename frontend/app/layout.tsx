@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "la plataforma anterior",
+  title: "VoxiKam",
   description: "Plataforma de Billing SIP Class 4 — Carriers, Clientes y CDRs",
 };
 

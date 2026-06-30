@@ -1,6 +1,6 @@
 #!KAMAILIO
 # =============================================================================
-# la plataforma anterior SBC — kamailio.cfg
+# VoxiKam SBC — kamailio.cfg
 # Generado por install.sh — NO editar manualmente en fresh install
 # En upgrade, el archivo existente se conserva (ver install.sh PASO 8)
 #
@@ -10,7 +10,7 @@
 #
 # Flujo saliente:
 #   Asterisk → INVITE sip:{techprefix}{numero}@sbc
-#   → kaplabilling-routes.cfg quita techprefix + asigna $var(grp)
+#   → voxikam-routes.cfg quita techprefix + asigna $var(grp)
 #   → dispatcher selecciona carrier del grupo + aplica prefix= si corresponde
 #
 # Flujo entrante:
@@ -128,7 +128,7 @@ request_route {
 
     # Ocultar identidad interna
     remove_hf("User-Agent");
-    append_hf("User-Agent: la plataforma anterior-SBC\r\n");
+    append_hf("User-Agent: VoxiKam-SBC\r\n");
 
     # Peticiones dentro de diálogo (BYE, reINVITE, UPDATE, ACK 2xx…)
     if (has_totag()) {
@@ -182,7 +182,7 @@ request_route {
     # → llamada saliente (cliente). Si no coincide → llamada entrante (carrier).
     # Funciona igual para clientes LAN y WAN.
     $var(grp) = 0;
-#!include_file "/etc/kamailio/kaplabilling-routes.cfg"
+#!include_file "/etc/kamailio/voxikam-routes.cfg"
     if ($var(grp) != 0) {
         route(OUTBOUND_TO_CARRIER);
     } else {

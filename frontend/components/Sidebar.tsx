@@ -52,8 +52,17 @@ export function Sidebar({ role }: { role: "admin" | "client" }) {
       }}
     >
       {/* Logo */}
-      <div className="px-5 py-4 border-b border-[var(--color-border)]">
-        <Logo size="sm" />
+      <div className="px-4 py-3.5 border-b border-[var(--color-border)] flex items-center gap-3">
+        <Logo size="sm" variant="icon" />
+        <div>
+          <div className="text-[15px] font-bold leading-tight tracking-tight">
+            <span style={{ color: "#60a5fa" }}>Kapla</span>
+            <span style={{ color: "#94a3b8" }}>Billing</span>
+          </div>
+          <div className="text-[10px] font-medium tracking-widest uppercase" style={{ color: "var(--color-muted)" }}>
+            SIP Class 4
+          </div>
+        </div>
       </div>
 
       {/* Nav */}

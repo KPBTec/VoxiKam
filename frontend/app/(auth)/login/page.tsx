@@ -139,8 +139,8 @@ export default function LoginPage() {
         </form>
       </div>
 
-      <p className="mt-6 text-[11px]" style={{ color: "var(--color-muted)", opacity: 0.55 }}>
-        KPBTec · Knowledge, Protection &amp; Business Technology
+      <p className="mt-5 text-[11px]" style={{ color: "var(--color-muted)", opacity: 0.45 }}>
+        SIP Class 4 · Billing &amp; Traffic Control
       </p>
     </div>
   );

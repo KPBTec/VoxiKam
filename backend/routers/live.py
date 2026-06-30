@@ -1,4 +1,4 @@
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
@@ -20,7 +20,7 @@ from database import get_db
 router = APIRouter()
 log = logging.getLogger("live")
 
-_SNAPSHOT_FILE = Path("/var/lib/kaplabilling/live_snapshot.json")
+_SNAPSHOT_FILE = Path("/var/lib/voxikam/live_snapshot.json")
 
 
 def _read_snapshot() -> dict:

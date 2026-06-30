@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
@@ -16,7 +16,7 @@ Mitigaciones de impacto en DB:
   - Retención solo del día actual (ajustable con SIP_TRACE_DAYS, default=1)
   - Solo tráfico SIP (proto_type == 1)
 
-Corre como kaplabilling-hep.service usando el venv y .env del backend.
+Corre como voxikam-hep.service usando el venv y .env del backend.
 """
 import asyncio
 import logging
@@ -42,10 +42,10 @@ import aiomysql
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [kaplabilling-hep] %(levelname)s %(message)s",
+    format="%(asctime)s [voxikam-hep] %(levelname)s %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
 )
-log = logging.getLogger("kaplabilling-hep")
+log = logging.getLogger("voxikam-hep")
 
 HEP_HOST         = os.getenv("HEP_HOST", "127.0.0.1")
 HEP_PORT         = int(os.getenv("HEP_PORT", "9060"))
@@ -56,9 +56,9 @@ _u = urlparse(os.getenv("DATABASE_URL", ""))
 _DB = dict(
     host=_u.hostname or "127.0.0.1",
     port=_u.port or 3306,
-    user=_u.username or "kaplabilling",
+    user=_u.username or "voxikam",
     password=_u.password or "",
-    db=(_u.path or "/kaplabilling").lstrip("/"),
+    db=(_u.path or "/voxikam").lstrip("/"),
     charset="utf8mb4",
     autocommit=True,
 )

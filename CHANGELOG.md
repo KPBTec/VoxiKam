@@ -1,4 +1,4 @@
-# Changelog — KPBTec la plataforma anterior
+# Changelog — KPBTec VoxiKam
 
 Todas las versiones siguen el esquema `MAJOR.MINOR`:
 - **MAJOR** sube cuando hay cambios de arquitectura o breaking changes en el schema/API
@@ -58,7 +58,7 @@ Todas las versiones siguen el esquema `MAJOR.MINOR`:
 - Todos los modos (`fresh`, `--upgrade`, `--update`) muestran el tiempo total al finalizar (formato `Xm Ys`)
 
 **Feedback en el resumen:**
-- El resumen final incluye el link a `github.com/KPBTec/la plataforma anterior` para reportes y comentarios
+- El resumen final incluye el link a `github.com/KPBTec/VoxiKam` para reportes y comentarios
 
 **Upgrade:**
 - `./install.sh --upgrade` detecta Kamailio/RTPEngine existentes y los omite — sin cambios en servidores v2.2
@@ -140,7 +140,7 @@ Todas las versiones siguen el esquema `MAJOR.MINOR`:
 
 ### Performance Layer — System Tuning
 
-**sysctl `/etc/sysctl.d/99-kaplabilling.conf`:**
+**sysctl `/etc/sysctl.d/99-voxikam.conf`:**
 - `net.core.rmem_max/wmem_max = 64 MB` — previene drops de paquetes RTP en bursts
 - `net.core.netdev_max_backlog = 30000` — absorbe picos de tráfico antes de que el kernel los procese
 - `net.ipv4.ip_forward = 1` — preparación para módulo kernel xt_RTPENGINE (v2.1)
@@ -283,7 +283,7 @@ El admin puede ver el flujo SIP completo de cualquier llamada directamente desde
 - Cálculo automático: llamadas × tarifa − margen
 
 **Instalador:**
-- Modo `upgrade`: detecta la instalación existente via `/etc/kaplabilling.conf`, detiene servicios, sincroniza código con rsync, aplica migraciones de schema
+- Modo `upgrade`: detecta la instalación existente via `/etc/voxikam.conf`, detiene servicios, sincroniza código con rsync, aplica migraciones de schema
 - Modo `reinstall`: elimina datos y reinstala desde cero conservando la ruta instalada
 - Flags `--upgrade` / `--reinstall` para automatización
 - `release.conf`: nombre, versión y defaults centralizados — editar para re-brandear
@@ -301,4 +301,4 @@ El admin puede ver el flujo SIP completo de cualquier llamada directamente desde
 - **Kamailio SBC** + RTPEngine configurados automáticamente
 - **nftables** gestionado desde el panel (carriers + clientes en IPs)
 - **MariaDB** puerto aleatorio, bind 127.0.0.1
-- Usuario `kaplabilling` sin shell, permisos mínimos
+- Usuario `voxikam` sin shell, permisos mínimos

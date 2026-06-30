@@ -1,10 +1,10 @@
 # cron/
 
-Archivo crontab del sistema. install.sh aplica `sed` para reemplazar placeholders y lo copia a `/etc/cron.d/kaplabilling`.
+Archivo crontab del sistema. install.sh aplica `sed` para reemplazar placeholders y lo copia a `/etc/cron.d/voxikam`.
 
 ## Archivo
 
-`kaplabilling` — crontab con placeholders `__INSTALL_DIR__` y `__LOG_DIR__`.
+`voxikam` — crontab con placeholders `__INSTALL_DIR__` y `__LOG_DIR__`.
 
 ## Tareas programadas
 
@@ -14,19 +14,19 @@ Archivo crontab del sistema. install.sh aplica `sed` para reemplazar placeholder
 | `*/5 * * * *` (cada 5 min) | `gen_nftables.py` | `__LOG_DIR__/nft.log` |
 | `*/5 * * * *` (cada 5 min) | `gen_dispatcher.py` | `__LOG_DIR__/dispatcher.log` |
 
-Todos corren como usuario `kaplabilling`.
+Todos corren como usuario `voxikam`.
 
 ## Ver logs
 
 ```bash
-tail -f /kaplabilling-install/logs-configs/cron.log
-tail -f /kaplabilling-install/logs-configs/nft.log
-tail -f /kaplabilling-install/logs-configs/dispatcher.log
+tail -f /voxikam-install/logs-configs/cron.log
+tail -f /voxikam-install/logs-configs/nft.log
+tail -f /voxikam-install/logs-configs/dispatcher.log
 ```
 
 ## Modificar frecuencia
 
-Editar `/etc/cron.d/kaplabilling` directamente. No tocar `cron/kaplabilling` en el repo (solo se usa durante install). Los cambios en `/etc/cron.d/` son inmediatos, no hace falta recargar cron.
+Editar `/etc/cron.d/voxikam` directamente. No tocar `cron/voxikam` en el repo (solo se usa durante install). Los cambios en `/etc/cron.d/` son inmediatos, no hace falta recargar cron.
 
 ---
 

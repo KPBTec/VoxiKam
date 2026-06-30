@@ -90,7 +90,7 @@ FROM prefixes p;
 -- -----------------------------------------------------------------------------
 INSERT INTO settings (key_name, value, description) VALUES
 ('platform_name',      '__PLATFORM_NAME__',    'Nombre de la plataforma'),
-('platform_version',   '__PLATFORM_VERSION__', 'Versión instalada de la plataforma anterior'),
+('platform_version',   '__PLATFORM_VERSION__', 'Versión instalada de VoxiKam'),
 ('default_currency',   'PEN',                  'Moneda por defecto'),
 ('tax_rate',           '18.00',                'IGV / IVA en porcentaje'),
 ('invoice_prefix',     'INV',                  'Prefijo para facturas'),

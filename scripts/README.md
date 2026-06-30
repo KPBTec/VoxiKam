@@ -1,12 +1,12 @@
 # scripts/
 
-Scripts Python que corren como usuario `kaplabilling`. Todos leen `/etc/kaplabilling.conf` para encontrar `INSTALL_DIR` sin hardcodear paths.
+Scripts Python que corren como usuario `voxikam`. Todos leen `/etc/voxikam.conf` para encontrar `INSTALL_DIR` sin hardcodear paths.
 
 ## Patrón común
 
 ```python
 # Todos los scripts arrancan así:
-marker = Path("/etc/kaplabilling.conf")
+marker = Path("/etc/voxikam.conf")
 config = dict(line.split("=", 1) for line in marker.read_text().splitlines()
               if "=" in line and not line.startswith("#"))
 install_dir = Path(config["INSTALL_DIR"])
@@ -35,7 +35,7 @@ python3 gen_configs.py --public-ip X --private-ip Y --domain Z ...
 3. Escribe `/etc/nftables.d/carriers.nft` y `/etc/nftables.d/customers.nft`
 4. Ejecuta `sudo nft -f /etc/nftables.conf` para aplicar
 
-Requiere permisos: `kaplabilling` tiene `chown` sobre `/etc/nftables.d/` (grupo) y `sudo /usr/sbin/nft` sin password.
+Requiere permisos: `voxikam` tiene `chown` sobre `/etc/nftables.d/` (grupo) y `sudo /usr/sbin/nft` sin password.
 
 ### gen_dispatcher.py
 **Cuándo:** Cron cada 5 minutos, y cuando se agrega/modifica un carrier.
@@ -76,15 +76,15 @@ Helpers de color para el output del instalador. Expone funciones: `ok`, `err`, `
 
 ```bash
 # Regenerar nftables ahora
-sudo -u kaplabilling /opt/kaplabilling/venv/bin/python3 /opt/kaplabilling/scripts/gen_nftables.py
+sudo -u voxikam /opt/voxikam/venv/bin/python3 /opt/voxikam/scripts/gen_nftables.py
 
 # Regenerar dispatcher ahora
-sudo -u kaplabilling /opt/kaplabilling/venv/bin/python3 /opt/kaplabilling/scripts/gen_dispatcher.py
+sudo -u voxikam /opt/voxikam/venv/bin/python3 /opt/voxikam/scripts/gen_dispatcher.py
 
 # Ver log de cron
-tail -f /kaplabilling-install/logs-configs/cron.log
-tail -f /kaplabilling-install/logs-configs/nft.log
-tail -f /kaplabilling-install/logs-configs/dispatcher.log
+tail -f /voxikam-install/logs-configs/cron.log
+tail -f /voxikam-install/logs-configs/nft.log
+tail -f /voxikam-install/logs-configs/dispatcher.log
 ```
 
 ---

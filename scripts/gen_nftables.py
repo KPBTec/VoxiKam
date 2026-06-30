@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
@@ -20,7 +20,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # Leer INSTALL_DIR desde el marcador del sistema si existe,
 # sino usar la ubicación relativa a este script (fallback)
-_marker = Path("/etc/kaplabilling.conf")
+_marker = Path("/etc/voxikam.conf")
 if _marker.exists():
     for _line in _marker.read_text().splitlines():
         if _line.startswith("INSTALL_DIR="):
@@ -71,7 +71,7 @@ def render_dynamic(set_name: str, ips: list[str]) -> str:
 
 
 def apply_nftables():
-    # nft requiere root — kaplabilling tiene NOPASSWD para /usr/sbin/nft via sudoers
+    # nft requiere root — voxikam tiene NOPASSWD para /usr/sbin/nft via sudoers
     result = subprocess.run(
         ["sudo", "nft", "-f", str(NFTABLES_CONF)],
         capture_output=True, text=True, timeout=10

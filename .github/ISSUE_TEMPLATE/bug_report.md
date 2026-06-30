@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a problem with la plataforma anterior
+about: Report a problem with VoxiKam
 title: '[BUG] '
 labels: bug
 assignees: KPBTec
@@ -19,7 +19,7 @@ What you expected to happen.
 
 **Environment**
 - OS: [e.g. Debian 12]
-- la plataforma anterior version: [e.g. 2.2]
+- VoxiKam version: [e.g. 2.2]
 - Kamailio version: [e.g. 5.7]
 
 **Logs**

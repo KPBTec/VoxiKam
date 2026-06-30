@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
@@ -28,7 +28,7 @@ from pathlib import Path
 import pymysql
 from dotenv import load_dotenv
 
-_marker = Path("/etc/kaplabilling.conf")
+_marker = Path("/etc/voxikam.conf")
 if _marker.exists():
     for _line in _marker.read_text().splitlines():
         if _line.startswith("INSTALL_DIR="):

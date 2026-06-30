@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
@@ -8,7 +8,7 @@
 cron_timeseries.py — snapshot de llamadas contestadas por minuto.
 
 Lee el snapshot que cron_dlg_stats.py actualiza cada 10s en:
-  /var/lib/kaplabilling/live_snapshot.json
+  /var/lib/voxikam/live_snapshot.json
 
 Usa DATE_FORMAT(NOW(),...) de MySQL para el timestamp — así el backend
 que también usa NOW() siempre encuentra los datos sin importar la zona
@@ -25,7 +25,7 @@ from pathlib import Path
 import pymysql
 from dotenv import load_dotenv
 
-_marker = Path("/etc/kaplabilling.conf")
+_marker = Path("/etc/voxikam.conf")
 if _marker.exists():
     for _line in _marker.read_text().splitlines():
         if _line.startswith("INSTALL_DIR="):
@@ -36,7 +36,7 @@ else:
     _install = Path(__file__).parent.parent
 load_dotenv(_install / "backend" / ".env")
 
-SNAPSHOT_FILE = Path("/var/lib/kaplabilling/live_snapshot.json")
+SNAPSHOT_FILE = Path("/var/lib/voxikam/live_snapshot.json")
 
 
 def get_db():

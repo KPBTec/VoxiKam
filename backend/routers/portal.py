@@ -1,4 +1,4 @@
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
@@ -213,16 +213,16 @@ async def trunk_guide(
         "sbc_port":  5060,
         "sbc_domain": domain,
         "prefix":    customer.get("techprefix", ""),
-        "sip_conf": f"""[kaplabilling-trunk]
+        "sip_conf": f"""[voxikam-trunk]
 type=peer
 host={public_ip}
 port=5060
 insecure=port,invite
-context=from-kaplabilling
+context=from-voxikam
 disallow=all
 allow=ulaw,alaw,g729""",
-        "dialplan": f"""[kaplabilling-outbound]
+        "dialplan": f"""[voxikam-outbound]
 ; Marcar 51912345678 → tu Asterisk envía: {customer.get('techprefix', 'XXXX')}51912345678
-exten => _X.,1,Dial(SIP/{customer.get('techprefix', '')}${{EXTEN}}@kaplabilling-trunk)
+exten => _X.,1,Dial(SIP/{customer.get('techprefix', '')}${{EXTEN}}@voxikam-trunk)
  same  => n,Hangup()""",
     }

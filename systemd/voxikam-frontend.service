@@ -1,11 +1,11 @@
 [Unit]
-Description=la plataforma anterior — Next.js frontend
-After=network.target kaplabilling-backend.service
+Description=VoxiKam — Next.js frontend
+After=network.target voxikam-backend.service
 
 [Service]
 Type=simple
-User=kaplabilling
-Group=kaplabilling
+User=voxikam
+Group=voxikam
 WorkingDirectory=__INSTALL_DIR__/frontend
 Environment=PORT=3000
 Environment=NODE_ENV=production
@@ -15,7 +15,7 @@ Restart=always
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=kaplabilling-frontend
+SyslogIdentifier=voxikam-frontend
 
 [Install]
 WantedBy=multi-user.target

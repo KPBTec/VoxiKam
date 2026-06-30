@@ -1,5 +1,5 @@
 #!/bin/bash
-# la plataforma anterior — SIP Class 4 Billing & Monitoring Platform
+# VoxiKam — SIP Class 4 Billing & Monitoring Platform
 # Copyright (c) 2026 KPBTec
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
@@ -98,7 +98,7 @@ https://deb.sipwise.com/spce/mr10.5/ ${DISTRO_CODENAME} main" \
 
     # Habilitar servicio (no arrancar aún — la config se aplica en el paso siguiente)
     systemctl enable rtpengine 2>/dev/null || true
-    ok "rtpengine.service habilitado (arrancará con la config de la plataforma anterior)"
+    ok "rtpengine.service habilitado (arrancará con la config de VoxiKam)"
 fi
 
 ok "Stack SIP listo"

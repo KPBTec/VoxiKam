@@ -1,14 +1,14 @@
 # sudoers/
 
-Permisos sudo para el usuario `kaplabilling`. install.sh copia el archivo a `/etc/sudoers.d/kaplabilling` y lo valida con `visudo -c`.
+Permisos sudo para el usuario `voxikam`. install.sh copia el archivo a `/etc/sudoers.d/voxikam` y lo valida con `visudo -c`.
 
 ## Archivo
 
-`kaplabilling` — permisos NOPASSWD mínimos:
+`voxikam` — permisos NOPASSWD mínimos:
 
 ```
-kaplabilling ALL=(ALL) NOPASSWD: /usr/sbin/nft
-kaplabilling ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd
+voxikam ALL=(ALL) NOPASSWD: /usr/sbin/nft
+voxikam ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd
 ```
 
 ## Por qué solo estos dos comandos
@@ -21,8 +21,8 @@ kaplabilling ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd
 ## Verificar que está correcto
 
 ```bash
-visudo -c -f /etc/sudoers.d/kaplabilling
-sudo -u kaplabilling sudo nft list ruleset
+visudo -c -f /etc/sudoers.d/voxikam
+sudo -u voxikam sudo nft list ruleset
 ```
 
 ---

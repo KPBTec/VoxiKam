@@ -13,9 +13,9 @@ Schema y seed inicial para MariaDB 10.11+.
 
 ```bash
 # Obtener credenciales
-cat /kaplabilling-install/logs-configs/credentials.conf
+cat /voxikam-install/logs-configs/credentials.conf
 
-MC="mysql --user=kaplabilling --password=<DB_PASS> --host=127.0.0.1 --port=<DB_PORT>"
+MC="mysql --user=voxikam --password=<DB_PASS> --host=127.0.0.1 --port=<DB_PORT>"
 $MC sip_platform < schema.sql
 $MC sip_platform < seed.sql
 ```

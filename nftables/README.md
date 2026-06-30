@@ -52,11 +52,11 @@ Si no hay IPs en DB, el archivo queda vacío (sin bloques). El include de nftabl
 
 ```
 /etc/nftables.conf        → root:root 600
-/etc/nftables.d/          → root:kaplabilling 775  (kaplabilling escribe los .nft)
-/etc/nftables.d/*.nft     → kaplabilling:kaplabilling (creados por gen_nftables.py)
+/etc/nftables.d/          → root:voxikam 775  (voxikam escribe los .nft)
+/etc/nftables.d/*.nft     → voxikam:voxikam (creados por gen_nftables.py)
 ```
 
-`kaplabilling` puede ejecutar `sudo /usr/sbin/nft` sin password para aplicar la config.
+`voxikam` puede ejecutar `sudo /usr/sbin/nft` sin password para aplicar la config.
 
 ## Aplicar cambios manualmente
 
@@ -71,7 +71,7 @@ sudo nft -f /etc/nftables.conf
 nft list ruleset
 
 # Forzar regeneración desde DB ahora
-sudo -u kaplabilling /opt/kaplabilling/venv/bin/python3 /opt/kaplabilling/scripts/gen_nftables.py
+sudo -u voxikam /opt/voxikam/venv/bin/python3 /opt/voxikam/scripts/gen_nftables.py
 ```
 
 ## Firewall panel web → nftables

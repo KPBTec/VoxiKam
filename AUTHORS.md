@@ -1,4 +1,4 @@
-# Licencia y Autoría — la plataforma anterior
+# Licencia y Autoría — VoxiKam
 
 ## 📜 Licencia
 
