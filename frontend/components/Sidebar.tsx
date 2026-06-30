@@ -4,10 +4,10 @@ import { usePathname } from "next/navigation";
 import { logout, getUser, AuthUser } from "@/lib/auth";
 import {
   LayoutDashboard, Users, Server, DollarSign, Shield,
-  FileText, BarChart2, PhoneCall, LogOut, Radio, Activity, TrendingUp
+  FileText, BarChart2, PhoneCall, LogOut, Radio, Activity, TrendingUp,
+  Layers,
 } from "lucide-react";
-
-import { Layers } from "lucide-react";
+import { Logo } from "@/components/Logo";
 
 const adminNav = [
   { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
@@ -43,36 +43,76 @@ export function Sidebar({ role }: { role: "admin" | "client" }) {
       );
 
   return (
-    <aside className="w-56 min-h-screen bg-[var(--color-card)] border-r border-[var(--color-border)]
-                      flex flex-col fixed left-0 top-0">
-      <div className="px-6 py-5 border-b border-[var(--color-border)]">
-        <span className="text-brand-500 font-bold text-lg tracking-tight">Kapla</span><span className="text-white font-bold text-lg tracking-tight">Billing</span>
+    <aside
+      className="w-56 min-h-screen flex flex-col fixed left-0 top-0"
+      style={{
+        background: "var(--color-card)",
+        borderRight: "1px solid var(--color-border)",
+        backgroundImage: "linear-gradient(180deg, rgba(14,165,233,.04) 0%, transparent 35%)",
+      }}
+    >
+      {/* Logo */}
+      <div className="px-5 py-4 border-b border-[var(--color-border)]">
+        <Logo size="sm" />
       </div>
 
-      <nav className="flex-1 py-4 overflow-y-auto">
+      {/* Nav */}
+      <nav className="flex-1 py-3 overflow-y-auto space-y-0.5 px-2">
         {nav.map(({ href, label, icon: Icon }) => {
           const active = path.startsWith(href);
           return (
-            <Link key={href} href={href}
-              className={`flex items-center gap-3 px-6 py-2.5 text-sm transition-colors
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-2.5 px-4 py-2.5 text-[13px] rounded-lg transition-all
                 ${active
-                  ? "bg-brand-600/20 text-brand-400 border-r-2 border-brand-500"
-                  : "text-[var(--color-text-2)] hover:text-[var(--color-text)] hover:bg-white/5"
-                }`}>
-              <Icon size={16} />
+                  ? "font-semibold"
+                  : "font-medium hover:bg-white/5"
+                }`}
+              style={active ? {
+                background: "rgba(14,165,233,.12)",
+                color: "var(--color-brand-400)",
+                borderLeft: "2px solid var(--color-brand-500)",
+              } : {
+                color: "var(--color-text-2)",
+              }}
+            >
+              <Icon size={15} style={{ flexShrink: 0 }} />
               {label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-6 py-4 border-t border-[var(--color-border)]">
-        <p className="text-sm text-[var(--color-text)] font-medium truncate">{user?.name}</p>
-        <p className="text-xs text-[var(--color-text-2)] mb-3 capitalize">{user?.role}</p>
-        <button onClick={logout}
-          className="flex items-center gap-2 text-xs text-[var(--color-muted)]
-                     hover:text-danger transition-colors">
-          <LogOut size={14} /> Cerrar sesión
+      {/* Footer */}
+      <div className="px-5 py-4 border-t border-[var(--color-border)]">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+            style={{
+              background: "linear-gradient(135deg, var(--color-brand-600) 0%, var(--color-brand-500) 100%)",
+              boxShadow: "0 0 10px rgba(14,165,233,.3)",
+            }}
+          >
+            {user?.name?.[0]?.toUpperCase() ?? "U"}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold truncate" style={{ color: "var(--color-text)" }}>
+              {user?.name}
+            </p>
+            <p className="text-[11px] capitalize" style={{ color: "var(--color-text-2)" }}>
+              {user?.role}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 text-xs transition-colors cursor-pointer"
+          style={{ color: "var(--color-muted)" }}
+          onMouseEnter={e => (e.currentTarget.style.color = "var(--color-danger)")}
+          onMouseLeave={e => (e.currentTarget.style.color = "var(--color-muted)")}
+        >
+          <LogOut size={13} /> Cerrar sesión
         </button>
       </div>
     </aside>

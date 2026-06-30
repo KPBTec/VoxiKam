@@ -6,6 +6,41 @@ Todas las versiones siguen el esquema `MAJOR.MINOR`:
 
 ---
 
+## v2.4 — 2026-06-30
+
+### Frontend: Logo + redesign de plataforma
+
+**Nuevo componente `Logo.tsx`:**
+- Icono SVG con lettermark "K" y gradiente azul (`#0ea5e9 → #0284c7`), esquinas redondeadas, punto de acento
+- Tres tamaños (`sm`, `md`, `lg`) y modo icon-only
+- Nombre "**Kapla**Billing" con tipografía marcada (brand-400 + white), subtítulo "SIP Class 4/5"
+
+**Login (`app/(auth)/login/page.tsx`):**
+- Logo centrado sobre el card (ya no texto plano)
+- Fondo con gradiente radial azul sutil en la parte superior
+- Card con sombra profunda + glow azul difuso
+- Labels en uppercase tracking-widest, inputs con focus-border dinámico (JS)
+- Botón con glow azul en estado normal, opaco en loading
+
+**Sidebar (`components/Sidebar.tsx`):**
+- Logo `<Logo size="sm" />` reemplaza el texto plano en el header
+- Gradiente sutil en el fondo del sidebar (azul 4% → transparent)
+- Links activos con `borderLeft` azul + fondo semitransparente (inline styles para compatibilidad CSS vars)
+- Avatar de usuario con gradiente brand + glow, inicial del nombre
+- Hover en logout cambia a rojo (inline JS en lugar de Tailwind)
+
+**Tema (`globals.css`):**
+- Colores de fondo más profundos: `--color-surface: #070c16`, `--color-card: #0d1526`
+- Paleta extendida: `--color-brand-400`, `--color-card-2`, `--color-border-2`
+- Colores de texto más legibles: `--color-text: #e2e8f0`, `--color-text-2: #6b87a8`
+- Scrollbar personalizado: 5px, thumb azul oscuro
+- `-webkit-font-smoothing: antialiased` en body
+
+**Font (`app/layout.tsx`):**
+- Import Google Fonts Inter 400/500/600/700 en `<head>`
+
+---
+
 ## v2.3 — 2026-06-25
 
 ### Instalador autónomo: Kamailio 5.7 + RTPEngine 10.x · Timer · Feedback

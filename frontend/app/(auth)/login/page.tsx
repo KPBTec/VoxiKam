@@ -3,13 +3,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
+import { Logo } from "@/components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail]     = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError]     = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,56 +39,109 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface)]">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="text-brand-500 text-4xl font-bold mb-2 tracking-tight">Kapla<span className="text-white">Billing</span></div>
-          <p className="text-[var(--color-text-2)] text-sm">Plataforma SIP Class 4</p>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4"
+      style={{
+        background: "var(--color-surface)",
+        backgroundImage: "radial-gradient(ellipse 80% 50% at 50% -5%, rgba(14,165,233,.12) 0%, transparent 65%)",
+      }}
+    >
+      <div className="mb-8">
+        <Logo size="lg" />
+      </div>
+
+      <div
+        className="w-full max-w-sm rounded-2xl p-8 space-y-5"
+        style={{
+          background: "var(--color-card)",
+          border: "1px solid var(--color-border)",
+          boxShadow: "0 8px 40px rgba(0,0,0,.5), 0 0 60px rgba(14,165,233,.06)",
+        }}
+      >
+        <div>
+          <h1 className="text-lg font-semibold" style={{ color: "var(--color-text)" }}>
+            Iniciar sesión
+          </h1>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-2)" }}>
+            Ingresa tus credenciales para continuar
+          </p>
         </div>
 
-        <form onSubmit={submit}
-          className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl p-8 space-y-5 shadow-xl">
+        {error && (
+          <div
+            className="text-sm rounded-lg px-4 py-3"
+            style={{
+              background: "rgba(239,68,68,.1)",
+              border: "1px solid rgba(239,68,68,.25)",
+              color: "var(--color-danger)",
+            }}
+          >
+            {error}
+          </div>
+        )}
 
-          <h1 className="text-xl font-semibold text-[var(--color-text)]">Iniciar sesión</h1>
-
-          {error && (
-            <div className="bg-red-900/30 border border-red-700 text-red-300 text-sm rounded-lg px-4 py-3">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-1">
-            <label className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Email</label>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label
+              className="block text-[11px] font-semibold uppercase tracking-widest"
+              style={{ color: "var(--color-text-2)" }}
+            >
+              Email
+            </label>
             <input
-              type="email" required value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg
-                         px-4 py-3 text-[var(--color-text)] text-sm focus:outline-none
-                         focus:border-brand-500 transition-colors"
+              type="email" required value={email}
+              onChange={e => setEmail(e.target.value)}
               placeholder="admin@empresa.com"
+              className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all"
+              style={{
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = "var(--color-brand-500)")}
+              onBlur={e  => (e.currentTarget.style.borderColor = "var(--color-border)")}
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Contraseña</label>
+          <div className="space-y-1.5">
+            <label
+              className="block text-[11px] font-semibold uppercase tracking-widest"
+              style={{ color: "var(--color-text-2)" }}
+            >
+              Contraseña
+            </label>
             <input
-              type="password" required value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg
-                         px-4 py-3 text-[var(--color-text)] text-sm focus:outline-none
-                         focus:border-brand-500 transition-colors"
+              type="password" required value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all"
+              style={{
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = "var(--color-brand-500)")}
+              onBlur={e  => (e.currentTarget.style.borderColor = "var(--color-border)")}
             />
           </div>
 
-          <button type="submit" disabled={loading}
-            className="w-full bg-brand-600 hover:bg-brand-500 disabled:opacity-50
-                       text-white font-medium rounded-lg py-3 text-sm transition-colors">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-all mt-2 cursor-pointer"
+            style={{
+              background: loading ? "var(--color-brand-700)" : "var(--color-brand-600)",
+              boxShadow: loading ? "none" : "0 0 24px rgba(14,165,233,.3)",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
-
-        <p className="text-center text-xs text-[var(--color-text-2)] mt-6 opacity-50">
-          KPBTec · Knowledge, Protection &amp; Business Technology
-        </p>
       </div>
+
+      <p className="mt-6 text-[11px]" style={{ color: "var(--color-muted)", opacity: 0.55 }}>
+        KPBTec · Knowledge, Protection &amp; Business Technology
+      </p>
     </div>
   );
 }
