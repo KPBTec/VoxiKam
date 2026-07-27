@@ -8,8 +8,11 @@ SET NAMES utf8mb4;
 -- -----------------------------------------------------------------------------
 -- USUARIO ADMIN
 -- -----------------------------------------------------------------------------
-INSERT INTO users (name, email, password_hash, role, customer_id)
-VALUES ('Administrador', '__ADMIN_EMAIL__', '__ADMIN_HASH__', 'admin', NULL);
+-- El admin creado en la instalación es el super admin — el resto de admins
+-- que se creen después desde el panel no pueden desactivarlo ni resetear su
+-- contraseña (ver backend/routers/admin_users.py).
+INSERT INTO users (name, email, password_hash, role, is_superadmin, customer_id)
+VALUES ('Administrador', '__ADMIN_EMAIL__', '__ADMIN_HASH__', 'admin', 1, NULL);
 
 -- -----------------------------------------------------------------------------
 -- PLAN TARIFARIO POR DEFECTO
@@ -62,11 +65,6 @@ INSERT INTO prefixes (prefix, destination, group_name, country) VALUES
 ('5197', 'Moviles 97X',         'MOVILES',         'PE'),
 ('5198', 'Moviles 98X',         'MOVILES',         'PE'),
 ('5199', 'Moviles 99X',         'MOVILES',         'PE');
-
--- Optimización para longest-prefix-match
-INSERT INTO prefix_lengths (length, count)
-SELECT LENGTH(prefix), COUNT(*) FROM prefixes GROUP BY LENGTH(prefix)
-ON DUPLICATE KEY UPDATE count = VALUES(count);
 
 -- -----------------------------------------------------------------------------
 -- TARIFAS POR DEFECTO — aplica precio por grupo (ajustar en panel)

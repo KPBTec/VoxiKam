@@ -16,11 +16,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex min-h-screen flex-col">
       <div className="flex flex-1">
         <Sidebar role="admin" />
-        <main className="ml-56 flex-1 p-8 overflow-auto">{children}</main>
+        <main className="md:ml-56 flex-1 p-8 pt-20 md:pt-8 overflow-auto">{children}</main>
       </div>
-      <footer className="ml-56 px-8 py-3 border-t border-[var(--color-border)] flex items-center justify-between">
-        <span className="text-xs text-[var(--color-text-2)] opacity-40">VoxiKam · SIP Class 4</span>
-        <span className="text-xs text-[var(--color-text-2)] opacity-40">KPBTec · Knowledge, Protection &amp; Business Technology</span>
+      <footer className="md:ml-56 px-8 py-3 border-t border-[var(--color-border)] flex items-center justify-between text-xs text-[var(--color-text-2)] opacity-60">
+        <span>VoxiKam · SIP Class 4</span>
+        <span className="flex items-center gap-2.5">
+          <span>KPBTec · Knowledge, Protection &amp; Business Technology</span>
+          <span className="text-[0.68rem] px-2 py-0.5 rounded-full border border-[var(--color-border)]">
+            v{process.env.NEXT_PUBLIC_VOXIKAM_VERSION}
+          </span>
+        </span>
       </footer>
     </div>
   );

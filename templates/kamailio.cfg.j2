@@ -6,22 +6,38 @@
 #
 # Dual-NIC:
 #   LAN  {{ private_ip }}:5060  ←→  Asterisk/ViciBox (Grupo 1 dispatcher)
-#   WAN  {{ public_ip }}:5060   ←→  Carriers          (Grupo 100+customer_id dispatcher)
+#   WAN  {{ public_ip }}:5060   ←→  Carriers          (Grupo = carrier_groups.id, ver htable "techmap")
 #
 # Flujo saliente:
 #   Asterisk → INVITE sip:{techprefix}{numero}@sbc
-#   → voxikam-routes.cfg quita techprefix + asigna $var(grp)
+#   → lookup en el htable "techmap" (techprefix → grupo:cid:alg, ver más
+#     abajo y scripts/gen_dispatcher.py) quita el techprefix + asigna $var(grp)
 #   → dispatcher selecciona carrier del grupo + aplica prefix= si corresponde
 #
 # Flujo entrante:
 #   Carrier → INVITE → Asterisk (round-robin / failover, Grupo 1)
 #
 # Operación en caliente (sin reiniciar):
-#   kamcmd dispatcher.reload              # recargar dispatcher.list
-#   kamcmd pv.shvSet carrier_alg int 4   # 4=round-robin, 8=prioridad, 9=peso
+#   kamcmd dispatcher.reload              # recargar dispatcher.list (destinos)
+#   kamcmd htable.reload techmap          # recargar techprefix→grupo (gen_dispatcher.py lo dispara solo)
+#   kamcmd pv.shvSet carrier_alg int 4   # 4=round-robin, 8=prioridad (default global)
 #   kamcmd pv.shvSet carrier_failover int 0   # apagar failover
+#   # 11=reparto por % — es per-GRUPO (carrier_groups.algorithm), viaja
+#   # dentro del valor del htable "techmap" — ver route[OUTBOUND_TO_CARRIER]
+#   # ($var(alg)) y gen_dispatcher.py.
 #   kamcmd dispatcher.set_state dx 101 sip:IP:5060  # deshabilitar carrier
 #   kamcmd dispatcher.set_state ap 101 sip:IP:5060  # reactivar carrier
+#
+# Por qué NO es un #!include_file de archivo generado (como antes): esa
+# directiva se resuelve UNA sola vez, al compilar el script en el arranque
+# de Kamailio — un cliente/prefijo/grupo nuevo quedaba routeando con la
+# lógica vieja hasta reiniciar el proceso a mano, aunque el archivo ya
+# estuviera regenerado en disco (bug real encontrado en producción,
+# vd1sbc2). El htable "techmap" (con dbmode=1, respaldado en
+# techprefix_map) SÍ soporta recarga en caliente real vía `htable.reload`
+# — validado contra Kamailio 5.6.3 real en Docker: altas, bajas y cambios
+# de valor se reflejan sin restart. La lógica de acá abajo (el lookup en
+# sí) es fija — nunca cambia por cliente, solo cambian los DATOS del htable.
 # =============================================================================
 
 ####### Parámetros globales #######
@@ -29,7 +45,15 @@ debug=2
 log_stderror=no
 log_facility=LOG_LOCAL0
 fork=yes
-children=8
+children={{ kamailio_children }}
+# async_ms_sleep() (route[CPS_GATE], pacing de CPS) necesita ESTE parámetro
+# de core, no alcanza con modparam("async","workers",N) — ese es del
+# módulo async (async_route/timers), el core usa el suyo propio para
+# async_task_push(). Sin esto: "async task pushed, but no async workers -
+# ignoring" y la llamada queda colgada para siempre (probado real, Docker/
+# Kamailio 5.6.3 — un burst de CPS por encima del límite se quedaba sin
+# responder nunca, ni 200 ni 503).
+async_workers=4
 disable_tcp=yes
 auto_aliases=no
 open_files_limit=65536
@@ -57,10 +81,24 @@ loadmodule "db_mysql.so"
 loadmodule "sqlops.so"
 loadmodule "dialog.so"
 loadmodule "siptrace.so"
+loadmodule "htable.so"
+loadmodule "async.so"
 
 ####### Parámetros de módulos #######
 modparam("rr", "enable_full_lr", 1)
 modparam("rr", "append_fromtag", 1)
+
+# ctl (kamcmd): defaults (32KB/8KB) no alcanzan para "dlg.briefing" con
+# muchos diálogos activos a la vez — kamcmd responde "ERROR: reply too big"
+# en vez del dump, y ese texto de error pasaba sin avisar por el parser de
+# cron_dlg_stats.py, guardando "0 llamadas" como si fuera real (v2.24.15).
+# binrpc_max_body_size / binrpc_struct_max_body_size están en KB; binrpc_buffer_size en bytes.
+# Valores con margen amplio a propósito — el costo en RAM (~32MB) es
+# insignificante comparado con la memoria real de Kamailio (autotune.sh),
+# y da lugar para que el tráfico siga creciendo sin tener que volver a tocar esto.
+modparam("ctl", "binrpc_max_body_size", 16384)
+modparam("ctl", "binrpc_struct_max_body_size", 16384)
+modparam("ctl", "binrpc_buffer_size", 16384)
 
 # fr_timer: 3s sin 100 Trying → 408 → dispara failover al siguiente carrier
 # fr_inv_timer: tras el 1xx espera hasta 120s la respuesta final
@@ -91,13 +129,84 @@ modparam("dispatcher", "ds_ping_from", "sip:sbc@{{ public_ip }}")
 modparam("dispatcher", "ds_ping_latency_stats", 1)
 modparam("dispatcher", "ds_latency_estimator_alpha", 900)
 
+# CPS pacing por carrier — ver route[CPS_GATE] más abajo. Un carrier con
+# cps= en dispatcher.list (gen_dispatcher.py, desde carriers.cps_limit)
+# nunca recibe más INVITEs/seg que su límite — el excedente ESPERA
+# (reintentos cortos vía async_ms_sleep) y se reenvía apenas hay lugar, en
+# vez de rechazarse. Sin esto (cps_limit NULL), cero cambio de comportamiento.
+#
+# DISEÑO REAL (no el original): la primera versión intentaba encolar con
+# t_suspend() + una cola FIFO en htable, drenada por un rtimer que llamaba
+# t_continue() con el índice/label guardados. Probado contra un Kamailio
+# 5.6.3 real (Docker/Debian 12): t_continue() EXIGE que sus 2 primeros
+# parámetros sean constantes literales en el config — no acepta un valor
+# leído en runtime desde un $var()/$avp(), así que es IMPOSIBLE reanudar
+# una transacción elegida dinámicamente desde un route de rtimer. El
+# módulo async sí soporta esto (async_ms_sleep() con un valor runtime SÍ
+# parseó bien, confirmado igual con el Kamailio real) — reemplaza todo el
+# mecanismo de cola+drain por un reintento propio: cada llamada se
+# suspende a sí misma con async_ms_sleep(100) y vuelve a entrar a
+# route[CPS_GATE], sin necesitar guardar ni reanudar la transacción de
+# otra — el módulo async ya se encarga de eso internamente.
+#
+# cps: contador por (carrier_id, segundo actual) — autoexpire=2 limpia
+# solo los segundos viejos, nunca hace falta resetear a mano.
+modparam("htable", "htable", "cps=>size=8;autoexpire=2;")
+
+# techmap: techprefix → "grupo:customer_id:algoritmo", respaldado en MySQL
+# (techprefix_map, ver db/schema.sql) — dbmode=1 = auto-carga al arrancar Y
+# soporta `kamcmd htable.reload techmap` en caliente (ver el comentario
+# grande sobre esto más arriba). gen_dispatcher.py es el único que escribe
+# esta tabla — reemplaza TODO su contenido en cada corrida y dispara el
+# reload. size=10 = hasta 1024 slots, de sobra para la cantidad real de
+# prefijos técnicos de esta plataforma.
+modparam("htable", "db_url", "mysql://{{ db_user }}:{{ db_pass }}@127.0.0.1:{{ db_port }}/{{ db_name }}")
+modparam("htable", "htable", "techmap=>size=10;dbtable=techprefix_map;dbmode=1;")
+
+# balance_block: LISTA DE BLOQUEO (no mapeo) de techprefix con saldo prepago
+# agotado, respaldada en MySQL (balance_block_map, ver db/schema.sql) —
+# mismo dbmode=1 que techmap. scripts/sync_balance_block.py es el único que
+# escribe esta tabla (cron cada 1 min) y dispara `kamcmd htable.reload
+# balance_block`. Ausencia de la clave = permitido — postpago nunca aparece
+# acá. No corta llamadas en curso, solo evita originar una nueva.
+modparam("htable", "htable", "balance_block=>size=8;dbtable=balance_block_map;dbmode=1;")
+
+# workers: procesos dedicados que ejecutan las reanudaciones de
+# async_ms_sleep() — separados de los workers normales de SIP, así que un
+# reintento de CPS nunca bloquea tráfico de otro cliente/carrier.
+# ms_timer: resolución del timer interno en ms (10 alcanza de sobra para
+# reintentos de 100ms).
+modparam("async", "workers", 2)
+modparam("async", "ms_timer", 10)
+
 # SIP trace → mini-Homer (hep_listener.py escucha en :9060)
+#
+# trace_mode (no trace_flag/setflag/sip_trace() disperso por el script) —
+# INVESTIGADO A FONDO (fuente real de siptrace.c) tras un bug real: con el
+# modo anterior (trace_flag + sip_trace() llamado a mano en 4 puntos), el
+# BYE/INVITE relayed solo se veía en el ladder saliendo del SBC hacia el
+# destino, nunca el tramo de llegada real (origen→SBC) — porque ese modo
+# engancha callbacks de TM (trace_transaction: REQUEST_SENT, RESPONSE_IN,
+# RESPONSE_SENT, ACK_NEG_IN, E2ECANCEL_IN) y NO existe un callback de
+# "request recibido", solo de "request enviado" — por diseño del módulo,
+# no por un error de dónde se llamaba sip_trace() en este archivo. Las
+# respuestas (100/180/200) sí se veían completas porque SÍ tienen callback
+# de entrada y de salida.
+# trace_mode engancha en cambio los eventos de red del núcleo
+# (SREV_NET_DATA_RECV/SENT, siptrace_net_data_recv/send en siptrace.c) —
+# un nivel MÁS ABAJO que el de transacción SIP: cada paquete real que
+# Kamailio recibe o manda, en los dos sentidos, sin necesidad de ningún
+# sip_trace() en el script. Documentado explícitamente: "if [sip_trace() o
+# el flag] is done, then the storing and mirroring is duplicated" — por
+# eso NO hay que dejar los setflag(28)/sip_trace() de antes, hay que
+# sacarlos (ver más abajo, ya no están).
+modparam("siptrace", "trace_on", 1)
+modparam("siptrace", "trace_mode", 1)
 modparam("siptrace", "duplicate_uri", "sip:127.0.0.1:9060")
 modparam("siptrace", "hep_mode_on", 1)
 modparam("siptrace", "hep_version", 3)
 modparam("siptrace", "hep_capture_id", 1)
 modparam("siptrace", "trace_to_database", 0)
-modparam("siptrace", "trace_flag", 28)
 
 # CDR tracking via dialog + sqlops
 modparam("sqlops", "sqlcon", "kb=>mysql://{{ db_user }}:{{ db_pass }}@127.0.0.1:{{ db_port }}/{{ db_name }}")
@@ -137,6 +246,12 @@ request_route {
                 rtpengine_manage();
             }
             if (is_method("BYE")) {
+                # Liberar la sesión de RTPEngine AHORA — sin esto, queda huérfana
+                # hasta que expira sola por su propio timeout interno (hasta
+                # 3600s para streams silenciosos), acumulando sesiones zombie
+                # (medido en producción: 1158 sesiones RTPEngine vs 149
+                # diálogos reales en Kamailio en el mismo momento).
+                rtpengine_delete();
                 # Comparar $si (IP origen del BYE) con $dlg_var(src_ip) (IP del INVITE inicial).
                 # Si coinciden → el cliente/Asterisk cortó. Si no → el carrier cortó.
                 # $Ri (interfaz de recepción) no sirve porque Asterisk usa WAN (.33→.41).
@@ -167,6 +282,10 @@ request_route {
     }
 
     if (is_method("CANCEL")) {
+        # Llamada cancelada antes de ser contestada — si ya hubo early media
+        # (rtpengine_manage() en el INVITE inicial), liberar esa sesión
+        # también, mismo motivo que en BYE.
+        rtpengine_delete();
         if (t_check_trans()) { route(RELAY); }
         exit;
     }
@@ -180,9 +299,36 @@ request_route {
 
     # Detectar dirección por techprefix: si el R-URI tiene un techprefix conocido
     # → llamada saliente (cliente). Si no coincide → llamada entrante (carrier).
-    # Funciona igual para clientes LAN y WAN.
+    # Funciona igual para clientes LAN y WAN. TODOS los techprefix de esta
+    # plataforma son SIEMPRE 4 dígitos (invariante ya usado en el resto de
+    # la tooling, ej. gen_dispatcher.py/cron_dlg_stats.py) — un solo lookup
+    # fijo, sin loop de largos variables.
     $var(grp) = 0;
-#!include_file "/etc/kamailio/voxikam-routes.cfg"
+    $var(alg) = 0;
+    $var(techprefix) = $(rU{s.substr,0,4});
+    $var(techentry) = $sht(techmap=>$var(techprefix));
+    if ($var(techentry) != $null) {
+        $rU = $(rU{s.substr,4,0});
+        $var(grp) = $(var(techentry){s.select,0,:});
+        $var(cid) = $(var(techentry){s.select,1,:});
+        # campo alg vacío = grupo 'priority', sin override — $var(alg) se
+        # queda en 0 (cae a $shv(carrier_alg), ver OUTBOUND_TO_CARRIER).
+        $var(algraw) = $(var(techentry){s.select,2,:});
+        if ($var(algraw) != "") {
+            $var(alg) = $var(algraw);
+        }
+        $dlg_var(techprefix) = $var(techprefix);
+
+        # Cliente prepago con saldo agotado — bloquea SOLO llamadas nuevas,
+        # nunca corta una en curso (ver scripts/sync_balance_block.py y el
+        # comentario en db/schema.sql). Va acá adentro a propósito: solo
+        # aplica a llamadas que ya matchearon un techprefix de cliente real,
+        # nunca a tráfico entrante de carrier.
+        if ($sht(balance_block=>$var(techprefix)) != $null) {
+            sl_send_reply("402", "Payment Required");
+            exit;
+        }
+    }
     if ($var(grp) != 0) {
         route(OUTBOUND_TO_CARRIER);
     } else {
@@ -204,24 +350,60 @@ route[OUTBOUND_TO_CARRIER] {
         }
     }
 
-    # $var(grp) y $rU ya vienen listos desde request_route (include ya ejecutado)
+    # $var(grp) y $rU ya vienen listos desde request_route (include ya ejecutado).
+    # orig_rU/grp se copian a AVP (no $var) porque CPS_GATE puede suspenderse
+    # a sí mismo (async_ms_sleep) para reintentar — $var() NO sobrevive esa
+    # suspensión (es local a esta ejecución del script), $avp() sí, porque
+    # queda atado al mensaje/transacción. route[CARRIER_SEND] de abajo solo
+    # lee de $avp()/$dlg_var() por eso.
     $avp(orig_rU) = $rU;
+    $avp(grp) = $var(grp);
+    # customer_id REAL, viene del htable "techmap" junto con $var(grp) (ver
+    # gen_dispatcher.py) — $var(grp) ES el id real de carrier_groups (no un
+    # número derivado de customer_id), así que nunca hay que calcular cid a
+    # partir de grp.
+    $avp(cid) = $var(cid);
 
-    if (!ds_select_dst($var(grp), $shv(carrier_alg))) {
+    # alg=11 (reparto por %) / alg=4 (round robin) vienen del algoritmo del
+    # grupo (carrier_groups.algorithm), empaquetados en el htable "techmap"
+    # junto con $var(grp) (ver gen_dispatcher.py). Si el grupo es
+    # 'priority' viene vacío → $var(alg) se quedó en 0 (default de arriba)
+    # → usar el algoritmo global de siempre. No hace falta copiar a avp: se
+    # consume acá mismo, antes de cualquier t_suspend() posible de CPS_GATE.
+    if ($var(alg) == 0) {
+        $var(alg) = $shv(carrier_alg);
+    }
+
+    if (!ds_select_dst($var(grp), $var(alg))) {
         xlog("L_ERR", "OUTBOUND: sin carriers activos en grupo $var(grp) para $fU→$rU\n");
+        rtpengine_delete();
         t_reply("503", "No Carriers Available");
         exit;
     }
 
     route(SET_CARRIER_DST);
 
-    # Traza SIP → mini-Homer (activa toda la sesión vía flag 28)
-    setflag(28);
-    sip_trace();
+    # cps= en dispatcher.list (ver gen_dispatcher.py, desde carriers.cps_limit)
+    # — si el carrier elegido tiene límite, CPS_GATE decide entre relayar ya
+    # o esperar. Sin cps= (carrier sin límite), $avp(cps_limit) queda vacío
+    # y esto no hace nada — cero cambio de comportamiento para ese carrier.
+    # CPS_GATE es dueño de TODO el desenlace en este caso (relaya vía
+    # CARRIER_SEND o responde 503 vía CPS_TIMEOUT, siempre con exit adentro)
+    # — nunca vuelve el control acá abajo.
+    if ($avp(cps_limit) != $null && $avp(cps_limit) > 0) {
+        route(CPS_GATE);
+        exit;
+    }
 
-    # Iniciar tracking del diálogo para CDR y llamadas activas
-    $var(cid) = $var(grp) - 100;
-    $dlg_var(customer_id) = $var(cid);
+    route(CARRIER_SEND);
+}
+
+# Arma el diálogo/CDR-tracking y relaya — comparte código entre el camino
+# normal (arriba) y el reintentado desde CPS_GATE tras un async_ms_sleep.
+# Todo lo que usa viene de $avp()/$dlg_var(), nunca de $var() — ver el
+# comentario en OUTBOUND_TO_CARRIER sobre qué sobrevive esa suspensión.
+route[CARRIER_SEND] {
+    $dlg_var(customer_id) = $avp(cid);
     $dlg_var(src_ip)      = $si;
     $dlg_var(src_number)  = $fU;
     $dlg_var(dst_number)  = $avp(orig_rU);
@@ -249,27 +431,95 @@ route[SET_CARRIER_DST] {
     $rd = $(du{uri.host});
     $rp = $(du{uri.port});
 
-    # Leer carrier_id del atributo carid= del dispatcher.list
-    # y actualizar dlg_var (en failover se llama de nuevo → queda el carrier real)
+    # Leer carrier_id (+ límite de CPS si tiene) de los atributos del
+    # dispatcher.list y actualizar dlg_var (en failover se llama de nuevo
+    # → queda el carrier real). carrier_id y cps_limit van también a AVP
+    # — ver por qué en OUTBOUND_TO_CARRIER (tienen que sobrevivir el
+    # async_ms_sleep() de un reintento en CPS_GATE).
     $var(carrier_id) = $(xavp(_dsdst_=>attrs){param.value,carid});
     $dlg_var(carrier_id) = $var(carrier_id);
+    $avp(carrier_id)     = $var(carrier_id);
     $dlg_var(dst_raw)    = $rU;
+    $avp(cps_limit) = $(xavp(_dsdst_=>attrs){param.value,cps});
 
     xlog("L_INFO", "[$(ci{s.select,0,@})] OUTBOUND: src=$si from=$fU orig=$avp(orig_rU) rUri=$rU carrier=$du grp=$var(grp)\n");
+}
+
+# ── CPS pacing — ver comentario largo en modparam htable/async más arriba ──
+#
+# CPS_GATE: llamado desde OUTBOUND_TO_CARRIER solo cuando el carrier
+# elegido tiene cps= seteado. Camino rápido si hay lugar en el contador del
+# segundo actual. Si no, se reintenta a sí mismo: async_ms_sleep(100) +
+# route(CPS_GATE) de nuevo — el módulo async reanuda ESTA llamada
+# automáticamente (a diferencia de t_continue(), no hace falta guardar ni
+# pasarle ningún id a mano, y SÍ acepta el delay como valor runtime — los
+# dos, confirmado con kamailio -c real contra Kamailio 5.6.3). Sigue así
+# hasta que hay lugar o se cumple {{ cps_max_wait_ms }}ms, momento en que
+# se da por vencido (CPS_TIMEOUT, responde 503) en vez de esperar para
+# siempre — un carrier sostenidamente saturado tiene que fallar rápido, no
+# quedarse reintentando indefinidamente.
+route[CPS_GATE] {
+    $var(seckey) = "cps::" + $avp(carrier_id) + "::" + $TS;
+
+    # $shtinc() — probado contra Kamailio 5.6.3 real (Docker/Debian 12) con
+    # un .cfg mínimo aislado: SIEMPRE devuelve 0 y nunca persiste nada en
+    # la htable, aunque la doc/fuente del módulo dice que debería
+    # incrementar. Reemplazado por lectura+escritura manual.
+    #
+    # sht_lock()/sht_unlock() — probado igual de real: NO aceptan un
+    # argumento con $var() (ni siquiera una referencia simple sin
+    # concatenar, "parameter 1 is not constant") — a diferencia de lo que
+    # dice la fuente del módulo, en este binario exigen un string literal
+    # 100% fijo. Por eso acá el lock es GLOBAL para toda la tabla "cps"
+    # (no por carrier/segundo) — sin el lock, dos workers concurrentes
+    # podrían leer el mismo contador viejo y admitir de más justo en el
+    # límite. La sección crítica es mínima (2 operaciones de pvar), así
+    # que un lock global no debería notarse en la práctica.
+    sht_lock("cps=>lock");
+    $var(cnt) = $sht(cps=>$var(seckey));
+    if ($var(cnt) == $null) { $var(cnt) = 0; }
+
+    if ($var(cnt) < $avp(cps_limit)) {
+        $sht(cps=>$var(seckey)) = $var(cnt) + 1;
+        sht_unlock("cps=>lock");
+        route(CARRIER_SEND);
+        exit;
+    }
+    sht_unlock("cps=>lock");
+
+    # $avp(cps_waited) sobrevive el async_ms_sleep (a diferencia de
+    # $var()) — arranca en 0 la primera vez que este INVITE pasa por acá.
+    if ($avp(cps_waited) == $null) {
+        $avp(cps_waited) = 0;
+    }
+    if ($avp(cps_waited) >= {{ cps_max_wait_ms }}) {
+        route(CPS_TIMEOUT);
+        exit;
+    }
+
+    $avp(cps_waited) = $avp(cps_waited) + 100;
+    xlog("L_INFO", "CPS_GATE: carrier $avp(carrier_id) al límite ($avp(cps_limit)/s) — esperando (llevo $avp(cps_waited)ms)\n");
+    async_ms_sleep("100");
+    route(CPS_GATE);
+    exit;
+}
+
+route[CPS_TIMEOUT] {
+    xlog("L_WARN", "CPS_GATE: carrier $avp(carrier_id) — {{ cps_max_wait_ms }}ms sin lugar, 503\n");
+    rtpengine_delete();
+    t_reply("503", "Carrier CPS limit exceeded");
 }
 
 ####### ENTRANTE: Carrier → Asterisk #######
 
 route[INBOUND_TO_ASTERISK] {
-    setflag(28);
-    sip_trace();
-
     if (has_body("application/sdp")) {
         rtpengine_manage("direction=pub direction=priv replace-origin replace-session-connection");
     }
 
     if (!ds_select_dst("1", $shv(asterisk_alg))) {
         xlog("L_ERR", "INBOUND: sin Asterisk activos (grupo 1) src=$si\n");
+        rtpengine_delete();
         t_reply("503", "All Asterisk Nodes Down");
         exit;
     }
@@ -296,6 +546,17 @@ route[RELAY] {
     exit;
 }
 
+####### Filtro de traza — trace_mode traza TODO paquete a nivel de red, sin
+####### esto cada OPTIONS keepalive de dispatcher (cada 10s por carrier o
+####### cliente) y cada intento de REGISTER (rechazado igual, pero antes ni
+####### se trazaba) inflarían sip_traces con ruido que antes no existía #######
+
+event_route[siptrace:msg] {
+    if (is_method("OPTIONS") || is_method("REGISTER")) {
+        drop();
+    }
+}
+
 onreply_route[MANAGE_REPLY] {
     xlog("L_INFO", "[$(ci{s.select,0,@})] REPLY: $rs desde $si\n");
     if ($rs >= 300) { $dlg_var(last_code) = $rs; }
@@ -305,25 +566,42 @@ onreply_route[MANAGE_REPLY] {
 }
 
 ####### Failover carriers (saliente) #######
-# Solo reintenta en 5xx o 408. NO reintenta 4xx legítimos (404, 486, 487…)
+# Solo reintenta en 5xx o 408 — señal de problema del carrier/red. NO
+# reintenta 4xx legítimos (404, 486, 487…): esas son respuestas finales
+# sobre el NÚMERO marcado, no sobre el carrier — reintentar con otro
+# carrier no cambia que el número esté ocupado o no exista.
 
 failure_route[CARRIER_FAILOVER] {
     if (t_is_canceled()) { exit; }
 
     if (t_check_status("5[0-9][0-9]") || t_check_status("408")) {
-        xlog("L_WARN", "[$(ci{s.select,0,@})] FAILOVER carrier: src=$si from=$fU to=$avp(orig_rU) — $du falló ($T_reply_code)\n");
-
+        # "FAILOVER" en el log solo si REALMENTE va a intentar otro carrier —
+        # antes se logueaba esa palabra siempre, incondicionalmente, incluso
+        # cuando no había ningún otro carrier al cual saltar (con 1 solo
+        # carrier por grupo, daba a entender un reintento que nunca pasaba).
+        # Primero reportamos el hecho (carrier respondió con este código),
+        # sin mencionar failover — recién si ds_next_dst() confirma que SÍ
+        # hay otro destino, ahí sí se llama failover de verdad.
         if (ds_next_dst()) {
+            xlog("L_WARN", "[$(ci{s.select,0,@})] FAILOVER carrier: $du falló ($T_reply_code) — reintentando con siguiente carrier del grupo $var(grp)\n");
             route(SET_CARRIER_DST);  # actualiza dlg_var(carrier_id) al nuevo carrier
             t_on_failure("CARRIER_FAILOVER");
             route(RELAY);
             exit;
         }
 
-        xlog("L_ERR", "FAILOVER carrier: todos los carriers del grupo $var(grp) fallaron\n");
-        t_reply("503", "All Carriers Failed");
+        # Sin otro carrier configurado en el grupo — esto NO es un failover,
+        # es simplemente el resultado de esta llamada puntual.
+        xlog("L_WARN", "[$(ci{s.select,0,@})] Llamada fallida: $du respondió ($T_reply_code), grupo $var(grp) sin carrier de respaldo\n");
+        rtpengine_delete();
+        t_reply("503", "Carrier Unavailable");
         exit;
     }
+
+    # 4xx legítimo (404, 486, 487…) — no se reintenta, la llamada termina acá
+    # sin pasar nunca por BYE ni CANCEL. Sin esto, la sesión de RTPEngine
+    # abierta en el INVITE inicial quedaba huérfana hasta expirar sola.
+    rtpengine_delete();
 }
 
 ####### Failover Asterisk (entrante) #######
@@ -341,9 +619,14 @@ failure_route[ASTERISK_FAILOVER] {
             route(RELAY);
             exit;
         }
+        rtpengine_delete();
         t_reply("503", "All Asterisk Failed");
         exit;
     }
+
+    # 4xx legítimo — misma razón que en CARRIER_FAILOVER: la llamada termina
+    # acá sin BYE/CANCEL, hay que liberar la sesión de RTPEngine explícitamente.
+    rtpengine_delete();
 }
 
 ####### CDR — dialog events #######
@@ -358,9 +641,9 @@ event_route[dialog:start] {
             ('$(ci{s.escape.common})',
              $dlg_var(customer_id),
              NULLIF('$dlg_var(carrier_id)', ''),
-             '$dlg_var(src_ip)',
-             '$dlg_var(src_number)',
-             '$dlg_var(dst_number)',
+             '$(dlg_var(src_ip){s.escape.common})',
+             '$(dlg_var(src_number){s.escape.common})',
+             '$(dlg_var(dst_number){s.escape.common})',
              FROM_UNIXTIME($dlg_var(start_ts)))
          ON DUPLICATE KEY UPDATE started_at=started_at",
         "r");
@@ -385,17 +668,18 @@ event_route[dialog:end] {
     sql_query("kb",
         "INSERT INTO cdrs
             (call_id, customer_id, carrier_id, src_ip, src_number,
-             dst_number, dst_number_raw,
+             dst_number, dst_number_raw, techprefix,
              start_ts, answer_ts, end_ts,
              sessiontime, billsec, disposition, hangup_cause)
          VALUES
             ('$(ci{s.escape.common})',
              $dlg_var(customer_id),
              NULLIF('$dlg_var(carrier_id)', ''),
-             '$dlg_var(src_ip)',
-             '$dlg_var(src_number)',
-             '$dlg_var(dst_number)',
-             '$dlg_var(dst_raw)',
+             '$(dlg_var(src_ip){s.escape.common})',
+             '$(dlg_var(src_number){s.escape.common})',
+             '$(dlg_var(dst_number){s.escape.common})',
+             '$(dlg_var(dst_raw){s.escape.common})',
+             NULLIF('$dlg_var(techprefix)', ''),
              FROM_UNIXTIME($dlg_var(start_ts)),
              IF('$dlg_var(answer_ts)' != '', FROM_UNIXTIME($dlg_var(answer_ts)), NULL),
              NOW(3),
@@ -408,6 +692,12 @@ event_route[dialog:end] {
 
 # Llamada fallida (sin answer antes de que termine)
 event_route[dialog:failed] {
+    # Red de seguridad — el módulo dlg puede terminar el diálogo por su propio
+    # timeout interno, no solo por una respuesta SIP puntual ya cubierta en
+    # failure_route. rtpengine_delete() es idempotente: si ya se llamó antes
+    # para este call-id (desde failure_route), esta segunda llamada no hace nada.
+    rtpengine_delete();
+
     sql_query("kb",
         "INSERT INTO cdrs_failed
             (call_id, customer_id, carrier_id, src_ip, src_number, dst_number, start_ts, sip_code)
@@ -415,9 +705,9 @@ event_route[dialog:failed] {
             ('$(ci{s.escape.common})',
              $dlg_var(customer_id),
              NULLIF('$dlg_var(carrier_id)', ''),
-             '$dlg_var(src_ip)',
-             '$dlg_var(src_number)',
-             '$dlg_var(dst_number)',
+             '$(dlg_var(src_ip){s.escape.common})',
+             '$(dlg_var(src_number){s.escape.common})',
+             '$(dlg_var(dst_number){s.escape.common})',
              FROM_UNIXTIME($dlg_var(start_ts)),
              $dlg_var(last_code))",
         "r");

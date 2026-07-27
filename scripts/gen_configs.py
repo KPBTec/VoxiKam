@@ -44,6 +44,9 @@ def main():
     ap.add_argument("--db-host");     ap.add_argument("--db-port")
     ap.add_argument("--db-name");     ap.add_argument("--db-user")
     ap.add_argument("--db-pass");     ap.add_argument("--jwt-secret")
+    ap.add_argument("--cdr-ingest-secret", default="")
+    ap.add_argument("--clickhouse-url", default="")
+    ap.add_argument("--admin-email", default="")
     ap.add_argument("--install-dir", default=str(BASE_DIR))
     args = ap.parse_args()
 
@@ -60,6 +63,9 @@ def main():
         db_user     = args.db_user,
         db_pass     = args.db_pass,
         jwt_secret  = args.jwt_secret,
+        cdr_ingest_secret = args.cdr_ingest_secret,
+        clickhouse_url = args.clickhouse_url,
+        admin_email = args.admin_email,
         install_dir = args.install_dir,
     )
 

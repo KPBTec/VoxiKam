@@ -3,53 +3,59 @@
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
 
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth import create_token, verify_password, get_current_user
+from auth import create_token, verify_password, get_current_user, resolve_permissions
 from database import get_db
 
 router = APIRouter()
+log = logging.getLogger("voxikam-security")
+
+
+def _get_real_ip(request: Request) -> str:
+    cf = request.headers.get("CF-Connecting-IP")
+    if cf:
+        return cf.strip().split(",")[0].strip()
+    xff = request.headers.get("X-Forwarded-For")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 @router.post("/login")
-async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+async def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         text("SELECT id, name, email, password_hash, role, customer_id, is_active FROM users WHERE email = :email"),
         {"email": form.username}
     )
     user = result.mappings().first()
     if not user or not verify_password(form.password, user["password_hash"]):
+        log.warning("SECURITY_REJECT ip=%s reason=login_failed path=/api/auth/login", _get_real_ip(request))
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     if not user["is_active"]:
         raise HTTPException(status_code=403, detail="Cuenta suspendida")
 
-    modules = {
-        "show_calls": True, "show_quality": True, "show_reports": True,
-        "show_invoices": False, "show_trunk_guide": True,
-    }
+    is_reseller = False
     if user["customer_id"]:
-        try:
-            cr = await db.execute(
-                text("""
-                    SELECT COALESCE(cp.show_calls,       cu.show_calls)       AS show_calls,
-                           COALESCE(cp.show_quality,     cu.show_quality)     AS show_quality,
-                           COALESCE(cp.show_reports,     cu.show_reports)     AS show_reports,
-                           COALESCE(cp.show_invoices,    cu.show_invoices)    AS show_invoices,
-                           COALESCE(cp.show_trunk_guide, cu.show_trunk_guide) AS show_trunk_guide
-                    FROM customers cu
-                    LEFT JOIN customer_profiles cp ON cu.profile_id = cp.id
-                    WHERE cu.id = :id
-                """),
-                {"id": user["customer_id"]}
-            )
-            row = cr.mappings().first()
-            if row:
-                modules = {k: bool(row[k]) for k in modules}
-        except Exception:
-            pass  # columnas aún no migradas → usar defaults
+        cust = await db.execute(
+            text("SELECT status, is_reseller FROM customers WHERE id = :id"), {"id": user["customer_id"]}
+        )
+        cust_row = cust.mappings().first()
+        if cust_row and cust_row["status"] == "deleted":
+            raise HTTPException(status_code=403, detail="Cliente desactivado")
+        is_reseller = bool(cust_row and cust_row["is_reseller"])
+
+    permissions = await resolve_permissions(db, user["customer_id"])
+
+    # Antes solo se logueaba el login FALLIDO — un login exitoso (incluida una
+    # cuenta admin comprometida) no dejaba ningún rastro de cuándo entró, solo
+    # de lo que cambió después (vía audit.py). Mismo logger que el rechazo,
+    # para que quede en el mismo lugar (journalctl -u voxikam-backend).
+    log.info("LOGIN_OK ip=%s user_id=%s role=%s", _get_real_ip(request), user["id"], user["role"])
 
     token = create_token({"sub": str(user["id"]), "role": user["role"]})
     return {
@@ -58,7 +64,8 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
         "role": user["role"],
         "name": user["name"],
         "customer_id": user["customer_id"],
-        **modules,
+        "is_reseller": is_reseller,
+        "permissions": permissions,
     }
 
 

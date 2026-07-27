@@ -4,7 +4,7 @@
 
 ### Plataforma SIP Class 4 — Billing, Monitoreo y Control de Tráfico
 
-[![Version](https://img.shields.io/badge/version-2.4-blue?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.52.4-e8a262?style=flat-square)](CHANGELOG.md)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Debian%2012%2B-orange?style=flat-square)](#-instalación)
 [![Telegram](https://img.shields.io/badge/soporte-Telegram-2CA5E0?style=flat-square&logo=telegram)](https://t.me/KPBTec)
@@ -70,7 +70,8 @@ VoxiKam es una plataforma **Class 4**: switching de tránsito y billing. No incl
 │            ⚙️ CAPA DE APLICACIÓN                     │
 │                                                      │
 │  Nginx :7666  →  FastAPI (Python)  →  MariaDB        │
-│             →  Next.js (React)                       │
+│             →  Next.js (React)     →  ClickHouse*    │
+│  * ClickHouse: solo trazas SIP (sip_traces)          │
 │                                                      │
 │  ✔ Billing worker: calcula buy/sell cost c/30s       │
 │  ✔ Descuenta balance del cliente en tiempo real      │
@@ -174,6 +175,9 @@ La mayoría de plataformas SIP exponen su panel en el puerto 80 sin rate limitin
    ▼  🗄️  MariaDB — aislada por diseño
          Bind exclusivo en 127.0.0.1. Puerto no estándar (33100–33999).
          Usuario dedicado con permisos mínimos. Sin acceso remoto posible.
+   │
+   ▼  📊 ClickHouse — mismo aislamiento, solo trazas SIP
+         Bind exclusivo en 127.0.0.1. Usuario dedicado, sin acceso remoto.
 ```
 
 | Capa | Qué protege |
@@ -189,7 +193,7 @@ La mayoría de plataformas SIP exponen su panel en el puerto 80 sin rate limitin
 ```bash
 git clone <repo> /opt/voxikam
 cd /opt/voxikam
-sudo ./install.sh
+sudo ./deploy.sh
 ```
 
 Corre en **Debian 12+**. Detecta IPs del servidor, solicita configuración mínima y en aproximadamente 10 minutos el sistema está operativo.
@@ -198,9 +202,9 @@ Corre en **Debian 12+**. Detecta IPs del servidor, solicita configuración míni
 
 | Comando | Cuándo usarlo |
 |---|---|
-| `sudo ./install.sh --update` | ✅ Código + migraciones DB + rebuild frontend. Kamailio no se interrumpe. |
-| `sudo ./install.sh --upgrade` | ⚙️ Como `--update` pero también reinicia Kamailio. |
-| `sudo ./install.sh --reinstall` | 🔄 Reinstalación completa desde cero. |
+| `sudo ./deploy.sh --update` | ✅ Código + migraciones DB + rebuild frontend. Kamailio no se interrumpe. |
+| `sudo ./deploy.sh --upgrade` | ⚙️ Como `--update` pero también reinicia Kamailio. |
+| `sudo ./deploy.sh --reinstall` | 🔄 Reinstalación completa desde cero. |
 
 ### Acceso post-instalación
 

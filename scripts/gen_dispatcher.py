@@ -5,14 +5,26 @@
 # © 2026 – Todos los derechos reservados.
 
 """
-Lee DB → genera dos archivos para Kamailio y recarga:
-  1. /etc/kamailio/dispatcher.list      — destinos por grupo (carrier host:port)
-  2. /etc/kamailio/voxikam-routes.cfg — reglas de techprefix (incluido en kamailio.cfg)
+Lee DB → genera/actualiza:
+  1. /etc/kamailio/dispatcher.list — destinos por grupo (carrier host:port),
+     recargado en caliente con `kamcmd dispatcher.reload`.
+  2. Tabla MySQL techprefix_map — techprefix → "grupo:cliente:algoritmo",
+     respalda el htable "techmap" de Kamailio (ver templates/kamailio.cfg.j2),
+     recargado en caliente con `kamcmd htable.reload techmap`.
 
-Ejecutado por FastAPI cada vez que se modifica un carrier o cliente.
+Reemplaza el viejo voxikam-routes.cfg (bloques if/else compilados vía
+#!include_file, que Kamailio solo releía al REINICIAR el proceso — bug real
+encontrado en producción, vd1sbc2: un cliente con override a un grupo
+round_robin/percent recién creado seguía ruteando 100% al carrier viejo
+hasta un restart manual, aunque el archivo ya estuviera regenerado bien en
+disco). El htable SÍ soporta recarga en caliente real — validado contra
+Kamailio 5.6.3 real en Docker antes de este cambio.
+
+Ejecutado por FastAPI cada vez que se modifica un carrier, cliente o grupo.
 """
 import os
 import subprocess
+import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -34,7 +46,33 @@ else:
 load_dotenv(_install / "backend" / ".env")
 
 DISPATCHER_LIST  = os.getenv("DISPATCHER_LIST", "/etc/kamailio/dispatcher.list")
-ROUTES_CFG       = str(Path(DISPATCHER_LIST).parent / "voxikam-routes.cfg")
+
+# Offset del número de grupo de dispatcher para Grupos de ruteo — el número
+# de grupo ES DIRECTAMENTE carrier_groups.id + este offset (ya no hay
+# aritmética por customer_id ni distinción default/override, ver el
+# rediseño "solo grupos"). El offset existe solo para nunca colisionar con
+# el grupo 1 (LAN peers, gestionado aparte desde Settings > LAN Peers).
+GROUP_NUMBER_OFFSET = 1000
+
+# $var(alg) por algoritmo del grupo — ver route[OUTBOUND_TO_CARRIER] en
+# kamailio.cfg.j2. 'priority' no tiene entrada — cae al $shv(carrier_alg)
+# global (campo vacío en el htable, $var(alg) se queda en 0).
+ALG_BY_ALGORITHM = {"percent": "11", "round_robin": "4"}
+
+
+def _safe_comment(text: str) -> str:
+    """
+    customers.name/carrier_groups.name se embeben SIN escapar en una línea
+    de comentario '#' de dispatcher.list — un cliente/reseller con permisos
+    de admin podría poner un salto de línea en el nombre y usar eso para
+    escaparse del comentario e inyectar directivas Kamailio arbitrarias. El
+    validador de Pydantic en customers.py/reseller.py/carrier_groups.py ya
+    bloquea esto en altas/ediciones nuevas — esto es la segunda capa,
+    defensa en profundidad. Reemplaza cualquier carácter de control (\\n,
+    \\r, tabs, etc.) por un espacio — nunca hace falta ninguno en un
+    nombre real.
+    """
+    return "".join(c if ord(c) >= 32 and ord(c) != 127 else " " for c in text)
 
 
 def get_db():
@@ -54,42 +92,129 @@ def get_db():
 
 
 def fetch_lan_peers(conn) -> list[str]:
+    """
+    lan_peers (tabla, CRUD real vía /api/admin/lan-peers — página "Entrante"
+    del panel) reemplaza el viejo settings.lan_peers (CSV suelto sin
+    endpoint ni pantalla). Devuelve "host:puerto" — mismo formato que
+    build_dispatcher_list() ya espera.
+    """
     cur = conn.cursor()
-    cur.execute("SELECT value FROM settings WHERE key_name = 'lan_peers' LIMIT 1")
-    row = cur.fetchone()
+    cur.execute("SELECT host, port FROM lan_peers ORDER BY host")
+    rows = cur.fetchall()
     cur.close()
-    if not row or not row[0]:
-        return []
-    return [p.strip() for p in row[0].split(",") if p.strip()]
+    return [f"{host}:{port}" for host, port in rows]
 
 
-def fetch_customer_carriers(conn):
+def fetch_customers(conn) -> list[dict]:
+    """
+    Ya NO hace falta pasar por customer_carriers (no existe más, ver
+    rediseño "solo grupos") — el único dato que gen_dispatcher.py necesita
+    de cada cliente es su routing_group_id (backend/routers/customers.py::
+    assign_carrier lo crea/actualiza solo, la primera vez que se le asigna
+    un carrier).
+    """
     cur = conn.cursor(pymysql.cursors.DictCursor)
     cur.execute("""
-        SELECT
-            c.id          AS customer_id,
-            c.name        AS customer_name,
-            c.techprefix  AS techprefix,
-            ca.id         AS carrier_id,
-            ca.host,
-            ca.port,
-            ca.outbound_prefix,
-            cc.priority   AS customer_priority
-        FROM customer_carriers cc
-        JOIN customers c  ON cc.customer_id = c.id  AND c.status = 'active'
-        JOIN carriers  ca ON cc.carrier_id  = ca.id AND ca.status = 'active'
-        ORDER BY c.id, cc.priority DESC
+        SELECT id AS customer_id, name AS customer_name, techprefix, routing_group_id
+        FROM customers WHERE status = 'active'
     """)
     rows = cur.fetchall()
     cur.close()
+    return rows
 
+
+def fetch_customer_prefixes(conn) -> dict:
+    """
+    Prefijos de campaña ADICIONALES por cliente (ver customer_prefixes) — se
+    suman al techprefix principal para armar la lista completa de prefijos
+    que rutean a cada cliente. Un cliente sin campañas simplemente no
+    aparece acá.
+    """
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    cur.execute(
+        "SELECT id, customer_id, techprefix, label, routing_group_id "
+        "FROM customer_prefixes"
+    )
+    rows = cur.fetchall()
+    cur.close()
     by_customer: dict = defaultdict(list)
     for row in rows:
         by_customer[row["customer_id"]].append(row)
     return by_customer
 
 
-def build_dispatcher_list(by_customer: dict, lan_peers: list[str]) -> str:
+def fetch_carrier_groups(conn) -> dict:
+    """
+    Grupos de ruteo — ÚNICA fuente de destinos de dispatcher.list, keyed
+    por carrier_groups.id. Cada grupo trae sus miembros ya resueltos con
+    host/port/outbound_prefix/cps_limit (mismos campos que
+    _dispatcher_line() necesita) — la membresía del grupo ES la lista
+    autoritativa, no se vuelve a cruzar contra nada más.
+    """
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    cur.execute("""
+        SELECT
+            g.id AS group_id,
+            g.name AS group_name,
+            g.algorithm,
+            ca.id AS carrier_id,
+            ca.host,
+            ca.port,
+            ca.outbound_prefix,
+            ca.cps_limit,
+            m.priority,
+            m.weight
+        FROM carrier_groups g
+        JOIN carrier_group_members m ON m.group_id = g.id
+        JOIN carriers ca ON ca.id = m.carrier_id AND ca.status = 'active'
+        ORDER BY g.id, m.priority DESC
+    """)
+    rows = cur.fetchall()
+    cur.close()
+
+    groups: dict = {}
+    for row in rows:
+        gid = row["group_id"]
+        if gid not in groups:
+            groups[gid] = {"name": row["group_name"], "algorithm": row["algorithm"], "members": []}
+        groups[gid]["members"].append({
+            "carrier_id": row["carrier_id"],
+            "host": row["host"],
+            "port": row["port"],
+            "outbound_prefix": row["outbound_prefix"],
+            "cps_limit": row["cps_limit"],
+            "customer_priority": row["priority"],
+            "customer_weight": row["weight"],
+        })
+    return groups
+
+
+def _dispatcher_line(group: int, row: dict, public_ip: str, weighted: bool = False) -> str:
+    pfx  = row["outbound_prefix"] or ""
+    attr = f"socket=udp:{public_ip}:5060;carid={row['carrier_id']}"
+    if pfx:
+        attr += f";prefix={pfx}"
+    # cps= — límite de CPS hacia este carrier, leído por kamailio.cfg.j2
+    # (route[OUTBOUND_TO_CARRIER]) para encolar en vez de rechazar el
+    # excedente. NULL/0 = sin límite, mismo comportamiento de siempre.
+    if row.get("cps_limit"):
+        attr += f";cps={row['cps_limit']}"
+    # rweight= — SOLO si el grupo tiene algorithm='percent' (weighted=True).
+    # Nunca se omite en ese caso aunque customer_weight sea NULL: un
+    # carrier sin peso seteado se volvería invisible para el algoritmo 11
+    # (0% de tráfico silencioso) en vez de repartirse parejo — 1 es el
+    # default seguro.
+    if weighted:
+        attr += f";rweight={row.get('customer_weight') or 1}"
+    return f"{group} sip:{row['host']}:{row['port']}  0 {row['customer_priority']} {attr}"
+
+
+def build_dispatcher_list(lan_peers: list[str], groups: dict) -> str:
+    """
+    Un grupo es una unidad atómica reusable (varios clientes/prefijos
+    pueden apuntar al mismo carrier_groups.id) — se emite UNA sola vez por
+    grupo, con TODOS sus miembros, sin importar cuántos prefijos lo usan.
+    """
     public_ip  = os.getenv("PUBLIC_IP", "")
     private_ip = os.getenv("PRIVATE_IP", "")
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -110,92 +235,138 @@ def build_dispatcher_list(by_customer: dict, lan_peers: list[str]) -> str:
         lines.append("# (sin peers LAN configurados — agregar desde Settings > LAN Peers)")
     lines.append("")
 
-    # Grupos por cliente: 100 + customer_id
-    for cid, carriers in by_customer.items():
-        group = 100 + cid
-        lines.append(f"# Cliente ID={cid}: {carriers[0]['customer_name']} → grupo {group}")
-        for row in carriers:
-            pfx  = row["outbound_prefix"] or ""
-            attr = f"socket=udp:{public_ip}:5060;carid={row['carrier_id']}"
-            if pfx:
-                attr += f";prefix={pfx}"
-            lines.append(f"{group} sip:{row['host']}:{row['port']}  0 {row['customer_priority']} {attr}")
+    lines.append("# GRUPOS DE RUTEO")
+    for gid, group_def in groups.items():
+        dispatcher_group = GROUP_NUMBER_OFFSET + gid
+        weighted = group_def["algorithm"] == "percent"
+        lines.append(
+            f"# Grupo id={gid} {_safe_comment(group_def['name'])} "
+            f"({group_def['algorithm']}) → dispatcher {dispatcher_group}"
+        )
+        for row in group_def["members"]:
+            lines.append(_dispatcher_line(dispatcher_group, row, public_ip, weighted=weighted))
         lines.append("")
 
     return "\n".join(lines)
 
 
-def build_routes_cfg(by_customer: dict) -> str:
+def build_techprefix_rows(
+    customers: list[dict], customer_prefixes: dict, groups: dict
+) -> list[tuple[str, int, int, str]]:
     """
-    Genera fragmento Kamailio incluido en request_route (antes del split dirección).
-    Por cada cliente activo con techprefix:
-      1. Compara inicio de $rU con su techprefix
-      2. Quita el techprefix del R-URI ($rU limpio)
-      3. Asigna $var(grp) = 100 + customer_id
-    El caller (request_route) decide la ruta según $var(grp) != 0.
+    Arma las filas para techprefix_map: (techprefix, dispatcher_group,
+    customer_id, alg). Un prefijo sin grupo resuelto (cliente sin carriers
+    asignados todavía, o apuntando a un grupo que quedó sin miembros
+    activos) simplemente NO aparece — Kamailio no lo matchea, cae a
+    INBOUND_TO_ASTERISK (mismo comportamiento que "sin ruteo" de siempre).
     """
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    lines = [
-        f"# AUTO-GENERADO por gen_dispatcher.py — {ts}",
-        "# NO editar manualmente",
-        "",
-    ]
+    def _resolve(routing_group_id):
+        if not routing_group_id:
+            return None
+        group_def = groups.get(routing_group_id)
+        if not group_def or not group_def["members"]:
+            return None
+        return group_def
 
-    if not by_customer:
-        lines.append("# (sin clientes activos con carriers asignados)")
-        return "\n".join(lines)
+    rows: list[tuple[str, int, int, str]] = []
 
-    for cid, carriers in by_customer.items():
-        pfx   = carriers[0]["techprefix"] or ""
-        name  = carriers[0]["customer_name"]
-        group = 100 + cid
-        if not pfx:
-            lines.append(f"# Cliente ID={cid} ({name}): sin techprefix — omitido")
-            lines.append("")
+    for cust in customers:
+        if not cust["techprefix"]:
             continue
+        group_def = _resolve(cust["routing_group_id"])
+        if group_def is None:
+            continue
+        alg = ALG_BY_ALGORITHM.get(group_def["algorithm"], "")
+        dispatcher_group = GROUP_NUMBER_OFFSET + cust["routing_group_id"]
+        rows.append((cust["techprefix"], dispatcher_group, cust["customer_id"], alg))
 
-        pfx_len = len(pfx)
-        lines.append(f"# Cliente ID={cid}: {name} — techprefix={pfx} → grupo {group}")
-        lines.append(f'if ($(rU{{s.substr,0,{pfx_len}}}) == "{pfx}") {{')
-        lines.append(f'    $rU = $(rU{{s.substr,{pfx_len},0}});')
-        lines.append(f"    $var(grp) = {group};")
-        lines.append( "}")
-        lines.append("")
+    by_cid = {c["customer_id"]: c for c in customers}
+    for cid, prefixes in customer_prefixes.items():
+        parent = by_cid.get(cid)
+        parent_gid = parent["routing_group_id"] if parent else None
+        for cp in prefixes:
+            if not cp["techprefix"]:
+                continue
+            effective_gid = cp["routing_group_id"] or parent_gid
+            group_def = _resolve(effective_gid)
+            if group_def is None:
+                continue
+            alg = ALG_BY_ALGORITHM.get(group_def["algorithm"], "")
+            dispatcher_group = GROUP_NUMBER_OFFSET + effective_gid
+            rows.append((cp["techprefix"], dispatcher_group, cid, alg))
 
-    return "\n".join(lines)
+    return rows
+
+
+def sync_techprefix_map(conn, rows: list[tuple[str, int, int, str]]) -> None:
+    """
+    Reemplaza TODO el contenido de techprefix_map en una transacción —
+    mismo criterio "regenerar todo, no parchear" que ya usa dispatcher.list.
+    key_type/value_type fijos en 0 (simple key, string value) — formato que
+    exige el módulo htable de Kamailio para auto-cargar/recargar desde DB,
+    ver comentario en db/schema.sql.
+    """
+    cur = conn.cursor()
+    cur.execute("DELETE FROM techprefix_map")
+    if rows:
+        cur.executemany(
+            "INSERT INTO techprefix_map (key_name, key_type, value_type, key_value, expires) "
+            "VALUES (%s, 0, 0, %s, 0)",
+            [(techprefix, f"{grp}:{cid}:{alg}") for techprefix, grp, cid, alg in rows],
+        )
+    conn.commit()
+    cur.close()
 
 
 def reload_kamailio():
-    try:
-        r = subprocess.run(
-            ["sudo", "kamcmd", "dispatcher.reload"],
-            capture_output=True, text=True, timeout=10
-        )
-        if r.returncode == 0:
-            print("  ✓ kamcmd dispatcher.reload OK")
-        else:
-            print(f"  ⚠ kamcmd dispatcher.reload: {r.stderr.strip()}")
-    except FileNotFoundError:
-        print("  ⚠ kamcmd no encontrado")
-    except subprocess.TimeoutExpired:
-        print("  ⚠ kamcmd timeout")
+    # Dentro de Docker este proceso no tiene sudo/kamcmd — solo escribe
+    # dispatcher.list/techprefix_map a rutas/tablas accesibles desde el
+    # host (ver backend/Dockerfile). Un systemd path-unit en el host
+    # (fuera de Docker, junto a Kamailio/RTPEngine) detecta el cambio y
+    # aplica el reload privilegiado — separación real de privilegios, el
+    # container nunca toca nada del SBC directamente.
+    if os.getenv("VOXIKAM_SKIP_PRIVILEGED_RELOAD") == "1":
+        print("  ⏭ VOXIKAM_SKIP_PRIVILEGED_RELOAD=1 — el watcher del host aplica el reload")
+        return
+    for cmd, label in (
+        (["sudo", "kamcmd", "dispatcher.reload"], "dispatcher.reload"),
+        (["sudo", "kamcmd", "htable.reload", "techmap"], "htable.reload techmap"),
+    ):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            if r.returncode == 0:
+                print(f"  ✓ kamcmd {label} OK")
+            else:
+                print(f"  ⚠ kamcmd {label}: {r.stderr.strip()}")
+        except FileNotFoundError:
+            print("  ⚠ kamcmd no encontrado")
+        except subprocess.TimeoutExpired:
+            print(f"  ⚠ kamcmd {label} timeout")
 
 
 def main():
+    # Mismo problema que tenía gen_nftables.py: dispatcher.log era una pared de
+    # líneas "✓" sin timestamp, imposible de correlacionar con un incidente.
+    print(f"gen_dispatcher.py — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     conn = get_db()
     try:
-        lan_peers   = fetch_lan_peers(conn)
-        by_customer = fetch_customer_carriers(conn)
+        lan_peers     = fetch_lan_peers(conn)
+        customers     = fetch_customers(conn)
+        cust_prefixes = fetch_customer_prefixes(conn)
+        groups        = fetch_carrier_groups(conn)
 
-        disp = build_dispatcher_list(by_customer, lan_peers)
+        disp = build_dispatcher_list(lan_peers, groups)
         Path(DISPATCHER_LIST).write_text(disp)
-        print(f"  ✓ {DISPATCHER_LIST} actualizado ({len(by_customer)} clientes)")
+        print(f"  ✓ {DISPATCHER_LIST} actualizado ({len(groups)} grupos)")
 
-        routes = build_routes_cfg(by_customer)
-        Path(ROUTES_CFG).write_text(routes)
-        print(f"  ✓ {ROUTES_CFG} actualizado")
+        rows = build_techprefix_rows(customers, cust_prefixes, groups)
+        sync_techprefix_map(conn, rows)
+        print(f"  ✓ techprefix_map actualizado ({len(rows)} prefijos)")
 
         reload_kamailio()
+    except Exception as e:
+        print(f"  ✗ Error: {e}")
+        sys.exit(1)
     finally:
         conn.close()
 

@@ -1,4 +1,6 @@
 'use client'
+import { ErrorBanner } from '@/components/ErrorBanner'
+import { StatusBadge, callStateVariant } from '@/components/StatusBadge'
 import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api'
 
@@ -12,11 +14,13 @@ interface CDR {
   start_ts: string
 }
 
-const STATUS: Record<string, string> = {
-  ANSWERED:  'bg-green-500/15 text-green-400',
-  BUSY:      'bg-yellow-500/15 text-yellow-400',
-  NO_ANSWER: 'bg-zinc-500/15 text-zinc-400',
-  FAILED:    'bg-red-500/15 text-red-400',
+// Mismo mapeo disposition→call_state usado en admin cdrs/page.tsx::resolveState,
+// para que el badge de estado use el mismo criterio de color en ambas apps.
+const DISPOSITION_STATE: Record<string, string> = {
+  ANSWERED: 'COMPLETED', BUSY: 'BUSY', NO_ANSWER: 'CANCELLED', FAILED: 'REJECTED',
+}
+function resolveState(disposition: string): string {
+  return DISPOSITION_STATE[disposition] ?? disposition
 }
 
 function fmtSec(s: number) {
@@ -35,10 +39,11 @@ export default function MyCalls() {
   const [offset, setOffset]   = useState(0)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo,   setDateTo]   = useState('')
+  const [error, setError]       = useState('')
   const LIMIT = 50
 
   async function load(off = 0) {
-    setLoading(true)
+    setLoading(true); setError('')
     try {
       const params = new URLSearchParams({
         limit:  String(LIMIT),
@@ -47,12 +52,14 @@ export default function MyCalls() {
         ...(dateTo   && { date_to:   dateTo }),
       })
       const r = await apiFetch(`/my/calls?${params}`)
+      if (!r.ok) throw new Error(`Error ${r.status} buscando llamadas`)
       const d = await r.json()
       setRows(d.rows)
       setTotal(d.total)
       setCapped(d.capped)
       setOffset(off)
-    } finally {
+    } catch (e: any) { setError(e.message || 'Error cargando llamadas') }
+    finally {
       setLoading(false)
     }
   }
@@ -69,12 +76,13 @@ export default function MyCalls() {
 
   return (
     <div className="space-y-4">
+      {error && <ErrorBanner>{error}</ErrorBanner>}
       <div>
-        <h1 className="text-xl font-semibold text-white">Historial de llamadas</h1>
-        <p className="text-sm text-zinc-400 mt-0.5">
+        <h1 className="text-xl font-semibold text-[var(--color-text)]">Historial de llamadas</h1>
+        <p className="text-sm text-[var(--color-text-2)] mt-0.5">
           Últimos {total} registros mostrados
           {capped && (
-            <span className="ml-2 text-amber-400">
+            <span className="ml-2 text-warning">
               · Hay más de 200 — usa filtros de fecha para acotar
             </span>
           )}
@@ -82,50 +90,50 @@ export default function MyCalls() {
       </div>
 
       {/* Filtros */}
-      <form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-end bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+      <form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-end bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-4">
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">Desde</label>
+          <label className="block text-xs text-[var(--color-text-2)] mb-1">Desde</label>
           <input
             type="date"
             value={dateFrom}
             onChange={e => setDateFrom(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text)] focus-ring"
           />
         </div>
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">Hasta</label>
+          <label className="block text-xs text-[var(--color-text-2)] mb-1">Hasta</label>
           <input
             type="date"
             value={dateTo}
             onChange={e => setDateTo(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white"
+            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text)] focus-ring"
           />
         </div>
         <button
           type="submit"
-          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded"
+          className="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-sm rounded focus-ring"
         >
           Filtrar
         </button>
         <button
           type="button"
           onClick={() => { setDateFrom(''); setDateTo(''); load(0) }}
-          className="px-4 py-1.5 bg-zinc-700 hover:bg-zinc-600 text-white text-sm rounded"
+          className="px-4 py-1.5 bg-[var(--color-border-2)] hover:bg-[var(--color-muted)] text-[var(--color-text)] text-sm rounded focus-ring"
         >
           Limpiar
         </button>
       </form>
 
       {/* Tabla */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg overflow-x-auto">
         {loading ? (
-          <div className="p-8 text-center text-zinc-400 text-sm">Cargando…</div>
+          <div className="p-8 text-center text-[var(--color-text-2)] text-sm">Cargando…</div>
         ) : rows.length === 0 ? (
-          <div className="p-8 text-center text-zinc-500 text-sm">Sin registros para este período</div>
+          <div className="p-8 text-center text-[var(--color-muted)] text-sm">Sin registros para este período</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-800 text-left text-xs text-zinc-400 uppercase tracking-wider">
+              <tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-text-2)] uppercase tracking-wider">
                 <th className="px-4 py-3">Fecha/Hora</th>
                 <th className="px-4 py-3">Origen</th>
                 <th className="px-4 py-3">Destino</th>
@@ -134,20 +142,18 @@ export default function MyCalls() {
                 <th className="px-4 py-3">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-[var(--color-border)]">
               {rows.map(r => (
-                <tr key={r.call_id} className="hover:bg-zinc-800/50">
-                  <td className="px-4 py-3 text-zinc-300 font-mono text-xs">
+                <tr key={r.call_id} className="hover:bg-white/2">
+                  <td className="px-4 py-3 text-[var(--color-text-2)] font-mono text-xs">
                     {new Date(r.start_ts).toLocaleString('es-PE')}
                   </td>
-                  <td className="px-4 py-3 text-zinc-300 font-mono">{r.src_number}</td>
-                  <td className="px-4 py-3 text-white font-mono font-medium">{r.dst_number}</td>
-                  <td className="px-4 py-3 text-zinc-300">{fmtSec(r.billsec)}</td>
-                  <td className="px-4 py-3 text-blue-400 font-mono">{fmtMoney(r.sessionbill)}</td>
+                  <td className="px-4 py-3 text-[var(--color-text-2)] font-mono">{r.src_number}</td>
+                  <td className="px-4 py-3 text-[var(--color-text)] font-mono font-medium">{r.dst_number}</td>
+                  <td className="px-4 py-3 text-[var(--color-text-2)] font-mono">{fmtSec(r.billsec)}</td>
+                  <td className="px-4 py-3 text-brand-400 font-mono">{fmtMoney(r.sessionbill)}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS[r.disposition] ?? STATUS.FAILED}`}>
-                      {r.disposition}
-                    </span>
+                    <StatusBadge variant={callStateVariant(resolveState(r.disposition))} mono>{r.disposition}</StatusBadge>
                   </td>
                 </tr>
               ))}
@@ -159,7 +165,7 @@ export default function MyCalls() {
       {/* Paginación */}
       {total > LIMIT && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-400">
+          <span className="text-[var(--color-text-2)]">
             Página {currentPage} de {totalPages}
             {capped && ' (máx. 200 registros por período)'}
           </span>
@@ -167,14 +173,14 @@ export default function MyCalls() {
             <button
               onClick={() => load(offset - LIMIT)}
               disabled={offset === 0}
-              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3 py-1 bg-[var(--color-card-2)] hover:bg-[var(--color-border-2)] text-[var(--color-text)] rounded disabled:opacity-30 disabled:cursor-not-allowed focus-ring"
             >
               ← Anterior
             </button>
             <button
               onClick={() => load(offset + LIMIT)}
               disabled={offset + LIMIT >= total}
-              className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3 py-1 bg-[var(--color-card-2)] hover:bg-[var(--color-border-2)] text-[var(--color-text)] rounded disabled:opacity-30 disabled:cursor-not-allowed focus-ring"
             >
               Siguiente →
             </button>

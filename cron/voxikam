@@ -4,6 +4,15 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # Resumen CDR nocturno (día anterior → cdr_summary_day + cdr_summary_month)
 5 0 * * * voxikam __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_summary.py >> __INSTALL_DIR__/logs/cron.log 2>&1
 
+# Mantenimiento de particiones cdrs/sip_traces (crea próximas, elimina vencidas de sip_traces)
+10 0 * * * voxikam __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_partitions.py >> __INSTALL_DIR__/logs/partitions.log 2>&1
+
+# Cache del estado de backfill de áreas (cdrs sin prefix_matched) — leído por /admin/areas
+0 * * * * voxikam __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_areas_backfill_status.py >> __INSTALL_DIR__/logs/areas_backfill.log 2>&1
+
+# Sincronización externa de CDRs (opcional, deshabilitada por defecto — ver panel Sync externa)
+15 0 * * * voxikam __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_external_sync.py >> __INSTALL_DIR__/logs/external_sync.log 2>&1
+
 # Timeseries por minuto (→ calls_timeseries, retención 25h)
 * * * * * voxikam __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_timeseries.py >> __INSTALL_DIR__/logs/timeseries.log 2>&1
 
@@ -18,3 +27,16 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 # Sync dispatcher Kamailio: regenera dispatcher.list y llama kamcmd
 */5 * * * * voxikam __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/gen_dispatcher.py >> __INSTALL_DIR__/logs/dispatcher.log 2>&1
+
+# Bloqueo de llamadas nuevas para clientes prepago con saldo agotado
+* * * * * voxikam __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/sync_balance_block.py --apply >> __INSTALL_DIR__/logs/balance_block.log 2>&1
+
+# Backup diario de MariaDB (facturas/saldos/clientes) + best-effort de ClickHouse
+# → /var/backups/voxikam, fuera de __INSTALL_DIR__ a propósito. root: necesita
+# leer credentials.conf (chmod 600, root-only). Ver scripts/backup_db.sh.
+30 2 * * * root __INSTALL_DIR__/scripts/backup_db.sh >> __INSTALL_DIR__/logs/backup.log 2>&1
+
+# Alerta por correo si algún cron se cuelga/falla (incluido dlg_stats, que
+# cron_health.py no puede ver desde el panel) o si disco/memoria se agotan.
+# root: necesita leer el log root-only de dlg_stats. Ver scripts/cron_infra_alert.py.
+*/15 * * * * root __INSTALL_DIR__/venv/bin/python3 __INSTALL_DIR__/scripts/cron_infra_alert.py >> __LOG_DIR__/infra_alert.log 2>&1

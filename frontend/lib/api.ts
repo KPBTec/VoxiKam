@@ -27,7 +27,10 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
 export async function apiGet(path: string) {
   const r = await apiFetch(path);
-  if (!r.ok) throw new Error(`GET ${path} → ${r.status}`);
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? `GET ${path} → ${r.status}`);
+  }
   return r.json();
 }
 
@@ -51,6 +54,26 @@ export async function apiPut(path: string, body: unknown) {
 
 export async function apiDelete(path: string) {
   const r = await apiFetch(path, { method: "DELETE" });
-  if (!r.ok) throw new Error(`DELETE ${path} → ${r.status}`);
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err.detail ?? `DELETE ${path} → ${r.status}`);
+  }
   return r.status === 204 ? null : r.json();
+}
+
+// multipart/form-data — no pasar Content-Type manual, el browser arma el boundary solo
+export async function apiUpload(path: string, file: File, fieldName = "file") {
+  const form = new FormData();
+  form.append(fieldName, file);
+  const token = typeof window !== "undefined" ? localStorage.getItem("voxikam_token") : null;
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail ?? `POST ${path} → ${res.status}`);
+  }
+  return res.json();
 }

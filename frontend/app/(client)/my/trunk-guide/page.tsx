@@ -4,15 +4,19 @@ import { apiGet } from "@/lib/api";
 
 export default function TrunkGuide() {
   const [data, setData] = useState<any>(null);
+  const [error, setError] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
 
-  useEffect(() => { apiGet("/my/trunk-guide").then(setData); }, []);
+  useEffect(() => {
+    apiGet("/my/trunk-guide").then(setData).catch((e: any) => setError(e.message || "Error cargando la guía"));
+  }, []);
 
   const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopied(key); setTimeout(() => setCopied(null), 2000);
   };
 
+  if (error) return <div className="text-red-400 p-8">{error}</div>;
   if (!data) return <div className="text-[var(--color-muted)] p-8">Cargando...</div>;
 
   const CodeBlock = ({ code, id }: { code: string; id: string }) => (
@@ -55,6 +59,25 @@ export default function TrunkGuide() {
         <h2 className="font-semibold">2. extensions.conf — dialplan base</h2>
         <CodeBlock code={data.dialplan} id="dialplan" />
       </div>
+
+      {data.prefixes && data.prefixes.length > 1 && (
+        <div className="space-y-3">
+          <h2 className="font-semibold">3. Campañas — un prefijo por campaña de tu marcador</h2>
+          <p className="text-sm text-[var(--color-text-2)]">
+            Además de tu prefijo principal, tenés estos prefijos asignados — cada uno rutea al
+            mismo balance, pero te permite ver consumo desglosado por campaña en Reportes.
+          </p>
+          {data.prefixes.map((p: any) => (
+            <div key={p.techprefix} className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-[var(--color-text-2)]">{p.label}</span>
+                <span className="font-mono text-brand-400">{p.techprefix}</span>
+              </div>
+              <CodeBlock code={p.dialplan} id={`dialplan-${p.techprefix}`} />
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-xl p-5 text-sm space-y-2">
         <p className="font-semibold text-yellow-400">Importante</p>

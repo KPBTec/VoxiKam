@@ -4,7 +4,7 @@ Config de Nginx que actúa como reverse proxy y sirve los archivos estáticos de
 
 ## Archivo
 
-`voxikam.conf` — config con `__PLACEHOLDER__`. install.sh la copia con `apply_conf()` a `/etc/nginx/sites-available/` y crea el symlink en `sites-enabled/`.
+`voxikam.conf` — config con `__PLACEHOLDER__`. deploy.sh la copia con `apply_conf()` a `/etc/nginx/sites-available/` y crea el symlink en `sites-enabled/`.
 
 ## Placeholders usados
 
@@ -58,7 +58,7 @@ El backend tiene su propio rate limiting en memoria como segunda capa.
 
 ## Cambiar el puerto web
 
-Editar `/etc/nginx/sites-available/voxikam.conf`, cambiar `listen <WEB_PORT>`, y `systemctl reload nginx`. También actualizar `NEXT_PUBLIC_API_URL` en `frontend/.env.local` y reconstruir el frontend.
+Editar `/etc/nginx/sites-available/voxikam.conf`, cambiar `listen <WEB_PORT>`, y `systemctl reload nginx`. El frontend no necesita tocarse ni reconstruirse — usa rutas relativas (`/api`) contra el mismo origen, sin ninguna URL absoluta horneada en el build (ver templates/README.md → frontend.env.j2).
 
 ## Verificar config
 

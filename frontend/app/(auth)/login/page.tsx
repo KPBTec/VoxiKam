@@ -26,9 +26,8 @@ export default function LoginPage() {
       const data = await res.json();
       saveAuth(data.access_token, {
         name: data.name, role: data.role, customer_id: data.customer_id,
-        show_calls: data.show_calls, show_quality: data.show_quality,
-        show_reports: data.show_reports, show_invoices: data.show_invoices,
-        show_trunk_guide: data.show_trunk_guide,
+        is_reseller: data.is_reseller,
+        permissions: data.permissions,
       });
       router.push(data.role === "admin" ? "/dashboard" : "/my/overview");
     } catch {
@@ -43,7 +42,7 @@ export default function LoginPage() {
       className="min-h-screen flex flex-col items-center justify-center px-4"
       style={{
         background: "var(--color-surface)",
-        backgroundImage: "radial-gradient(ellipse 80% 50% at 50% -5%, rgba(14,165,233,.12) 0%, transparent 65%)",
+        backgroundImage: "radial-gradient(ellipse 80% 50% at 50% -5%, rgba(221,139,61,.12) 0%, transparent 65%)",
       }}
     >
       <div className="mb-8">
@@ -55,7 +54,7 @@ export default function LoginPage() {
         style={{
           background: "var(--color-card)",
           border: "1px solid var(--color-border)",
-          boxShadow: "0 8px 40px rgba(0,0,0,.5), 0 0 60px rgba(14,165,233,.06)",
+          boxShadow: "0 8px 40px rgba(0,0,0,.5), 0 0 60px rgba(221,139,61,.06)",
         }}
       >
         <div>
@@ -130,7 +129,7 @@ export default function LoginPage() {
             className="w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-all mt-2 cursor-pointer"
             style={{
               background: loading ? "var(--color-brand-700)" : "var(--color-brand-600)",
-              boxShadow: loading ? "none" : "0 0 24px rgba(14,165,233,.3)",
+              boxShadow: loading ? "none" : "0 0 24px rgba(221,139,61,.3)",
               opacity: loading ? 0.7 : 1,
             }}
           >

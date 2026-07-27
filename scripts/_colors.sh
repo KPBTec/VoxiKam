@@ -9,8 +9,11 @@
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
-ok()   { echo -e "${GREEN}  ✓${NC} $1"; }
-warn() { echo -e "${YELLOW}  ⚠${NC} $1"; }
-err()  { echo -e "${RED}  ✗${NC} $1"; }
-info() { echo -e "${CYAN}  →${NC} $1"; }
-hdr()  { echo -e "\n${BOLD}${BLUE}══ $1 ══${NC}"; }
+# Misma convención de logs que VoxiDet (familia KPBTec) — [✓]/[·]/[⚠]/[✗] +
+# separadores "── Título ──". Antes cada producto tenía su propio estilo
+# (VoxiKam usaba ✓ sin corchetes y cajas ╔══╗; VoxiDet ya usaba corchetes).
+ok()   { echo -e "${GREEN}[✓]${NC} $1"; }
+warn() { echo -e "${YELLOW}[⚠]${NC} $1"; }
+err()  { echo -e "${RED}[✗]${NC} $1"; }
+info() { echo -e "${CYAN}[·]${NC} $1"; }
+hdr()  { echo -e "\n${BOLD}${BLUE}── $1 ──────────────────────────────────────────────────────────${NC}"; }

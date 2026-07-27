@@ -9,9 +9,30 @@ User=voxikam
 Group=voxikam
 WorkingDirectory=__INSTALL_DIR__/backend
 EnvironmentFile=__INSTALL_DIR__/backend/.env
-ExecStart=__INSTALL_DIR__/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2
+# --proxy-headers --forwarded-allow-ips=127.0.0.1: sin esto, uvicorn nunca lee
+# el X-Forwarded-For que manda nginx (nginx/voxikam.conf ya lo setea bien) y
+# request.client.host en backend/middleware/security.py queda SIEMPRE en
+# 127.0.0.1 (la IP de nginx, no la del usuario real) — el rate-limit por IP
+# terminaba compartiendo un solo balde entre TODOS los usuarios reales al
+# mismo tiempo (en vez de limitar por atacante), y el log SECURITY_REJECT que
+# alimenta a fail2ban nunca tenía la IP real para banear. forwarded-allow-ips
+# acotado a 127.0.0.1 (no "*") — solo confía en el header cuando la conexión
+# TCP directa viene de nginx en el mismo host, no de cualquiera.
+ExecStart=__INSTALL_DIR__/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers __WORKERS__ --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=always
 RestartSec=5
+
+# Hardening — SIN NoNewPrivileges=yes a propósito: este backend invoca `sudo`
+# de verdad en runtime (nft/kamcmd/fail2ban-client/systemctl vía sudoers
+# allowlist — ver routers/system_services.py, services_status.py,
+# firewall.py, customers.py). NoNewPrivileges rompe sudo (setuid necesita
+# poder ganar privilegios nuevos) — ya pasó exactamente este bug en un
+# proyecto hermano (VoxiDet) con este mismo par de directivas. Las otras tres
+# no interfieren con sudo (son namespaces de montaje, no el flag de
+# no-new-privs del kernel) y sí acotan bastante el radio de daño de un RCE.
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=voxikam-backend

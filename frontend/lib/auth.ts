@@ -4,11 +4,14 @@ export interface AuthUser {
   name: string;
   role: "admin" | "client";
   customer_id: number | null;
-  show_calls?: boolean;
-  show_quality?: boolean;
-  show_reports?: boolean;
-  show_invoices?: boolean;
-  show_trunk_guide?: boolean;
+  is_reseller?: boolean;
+  // Árbol de permisos granular (resource_key -> visible) — reemplaza los
+  // show_* sueltos de antes. Ver db/schema.sql (permission_resources) y
+  // backend/auth.py::resolve_permissions(). Se resuelve una sola vez al
+  // hacer login y se cachea acá — si un admin cambia un permiso a mitad de
+  // sesión, el cliente lo ve recién en su próximo login (mismo criterio de
+  // siempre, no es nuevo de este cambio).
+  permissions?: Record<string, boolean>;
 }
 
 export function saveAuth(token: string, user: AuthUser) {

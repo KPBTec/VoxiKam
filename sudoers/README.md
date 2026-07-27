@@ -1,6 +1,6 @@
 # sudoers/
 
-Permisos sudo para el usuario `voxikam`. install.sh copia el archivo a `/etc/sudoers.d/voxikam` y lo valida con `visudo -c`.
+Permisos sudo para el usuario `voxikam`. deploy.sh copia el archivo a `/etc/sudoers.d/voxikam` y lo valida con `visudo -c`.
 
 ## Archivo
 

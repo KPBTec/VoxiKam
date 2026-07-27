@@ -14,7 +14,7 @@ nftables/
 
 ## nftables.conf — Estructura base
 
-Config con `__PLACEHOLDER__`. `apply_conf()` en install.sh la copia a `/etc/nftables.conf`.
+Config con `__PLACEHOLDER__`. `apply_conf()` en deploy.sh la copia a `/etc/nftables.conf`.
 
 Incluye al final:
 ```nft

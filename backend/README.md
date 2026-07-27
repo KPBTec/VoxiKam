@@ -87,7 +87,7 @@ El response incluye `"capped": true` cuando se llega al límite para que el fron
 - Bloquea UAs: `sqlmap`, `nikto`, `masscan`, `nmap`
 - Security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, CSP, `Server: KPBTec-VoxiKam`
 
-## Variables de entorno (.env generado por install.sh)
+## Variables de entorno (.env generado por deploy.sh)
 
 ```
 DATABASE_URL=mysql+aiomysql://voxikam:<pass>@127.0.0.1:<port>/sip_platform

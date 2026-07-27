@@ -31,11 +31,20 @@ export function Gauge({ value, max, label, sub, unit = "%", size = 140 }: GaugeP
   const pct   = Math.min(0.999, Math.max(0.001, value / Math.max(max, 0.001)));
   const W     = size;
   const cx    = W / 2;
-  const cy    = W * 0.58;
+  const cy    = W * 0.52;
   const r     = W * 0.40;
   const sw    = W * 0.09;
-  const H     = cy + sw / 2 + 20;
   const color = arcColor(pct);
+
+  // Filas de texto debajo del arco, cada una con su propio espacio reservado
+  // — antes el sub-label ("2.1 / 7.8 GB") y los ticks min/max quedaban a 4px
+  // de distancia y se pisaban con textos largos. Ahora cada fila tiene 15px
+  // de alto propio, y solo se reserva espacio para el sub-label si existe
+  // (si no, el gauge queda más bajo en vez de dejar un hueco vacío).
+  const ticksY  = cy + sw / 2 + 11;
+  const subY    = ticksY + 15;
+  const labelY  = (sub ? subY : ticksY) + 17;
+  const H       = labelY + 4;
 
   // SVG arc convention: 0°=right, angles increase CW (screen), y-down
   // Background: left(180°) → right(360°) through top(270°) — large-arc=1, sweep=1
@@ -64,30 +73,30 @@ export function Gauge({ value, max, label, sub, unit = "%", size = 140 }: GaugeP
       />
       {/* Value */}
       <text
-        x={cx} y={cy - r * 0.08}
+        x={cx} y={cy - r * 0.15}
         textAnchor="middle" dominantBaseline="middle"
-        fill="white" fontSize={W * 0.16} fontWeight="700" fontFamily="monospace"
+        fill="white" fontSize={W * 0.17} fontWeight="700" fontFamily="monospace"
       >
         {fmtValue(value, unit)}
       </text>
-      {/* Sub-label (e.g. "3.9 / 8.0 GB") */}
+      {/* Min / Max ticks */}
+      <text x={lx + 2} y={ticksY} textAnchor="start" fill="#52525b" fontSize={W * 0.075}>0</text>
+      <text x={rx - 2} y={ticksY} textAnchor="end"   fill="#52525b" fontSize={W * 0.075}>
+        {unit === "Mbps" ? fmtValue(max, "Mbps") : `${max}${unit}`}
+      </text>
+      {/* Sub-label (e.g. "3.9 / 8.0 GB") — fila propia, nunca pisa los ticks */}
       {sub && (
         <text
-          x={cx} y={cy + r * 0.22}
+          x={cx} y={subY}
           textAnchor="middle" dominantBaseline="middle"
-          fill="#71717a" fontSize={W * 0.09}
+          fill="#71717a" fontSize={W * 0.085} fontFamily="monospace"
         >
           {sub}
         </text>
       )}
-      {/* Min / Max ticks */}
-      <text x={lx + 2} y={ly + sw / 2 + 10} textAnchor="start"  fill="#52525b" fontSize={W * 0.08}>0</text>
-      <text x={rx - 2} y={ry + sw / 2 + 10} textAnchor="end"    fill="#52525b" fontSize={W * 0.08}>
-        {unit === "Mbps" ? fmtValue(max, "Mbps") : `${max}${unit}`}
-      </text>
       {/* Label */}
       <text
-        x={cx} y={H - 2}
+        x={cx} y={labelY}
         textAnchor="middle" dominantBaseline="auto"
         fill="#a1a1aa" fontSize={W * 0.1} fontWeight="600"
       >

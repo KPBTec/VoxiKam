@@ -13,6 +13,13 @@ Environment=HOSTNAME=127.0.0.1
 ExecStart=/usr/bin/node __INSTALL_DIR__/frontend/.next/standalone/server.js
 Restart=always
 RestartSec=5
+
+# Hardening — Next.js standalone no invoca sudo/setuid en ningún lado, así
+# que a diferencia de voxikam-backend.service sí puede llevar NoNewPrivileges.
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=voxikam-frontend

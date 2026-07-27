@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiDelete, apiPut, apiFetch } from '@/lib/api'
-import { Plus, Trash2, ChevronDown, ChevronRight, Layers, Hash, Pencil, Check, X } from 'lucide-react'
+import { Plus, Trash2, Layers, Hash, Pencil, Check, X } from 'lucide-react'
+import Link from 'next/link'
 
 interface Plan   { id: number; name: string; currency: string; status: string }
 interface Rate   { id: number; prefix: string; destination: string; group_name: string; rateinitial: number; connectcharge: number; billingblock: number }
@@ -13,7 +14,7 @@ const input = 'bg-[var(--color-surface)] border border-[var(--color-border)] rou
 const lbl   = 'block text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1'
 
 const GROUP_COLORS: Record<string, string> = {
-  'FIJO LIMA':      'bg-blue-900/30 text-blue-300',
+  'FIJO LIMA':      'bg-info-900/50 text-info-300',
   'FIJO PROVINCIA': 'bg-purple-900/30 text-purple-300',
   'MOVILES':        'bg-amber-900/30 text-amber-300',
 }
@@ -27,7 +28,6 @@ export default function RatesPage() {
   const [rates, setRates]       = useState<Rate[]>([])
   const [prefixes, setPrefixes] = useState<Prefix[]>([])
   const [groups, setGroups]     = useState<Group[]>([])
-  const [showPfx, setShowPfx]   = useState(false)
   const [addMode, setAddMode]   = useState<'group' | 'individual'>('group')
 
   // Nuevo plan
@@ -38,22 +38,19 @@ export default function RatesPage() {
   const [editPlanId, setEditPlanId]   = useState<number | null>(null)
   const [editPlanName, setEditPlanName] = useState('')
 
-  // Nuevo prefijo
-  const [pfxForm, setPfxForm] = useState({ prefix: '', destination: '', group_name: '', country: 'PE' })
-  const [pfxSaving, setPfxSaving] = useState(false)
-
   // Tarifa por grupo
-  const [grpForm, setGrpForm]   = useState({ group_name: '', rateinitial: '', connectcharge: '0', billingblock: '60' })
+  const [grpForm, setGrpForm]   = useState({ group_name: '', rateinitial: '', connectcharge: '0', billingblock: '1' })
   const [grpSaving, setGrpSaving] = useState(false)
 
   // Tarifa individual
-  const [rateForm, setRateForm] = useState({ prefix_id: '', rateinitial: '', connectcharge: '0', billingblock: '60' })
+  const [rateForm, setRateForm] = useState({ prefix_id: '', rateinitial: '', connectcharge: '0', billingblock: '1' })
   const [saving, setSaving]     = useState(false)
 
-  const loadPlans  = () => apiGet('/admin/rates/plans').then(setPlans)
-  const loadPfx    = () => apiGet('/admin/rates/prefixes').then(setPrefixes)
-  const loadGroups = () => apiGet('/admin/rates/groups').then(setGroups)
-  const loadRates  = (pid: number) => apiGet(`/admin/rates/plans/${pid}/rates`).then(setRates)
+  const [error, setError] = useState('')
+  const loadPlans  = () => apiGet('/admin/rates/plans').then(setPlans).catch((e: any) => setError(e.message))
+  const loadPfx    = () => apiGet('/admin/rates/prefixes').then(setPrefixes).catch((e: any) => setError(e.message))
+  const loadGroups = () => apiGet('/admin/rates/groups').then(setGroups).catch((e: any) => setError(e.message))
+  const loadRates  = (pid: number) => apiGet(`/admin/rates/plans/${pid}/rates`).then(setRates).catch((e: any) => setError(e.message))
 
   useEffect(() => { loadPlans(); loadPfx(); loadGroups() }, [])
   useEffect(() => { if (sel) loadRates(sel); else setRates([]) }, [sel])
@@ -81,21 +78,6 @@ export default function RatesPage() {
     loadPlans()
   }
 
-  async function addPrefix(e: React.FormEvent) {
-    e.preventDefault(); setPfxSaving(true)
-    try {
-      await apiPost('/admin/rates/prefixes', pfxForm)
-      setPfxForm({ prefix: '', destination: '', group_name: '', country: 'PE' })
-      loadPfx(); loadGroups()
-    } finally { setPfxSaving(false) }
-  }
-
-  async function delPrefix(id: number) {
-    if (!confirm('¿Eliminar este prefijo? Se borrarán todas las tarifas asociadas.')) return
-    await apiDelete(`/admin/rates/prefixes/${id}`); loadPfx(); loadGroups()
-    if (sel) loadRates(sel)
-  }
-
   async function addGroupRate(e: React.FormEvent) {
     e.preventDefault()
     if (!sel || !grpForm.group_name || !grpForm.rateinitial) return
@@ -107,7 +89,7 @@ export default function RatesPage() {
         connectcharge: +grpForm.connectcharge,
         billingblock:  +grpForm.billingblock,
       })
-      setGrpForm({ group_name: '', rateinitial: '', connectcharge: '0', billingblock: '60' })
+      setGrpForm({ group_name: '', rateinitial: '', connectcharge: '0', billingblock: '1' })
       loadRates(sel)
       if (res?.updated !== undefined) alert(`Actualizado en ${res.updated} prefijos del grupo ${grpForm.group_name}`)
     } finally { setGrpSaving(false) }
@@ -124,7 +106,7 @@ export default function RatesPage() {
         connectcharge: +rateForm.connectcharge,
         billingblock:  +rateForm.billingblock,
       })
-      setRateForm({ prefix_id: '', rateinitial: '', connectcharge: '0', billingblock: '60' })
+      setRateForm({ prefix_id: '', rateinitial: '', connectcharge: '0', billingblock: '1' })
       loadRates(sel)
     } finally { setSaving(false) }
   }
@@ -143,99 +125,17 @@ export default function RatesPage() {
           Lo que le cobras a tus clientes — asigna un plan a cada cliente en su perfil.{' '}
           <span className="text-[var(--color-text-2)]">Los costos del carrier están en cada carrier → "Buy rates".</span>
         </p>
+        <Link href="/prefixes" className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-brand-400 transition-colors mt-1">
+          <Hash size={13} /> Gestionar el catálogo de prefijos de destino →
+        </Link>
       </div>
 
-      {/* ── Gestión de prefijos (colapsable) ─────────────────────────────── */}
-      <div className={card}>
-        <button onClick={() => setShowPfx(v => !v)}
-          className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold">
-          <span>Prefijos de destino</span>
-          <span className="flex items-center gap-2 text-[var(--color-muted)] font-normal text-xs">
-            {prefixes.length} prefijos — {groups.length} grupos — longest-prefix-match activo
-            {showPfx ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
-          </span>
-        </button>
-
-        {showPfx && (
-          <div className="border-t border-[var(--color-border)] p-5 space-y-4">
-            <form onSubmit={addPrefix} className="flex gap-3 flex-wrap items-end">
-              <div>
-                <label className={lbl}>Prefijo E.164</label>
-                <input required placeholder="ej: 5154" value={pfxForm.prefix}
-                  onChange={e => setPfxForm(f => ({...f, prefix: e.target.value}))}
-                  className={`w-28 ${input} font-mono`} />
-              </div>
-              <div className="flex-1 min-w-40">
-                <label className={lbl}>Descripción</label>
-                <input required placeholder="ej: Fijo Arequipa"
-                  value={pfxForm.destination}
-                  onChange={e => setPfxForm(f => ({...f, destination: e.target.value}))}
-                  className={`w-full ${input}`} />
-              </div>
-              <div className="w-48">
-                <label className={lbl}>Grupo</label>
-                <select value={pfxForm.group_name}
-                  onChange={e => setPfxForm(f => ({...f, group_name: e.target.value}))}
-                  className={`w-full ${input}`}>
-                  <option value="">Sin grupo</option>
-                  {groups.map(g => <option key={g.group_name} value={g.group_name}>{g.group_name}</option>)}
-                  <option value="FIJO LIMA">FIJO LIMA</option>
-                  <option value="FIJO PROVINCIA">FIJO PROVINCIA</option>
-                  <option value="MOVILES">MOVILES</option>
-                </select>
-              </div>
-              <div>
-                <label className={lbl}>País</label>
-                <input placeholder="PE" value={pfxForm.country}
-                  onChange={e => setPfxForm(f => ({...f, country: e.target.value.toUpperCase()}))}
-                  className={`w-16 ${input} text-center`} maxLength={2} />
-              </div>
-              <button type="submit" disabled={pfxSaving}
-                className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-                <Plus size={15}/> {pfxSaving ? 'Agregando…' : 'Agregar'}
-              </button>
-            </form>
-
-            <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                    <th className="px-4 py-2 text-left">Prefijo</th>
-                    <th className="px-4 py-2 text-left">Destino</th>
-                    <th className="px-4 py-2 text-left">Grupo</th>
-                    <th className="px-4 py-2 text-center">País</th>
-                    <th className="px-4 py-2"/>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--color-border)]">
-                  {prefixes.map(p => (
-                    <tr key={p.id} className="hover:bg-white/2">
-                      <td className="px-4 py-2 font-mono text-brand-400">{p.prefix}</td>
-                      <td className="px-4 py-2">{p.destination}</td>
-                      <td className="px-4 py-2">{groupBadge(p.group_name)}</td>
-                      <td className="px-4 py-2 text-center text-[var(--color-muted)]">{p.country}</td>
-                      <td className="px-4 py-2 text-right">
-                        <button onClick={() => delPrefix(p.id)}
-                          className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
-                          <Trash2 size={14}/>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {prefixes.length === 0 && (
-                    <tr><td colSpan={5} className="px-4 py-6 text-center text-[var(--color-muted)] text-sm">Sin prefijos</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
+      {error && <div className="bg-red-900/30 border border-red-700 text-red-300 text-sm rounded-lg px-4 py-3">{error}</div>}
 
       {/* ── Planes + tarifas ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Columna planes */}
-        <div className="col-span-1 space-y-3">
+        <div className="lg:col-span-1 space-y-3">
           <h2 className="text-sm font-semibold text-[var(--color-text-2)] uppercase tracking-wider">Planes de venta</h2>
 
           <div className="flex gap-2">
@@ -286,7 +186,7 @@ export default function RatesPage() {
         </div>
 
         {/* Columna tarifas del plan */}
-        <div className="col-span-3 space-y-4">
+        <div className="lg:col-span-3 space-y-4">
           {!sel ? (
             <div className={`${card} p-10 text-center text-[var(--color-muted)] text-sm`}>
               Selecciona un plan para ver y editar sus tarifas
@@ -394,7 +294,7 @@ export default function RatesPage() {
               </div>
 
               {/* Tabla de tarifas agrupadas */}
-              <div className={`${card} overflow-hidden`}>
+              <div className={`${card} overflow-x-auto`}>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)] bg-[var(--color-surface)]">

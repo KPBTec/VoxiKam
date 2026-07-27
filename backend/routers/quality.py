@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth import require_admin, require_client, require_module
+from auth import require_admin, require_permission
 from database import get_db
 
 router = APIRouter()
@@ -38,7 +38,11 @@ async def _quality_from_cdrs(db, day: str, customer_id: Optional[int] = None) ->
     Calcula calidad por hora directamente desde cdrs + cdrs_failed.
     Usado para horas que no están en traffic_quality_hourly todavía.
     """
-    cid_filter = "AND c.customer_id = :cid" if customer_id else ""
+    # Dos filtros separados a propósito — cid_filter único con alias "c."
+    # hardcodeado explotaba (1054 Unknown column) al reutilizarse tal cual en
+    # la query de cdrs_failed, que usa alias "f.", no "c.".
+    cid_filter_ok   = "AND c.customer_id = :cid" if customer_id else ""
+    cid_filter_fail = "AND f.customer_id = :cid" if customer_id else ""
     params: dict = {"day": day}
     if customer_id:
         params["cid"] = customer_id
@@ -50,7 +54,10 @@ async def _quality_from_cdrs(db, day: str, customer_id: Optional[int] = None) ->
                SUM(c.billsec < 5) AS short_calls
         FROM cdrs c
         JOIN customers cu ON c.customer_id = cu.id
-        WHERE DATE(c.start_ts) = :day AND c.customer_id IS NOT NULL {cid_filter}
+        WHERE c.start_ts >= :day AND c.start_ts < DATE_ADD(:day, INTERVAL 1 DAY)
+          AND c.customer_id IS NOT NULL
+          AND c.disposition = 'ANSWERED'
+          {cid_filter_ok}
         GROUP BY h, c.customer_id
     """
     failed_sql = f"""
@@ -62,7 +69,8 @@ async def _quality_from_cdrs(db, day: str, customer_id: Optional[int] = None) ->
                SUM(f.sip_code NOT IN (487,486,404,503)) AS c_other,
                COUNT(*) AS failed_total
         FROM cdrs_failed f
-        WHERE DATE(f.start_ts) = :day AND f.customer_id IS NOT NULL {cid_filter}
+        WHERE f.start_ts >= :day AND f.start_ts < DATE_ADD(:day, INTERVAL 1 DAY)
+          AND f.customer_id IS NOT NULL {cid_filter_fail}
         GROUP BY h, f.customer_id
     """
     ra = await db.execute(text(answered_sql), params)
@@ -138,7 +146,7 @@ async def quality_admin(
 async def quality_my(
     date: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
-    auth=Depends(require_module("show_quality")),
+    auth=Depends(require_permission("quality")),
 ):
     """
     ASR Dashboard cliente — solo su propio tráfico.

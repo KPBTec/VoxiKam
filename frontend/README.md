@@ -65,7 +65,7 @@ const r = await apiPost('/admin/customers', { name: 'Acme', email: '...' })
 const res = await apiFetch('/auth/login', { method: 'POST', body: formData })
 ```
 
-`BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api"` — en producción se bake en el build con el valor de `.env.local`.
+`BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api"` — en producción esta var NO se setea (ver `templates/frontend.env.j2`), así que siempre cae a `/api` relativo. Nginx proxea `/api/` al backend en el mismo origen — funciona con cualquier dominio/IP/puerto sin reconstruir. Antes sí se horneaba una URL absoluta acá; se sacó tras un incidente real: acceder por un dominio distinto al que estaba seteado en el build rompía el frontend por completo (fetch cross-origin, excepción de cliente sin manejar).
 
 ## Design tokens (globals.css)
 
@@ -87,7 +87,7 @@ Usar `bg-[var(--color-card)]` o las clases de Tailwind: `bg-brand-600`, `text-br
 npm install --include=optional   # --include=optional requerido por @tailwindcss/oxide (Node ≥ 20)
 npm run build
 # Standalone output en .next/standalone/server.js
-# Estáticos copiados manualmente por install.sh:
+# Estáticos copiados manualmente por deploy.sh:
 cp -r .next/static   .next/standalone/.next/static
 cp -r public         .next/standalone/public
 ```
@@ -96,11 +96,7 @@ cp -r public         .next/standalone/public
 
 ## Variables de entorno
 
-```
-NEXT_PUBLIC_API_URL=http://<domain>:<port>/api
-```
-
-Se genera en `templates/frontend.env.j2` → `frontend/.env.local` durante install.sh (PASO 8), antes del build (PASO 10), para que se bake en el bundle.
+`templates/frontend.env.j2` → `frontend/.env.local` durante deploy.sh (PASO 8), antes del build (PASO 10) — hoy solo trae `NEXT_PUBLIC_PLATFORM_NAME`/`NEXT_PUBLIC_SBC_HOST`/`NEXT_PUBLIC_SBC_PORT`. `NEXT_PUBLIC_API_URL` no se define (ver arriba).
 
 ## Logs
 

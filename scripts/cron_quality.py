@@ -65,6 +65,11 @@ def run(conn):
     prev_str = (ts_hour - timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")
 
     # ── Contestadas de la hora actual ────────────────────────────────────────
+    # disposition = 'ANSWERED' explícito — antes esto no filtraba nada,
+    # contaba CUALQUIER fila de cdrs como "contestada" (incluidas NO_ANSWER y,
+    # desde v2.26.0, RESTART_ORPHANED — llamadas que sí se atendieron pero
+    # nunca se confirmó que se facturaran). Mismo criterio que
+    # backend/routers/reports.py y scripts/cron_summary.py.
     cur.execute("""
         SELECT
             customer_id,
@@ -73,6 +78,7 @@ def run(conn):
         FROM cdrs
         WHERE start_ts >= %s AND start_ts < %s
           AND customer_id IS NOT NULL
+          AND disposition = 'ANSWERED'
         GROUP BY customer_id
     """, (ts_str, (ts_hour + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S")))
     answered_rows = {r[0]: {"answered": r[1], "short_calls": r[2] or 0}

@@ -1,6 +1,6 @@
 # templates/
 
-Plantillas **Jinja2 de runtime** — se renderizan en install.sh (via gen_configs.py) o durante la ejecución del sistema (gen_nftables.py).
+Plantillas **Jinja2 de runtime** — se renderizan en deploy.sh (via gen_configs.py) o durante la ejecución del sistema (gen_nftables.py).
 
 **Regla:** Esta carpeta es SOLO para templates que necesitan Jinja2 (loops, condicionales, muchas variables). Las configs estáticas (nginx, nftables base, rtpengine) van en sus propias carpetas con `__PLACEHOLDER__` + `sed`.
 
@@ -21,13 +21,16 @@ LOG_DIR={{ log_dir }}
 ```
 
 ### frontend.env.j2
-Genera `frontend/.env.local`. Se bake en el bundle de Next.js durante `npm run build`.
+Genera `frontend/.env.local`. Se bakea en el bundle de Next.js durante `npm run build`.
 
-```
-NEXT_PUBLIC_API_URL=http://{{ domain }}:{{ web_port }}/api
-```
-
-**Importante:** debe generarse ANTES del `npm run build`. En install.sh esto ocurre en PASO 8, build en PASO 10.
+**NO define `NEXT_PUBLIC_API_URL`** — a propósito. `frontend/lib/api.ts` cae a `/api`
+(relativo) cuando no está seteada, y nginx ya proxea `/api/` al backend en el
+mismo origen — así el frontend funciona con cualquier dominio/IP que apunte al
+server, sin rebuild. Antes SÍ se horneaba una URL absoluta con `domain`/`web_port`
+acá — bug real encontrado en producción: acceder por un dominio distinto al que
+estaba seteado cuando se compiló rompía el frontend (fetch cross-origin bloqueado
+por CORS, excepción sin manejar). Ver Sistema → Dominio de acceso para cambiar
+de dominio sin tocar el frontend para nada.
 
 ### nftables-dynamic.j2
 Renderizado por `gen_nftables.py` en runtime cada 5 minutos. Lee IPs de DB y genera los sets de nftables.

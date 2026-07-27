@@ -87,7 +87,7 @@ async def _query_day(db, day: date_type, customer_id: Optional[int] = None):
         FROM cdrs c
         LEFT JOIN customers cu ON c.customer_id = cu.id
         LEFT JOIN carriers  ca ON c.carrier_id  = ca.id
-        WHERE DATE(c.start_ts) = :day {cond}
+        WHERE c.start_ts >= :day AND c.start_ts < DATE_ADD(:day, INTERVAL 1 DAY) {cond}
         GROUP BY HOUR(c.start_ts), c.customer_id, c.carrier_id
         ORDER BY HOUR(c.start_ts) ASC
     """
@@ -138,6 +138,10 @@ async def client_timeseries(
         rows   = await _query_live(db, range, customer_id)
 
     return {
-        "labels":     labels,
-        "by_carrier": _build_series(rows, "lbl", "carrier_name", "calls", labels),
+        "labels": labels,
+        # Al cliente no le mostramos el carrier interno del SBC (detalle de
+        # routing que no le corresponde) — agrupamos por su propio nombre,
+        # así la leyenda del gráfico dice su nombre en vez de "Sin nombre"
+        # (que salía cuando carrier_name era NULL para sus CDRs).
+        "series": _build_series(rows, "lbl", "customer_name", "calls", labels),
     }

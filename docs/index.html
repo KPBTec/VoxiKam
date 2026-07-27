@@ -8,388 +8,420 @@
 <meta property="og:description" content="Billing, monitoreo y control de tráfico SIP para operadores y revendedores de voz.">
 <meta property="og:type" content="website">
 <title>VoxiKam — SIP Class 4 Platform</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23070b14'/><text y='.72em' x='.14em' font-size='60'>⚡</text></svg>">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root {
-  --blue:   #2563eb;
-  --blue-l: #3b82f6;
-  --blue-d: #1d4ed8;
-  --dark:   #0f172a;
-  --dark2:  #1e293b;
-  --dark3:  #334155;
-  --muted:  #64748b;
-  --border: #e2e8f0;
-  --surf:   #f8fafc;
-  --white:  #ffffff;
-  --green:  #059669;
-  --radius: 12px;
+  --ink:       #070b14;
+  --surface:   #0d1526;
+  --surface-2: #111d35;
+  --line:      #1a2744;
+  --line-2:    #253660;
+  --text:      #e7ecf3;
+  --muted:     #5b7390;
+  --signal:     #dd8b3d;
+  --signal-dim: #c17429;
+  --signal-100: #fbe0c4;
+  --ok:     #22c55e;
+  --danger: #ef4444;
+  --warn:   #f5b942;
+  --info:   #6b8fb5;
+  --radius:    12px;
+  --radius-sm: 8px;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Manrope', -apple-system, sans-serif;
   font-size: 15px;
-  line-height: 1.6;
-  color: var(--dark2);
-  background: var(--white);
+  line-height: 1.65;
+  color: var(--text);
+  background: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--blue); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a { color: var(--signal); text-decoration: none; }
+a:hover { color: #eba456; }
+
+::selection { background: var(--signal); color: var(--ink); }
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ── ICONS ────────────────────────────────────────────────────────── */
+.ico { width: 20px; height: 20px; flex-shrink: 0; }
+.ico-lg { width: 26px; height: 26px; }
 
 /* ── NAV ──────────────────────────────────────────────────────────── */
 nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(15,23,42,0.97);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(7,11,20,0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
   padding: 0 32px;
   display: flex; align-items: center; justify-content: space-between;
-  height: 56px;
+  height: 60px;
 }
 .nav-logo { display: flex; align-items: center; }
-.nav-links { display: flex; gap: 6px; align-items: center; }
-.nav-links a {
-  color: #94a3b8; font-size: 13px; font-weight: 500;
-  padding: 6px 12px; border-radius: 6px;
+.nav-links { display: flex; gap: 4px; align-items: center; }
+.nav-links a:not(.nav-cta) {
+  color: var(--muted); font-size: 13px; font-weight: 600;
+  padding: 7px 13px; border-radius: var(--radius-sm);
   transition: color .15s, background .15s;
 }
-.nav-links a:hover { color: #fff; background: rgba(255,255,255,0.07); text-decoration: none; }
+.nav-links a:not(.nav-cta):hover { color: var(--text); background: var(--surface); }
 .nav-cta {
-  background: var(--blue) !important; color: #fff !important;
-  font-weight: 600 !important; border-radius: 7px !important;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; color: var(--text) !important;
+  font-weight: 600; font-size: 13px;
+  border: 1px solid var(--line-2); border-radius: var(--radius-sm);
+  padding: 7px 14px; margin-left: 8px;
+  transition: border-color .15s, background .15s;
 }
-.nav-cta:hover { background: var(--blue-d) !important; }
+.nav-cta:hover { border-color: var(--signal); background: var(--surface); }
+
+/* ── SECTION COMMON ───────────────────────────────────────────────── */
+section { padding: 88px 32px; border-bottom: 1px solid var(--line); }
+section:last-of-type { border-bottom: none; }
+.section-inner { max-width: 1080px; margin: 0 auto; }
+.section-tag {
+  font-family: var(--mono);
+  font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--signal); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-tag::before {
+  content: ''; width: 16px; height: 1px; background: var(--signal);
+}
+h2.section-title {
+  font-size: clamp(26px, 3.6vw, 38px); font-weight: 800;
+  letter-spacing: -0.7px; margin-bottom: 14px; color: var(--text);
+}
+.section-lead { color: var(--muted); font-size: 15.5px; max-width: 620px; line-height: 1.7; }
+.section-lead a { text-decoration: underline; text-underline-offset: 2px; }
+
+.on-surface  { background: var(--surface); }
+.on-ink      { background: var(--ink); }
 
 /* ── HERO ─────────────────────────────────────────────────────────── */
 .hero {
-  background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%);
-  color: #fff;
-  padding: 96px 32px 80px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden;
+  padding: 80px 32px 96px;
+  border-bottom: 1px solid var(--line);
 }
 .hero::before {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse 800px 500px at 50% 0%, rgba(37,99,235,0.18) 0%, transparent 70%);
+  background:
+    radial-gradient(ellipse 900px 480px at 50% -10%, rgba(221,139,61,0.14) 0%, transparent 65%),
+    linear-gradient(180deg, transparent 0%, var(--ink) 100%);
   pointer-events: none;
 }
-.hero-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(37,99,235,0.2); border: 1px solid rgba(59,130,246,0.4);
-  color: var(--blue-l); font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
-  padding: 4px 12px; border-radius: 100px; margin-bottom: 24px;
-  text-transform: uppercase;
+.hero-inner {
+  position: relative; max-width: 1080px; margin: 0 auto;
+  display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center;
 }
+@media(max-width: 940px) { .hero-inner { grid-template-columns: 1fr; } }
+
+.hero-eyebrow {
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--signal);
+  margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+}
+.hero-eyebrow::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(34,197,94,0.18); }
 .hero h1 {
-  font-size: clamp(42px, 7vw, 72px);
-  font-weight: 900; letter-spacing: -2px; line-height: 1;
-  margin-bottom: 10px;
+  font-size: clamp(34px, 4.4vw, 50px);
+  font-weight: 800; letter-spacing: -1.4px; line-height: 1.08;
+  margin-bottom: 20px; color: var(--text);
 }
-.hero h1 span { color: var(--blue-l); }
-.hero-sub {
-  font-size: clamp(15px, 2.5vw, 20px);
-  color: #94a3b8; font-weight: 400; margin-bottom: 8px;
+.hero h1 em {
+  font-style: normal; color: var(--signal);
 }
 .hero-desc {
-  max-width: 560px; margin: 0 auto 36px;
-  color: #64748b; font-size: 14px; line-height: 1.7;
+  max-width: 480px; margin-bottom: 34px;
+  color: var(--muted); font-size: 15.5px; line-height: 1.75;
 }
-.hero-buttons {
-  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
-  margin-bottom: 48px;
-}
+.hero-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 44px; }
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 22px; border-radius: 9px; font-size: 14px;
-  font-weight: 600; cursor: pointer; transition: all .15s;
-  text-decoration: none !important;
+  padding: 12px 20px; border-radius: var(--radius-sm); font-size: 14px;
+  font-weight: 700; cursor: pointer; transition: all .15s;
+  text-decoration: none !important; border: 1px solid transparent;
 }
-.btn-primary { background: var(--blue); color: #fff; }
-.btn-primary:hover { background: var(--blue-d); transform: translateY(-1px); }
-.btn-outline {
-  background: transparent; color: #e2e8f0;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-.btn-outline:hover { background: rgba(255,255,255,0.07); transform: translateY(-1px); }
-.btn-tg { background: #229ed9; color: #fff; }
-.btn-tg:hover { background: #1a8cc4; transform: translateY(-1px); }
+.btn-primary { background: var(--signal); color: #1a1002; }
+.btn-primary:hover { background: #e79a4f; transform: translateY(-1px); }
+.btn-outline { background: transparent; color: var(--text); border-color: var(--line-2); }
+.btn-outline:hover { border-color: var(--signal); background: var(--surface); transform: translateY(-1px); }
 
 .hero-stats {
-  display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;
+  display: flex; gap: 32px; flex-wrap: wrap;
+  padding-top: 24px; border-top: 1px solid var(--line);
 }
-.hero-stat { text-align: center; }
-.hero-stat .num {
-  font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -1px;
-}
-.hero-stat .lbl { font-size: 12px; color: #64748b; font-weight: 500; }
+.hero-stat .num { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text); }
+.hero-stat .lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-/* ── SECTION COMMON ───────────────────────────────────────────────── */
-section { padding: 72px 32px; }
-.section-inner { max-width: 1060px; margin: 0 auto; }
-.section-tag {
-  font-size: 11px; font-weight: 700; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--blue); margin-bottom: 8px;
+/* ── HERO: TRACE CARD (signature element) ────────────────────────── */
+.trace-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6);
 }
-h2.section-title {
-  font-size: clamp(24px, 4vw, 36px); font-weight: 800;
-  letter-spacing: -0.5px; margin-bottom: 12px; color: var(--dark);
+.trace-chrome {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
 }
-.section-lead { color: var(--muted); font-size: 15px; max-width: 640px; }
+.trace-dots { display: flex; gap: 6px; }
+.trace-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line-2); }
+.trace-chrome-title {
+  font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.trace-live {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+  color: var(--ok); text-transform: uppercase; letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.trace-live span { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); animation: pulse-dot 1.8s ease-in-out infinite; }
+
+.trace-cols {
+  display: flex; justify-content: space-between;
+  padding: 12px 16px 8px; border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-size: 10.5px; color: var(--muted);
+}
+.trace-cols span:nth-child(2) { color: var(--signal); }
+
+.trace-rows { padding: 6px 0; }
+.trace-row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 16px;
+  opacity: 0; animation: row-in .5s ease forwards;
+}
+.trace-row .t { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 46px; flex-shrink: 0; }
+.trace-row .arrow { color: var(--line-2); flex-shrink: 0; font-size: 12px; }
+.trace-row .msg { font-family: var(--mono); font-size: 12px; flex: 1; }
+.trace-row .m-invite { color: var(--signal); }
+.trace-row .m-info   { color: var(--muted); }
+.trace-row .m-ok     { color: var(--ok); }
+.trace-row .m-bye    { color: var(--signal); font-weight: 600; }
+.trace-row .tag {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  background: var(--signal-100); color: #6b4415;
+  padding: 2px 8px; border-radius: 100px; white-space: nowrap;
+}
+
+.trace-row:nth-child(1) { animation-delay: .15s; }
+.trace-row:nth-child(2) { animation-delay: .38s; }
+.trace-row:nth-child(3) { animation-delay: .61s; }
+.trace-row:nth-child(4) { animation-delay: .84s; }
+.trace-row:nth-child(5) { animation-delay: 1.07s; }
+.trace-row:nth-child(6) { animation-delay: 1.30s; }
+.trace-row:nth-child(7) { animation-delay: 1.53s; }
+.trace-row:nth-child(8) { animation-delay: 1.80s; }
+
+@keyframes row-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .trace-row { animation: none; opacity: 1; }
+  .trace-live span { animation: none; }
+}
 
 /* ── WHY CARDS ────────────────────────────────────────────────────── */
 .why-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px; margin-top: 40px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 1px; margin-top: 44px;
+  background: var(--line); border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden;
 }
-.why-card {
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 24px; background: var(--surf);
-  transition: box-shadow .2s, transform .2s;
+.why-card { background: var(--ink); padding: 26px; }
+.why-icon {
+  width: 40px; height: 40px; border-radius: var(--radius-sm);
+  background: var(--signal-100); color: var(--signal-dim);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
 }
-.why-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.08); transform: translateY(-2px); }
-.why-icon { font-size: 28px; margin-bottom: 12px; }
-.why-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-.why-card p { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+.why-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+.why-card p { font-size: 13.5px; color: var(--muted); line-height: 1.65; }
 
-/* ── VISTA SECTIONS ───────────────────────────────────────────────── */
-.vista-section { padding: 64px 32px; }
-.vista-section.dark { background: var(--dark); color: #fff; }
-.vista-section.blue { background: var(--blue-d); color: #fff; }
-.vista-section.dark .section-title,
-.vista-section.blue .section-title { color: #fff; }
-.vista-section.dark .section-tag { color: #60a5fa; }
-.vista-section.blue .section-tag { color: #bfdbfe; }
-.vista-section.dark .section-lead { color: #94a3b8; }
-.vista-section.blue .section-lead { color: #bfdbfe; }
-
+/* ── MODULE GRIDS (operator + client) ────────────────────────────── */
 .modules-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px; margin-top: 36px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px; margin-top: 40px;
 }
 .mod {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px; padding: 18px 16px;
-  transition: background .15s, transform .15s;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 18px;
+  transition: border-color .15s, transform .15s;
 }
-.mod:hover { background: rgba(255,255,255,0.09); transform: translateY(-2px); }
-.mod-ico { font-size: 22px; margin-bottom: 8px; }
-.mod-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: #fff; }
-.mod-desc { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.5; }
+.mod:hover { border-color: var(--line-2); transform: translateY(-2px); }
+.mod-ico { color: var(--signal); margin-bottom: 12px; }
+.mod-name { font-size: 13.5px; font-weight: 700; margin-bottom: 5px; color: var(--text); }
+.mod-desc { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
 
-/* detail expand */
-details.mod-detail { margin-top: 32px; }
+details.mod-detail { margin-top: 36px; }
 details.mod-detail summary {
-  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
-  color: rgba(255,255,255,0.8); list-style: none; user-select: none;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700;
+  color: var(--text); list-style: none; user-select: none;
 }
-details.mod-detail summary:hover { background: rgba(255,255,255,0.12); }
-details.mod-detail[open] summary::after { content: ' ▲'; }
-details.mod-detail summary::after { content: ' ▼'; }
+details.mod-detail summary::-webkit-details-marker { display: none; }
+details.mod-detail summary:hover { border-color: var(--line-2); }
+details.mod-detail[open] summary .chev { transform: rotate(180deg); }
+.chev { transition: transform .2s; color: var(--muted); }
 .mod-detail-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 10px; margin-top: 16px;
 }
 .mod-detail-item {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px; padding: 12px 14px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-sm); padding: 13px 15px;
 }
-.mod-detail-item .k { font-size: 11px; font-weight: 700; color: #60a5fa; }
-.mod-detail-item .v { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.mod-detail-item .k { font-size: 11.5px; font-weight: 700; color: var(--signal); }
+.mod-detail-item .v { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
-/* client modules */
-.client-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 12px; margin-top: 36px;
-}
+/* client modules — list style, distinct rhythm from the operator grid */
+.client-list { display: flex; flex-direction: column; gap: 1px; margin-top: 40px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .client-mod {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 10px; padding: 16px 18px;
-  display: flex; gap: 14px; align-items: flex-start;
-  transition: background .15s;
+  background: var(--ink); padding: 18px 20px;
+  display: flex; gap: 16px; align-items: flex-start;
 }
-.client-mod:hover { background: rgba(255,255,255,0.12); }
-.client-ico { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
-.client-info .name { font-size: 14px; font-weight: 700; color: #fff; }
-.client-info .desc { font-size: 12.5px; color: rgba(255,255,255,0.6); margin-top: 3px; }
+.client-ico { color: var(--signal); flex-shrink: 0; margin-top: 2px; }
+.client-info .name { font-size: 14px; font-weight: 700; color: var(--text); }
+.client-info .desc { font-size: 13px; color: var(--muted); margin-top: 3px; line-height: 1.6; }
 
 .profile-note {
-  margin-top: 28px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-left: 3px solid #60a5fa;
-  border-radius: 0 8px 8px 0;
-  padding: 12px 16px; font-size: 13px; color: rgba(255,255,255,0.7);
+  margin-top: 24px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  border-left: 3px solid var(--signal);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 14px 18px; font-size: 13.5px; color: var(--muted); line-height: 1.6;
 }
-.profile-note strong { color: #93c5fd; }
+.profile-note strong { color: var(--text); }
 
 /* ── SECURITY ─────────────────────────────────────────────────────── */
-.sec-section { background: var(--surf); }
-.sec-layers {
-  display: flex; flex-direction: column; gap: 0;
-  margin-top: 40px; max-width: 700px;
-}
-.sec-layer {
-  display: flex; gap: 0; position: relative;
-}
+.sec-layers { display: flex; flex-direction: column; margin-top: 44px; max-width: 720px; }
+.sec-layer { display: flex; gap: 0; position: relative; }
 .sec-layer::before {
-  content: ''; position: absolute; left: 21px; top: 44px;
-  width: 2px; height: calc(100% - 4px);
-  background: linear-gradient(to bottom, var(--blue-l), transparent);
+  content: ''; position: absolute; left: 19px; top: 44px;
+  width: 1px; height: calc(100% - 8px);
+  background: linear-gradient(to bottom, var(--line-2), transparent);
 }
 .sec-layer:last-child::before { display: none; }
 .sec-dot {
-  width: 44px; flex-shrink: 0; display: flex;
-  align-items: flex-start; justify-content: center; padding-top: 12px;
+  width: 40px; flex-shrink: 0; display: flex;
+  align-items: flex-start; justify-content: center; padding-top: 10px;
 }
 .sec-dot span {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: var(--blue); display: flex; align-items: center;
-  justify-content: center; font-size: 11px; font-weight: 700; color: #fff;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--line-2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--signal);
   flex-shrink: 0;
 }
-.sec-content {
-  padding: 12px 16px 24px; flex: 1;
-  border: 1px solid transparent;
-}
-.sec-content h4 { font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
-.sec-content p { font-size: 13px; color: var(--muted); }
+.sec-content { padding: 8px 0 32px 16px; flex: 1; }
+.sec-content h4 { font-size: 14.5px; font-weight: 700; color: var(--text); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+.sec-content h4 .ico { color: var(--muted); }
+.sec-content p { font-size: 13.5px; color: var(--muted); line-height: 1.65; }
 
 .sec-extras {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px; margin-top: 32px;
+  gap: 10px; margin-top: 36px;
 }
-.sec-extra {
-  border: 1px solid var(--border); border-radius: 10px; padding: 16px;
-  background: #fff;
-}
-.sec-extra .ico { font-size: 20px; margin-bottom: 8px; }
-.sec-extra h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-.sec-extra p { font-size: 12px; color: var(--muted); }
+.sec-extra { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 18px; background: var(--surface-2); }
+.sec-extra .ico { color: var(--signal); margin-bottom: 10px; }
+.sec-extra h4 { font-size: 13.5px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.sec-extra p { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+.sec-extra code { font-family: var(--mono); font-size: 11.5px; background: var(--surface); padding: 1px 5px; border-radius: 4px; color: var(--signal); }
 
 /* ── RELEASES ─────────────────────────────────────────────────────── */
-.releases-section { background: var(--white); }
-.releases-grid {
-  display: flex; flex-direction: column; gap: 16px;
-  margin-top: 40px;
-}
-.release-card {
-  border: 1px solid var(--border); border-radius: var(--radius);
-  overflow: hidden;
-}
+.releases-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 40px; }
+.release-card { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--ink); }
 .release-header {
   display: flex; align-items: center; gap: 14px;
-  padding: 16px 20px; background: var(--surf);
-  border-bottom: 1px solid var(--border);
-  cursor: pointer; user-select: none;
+  padding: 15px 18px; background: var(--surface-2);
+  cursor: pointer; user-select: none; list-style: none;
 }
-.release-header:hover { background: #f1f5f9; }
+.release-header::-webkit-details-marker { display: none; }
+.release-header:hover { background: var(--surface); }
 .release-tag {
-  background: var(--blue); color: #fff;
+  font-family: var(--mono); background: var(--surface); color: var(--text);
+  border: 1px solid var(--line-2);
   font-size: 12px; font-weight: 700; padding: 3px 10px;
   border-radius: 100px; white-space: nowrap;
-  font-family: 'JetBrains Mono', monospace;
 }
-.release-tag.latest { background: var(--green); }
-.release-title { font-size: 14px; font-weight: 600; flex: 1; }
-.release-date { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.release-chevron { color: var(--muted); font-size: 11px; transition: transform .2s; }
+.release-tag.latest { background: var(--signal-100); color: #6b4415; border-color: transparent; }
+.release-title { font-size: 13.5px; font-weight: 600; flex: 1; color: var(--text); }
+.release-date { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.release-chevron { color: var(--muted); transition: transform .2s; flex-shrink: 0; }
 details.release-card[open] .release-chevron { transform: rotate(180deg); }
-.release-body {
-  padding: 16px 20px;
-}
-.release-body ul {
-  padding-left: 18px; display: flex; flex-direction: column; gap: 4px;
-}
-.release-body li { font-size: 13px; color: var(--dark3); }
-.release-body li code {
-  font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  background: #f1f5f9; color: var(--blue-d); padding: 1px 4px; border-radius: 3px;
-}
+.release-body { padding: 16px 20px; border-top: 1px solid var(--line); }
+.release-body ul { padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.release-body li { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.release-body code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); color: var(--signal); padding: 1px 5px; border-radius: 4px; }
+.releases-more { margin-top: 18px; font-size: 13.5px; color: var(--muted); }
 
 /* ── INSTALL ──────────────────────────────────────────────────────── */
-.install-section { background: var(--dark); color: #fff; }
-.install-section .section-title { color: #fff; }
-.install-section .section-tag { color: #60a5fa; }
-.install-section .section-lead { color: #94a3b8; }
-.install-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 36px;
-}
+.install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 40px; }
 @media(max-width: 680px) { .install-grid { grid-template-columns: 1fr; } }
 .code-block {
-  background: #0d1117; border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px; padding: 18px 20px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px; color: #e2e8f0; line-height: 1.7;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 18px 20px;
+  font-family: var(--mono); font-size: 13px; color: var(--text); line-height: 1.75;
   white-space: pre; overflow-x: auto;
 }
-.code-block .comment { color: #4a5568; }
-.code-block .cmd { color: #86efac; }
-.code-block .flag { color: #93c5fd; }
-.install-table {
-  width: 100%; border-collapse: collapse; margin-top: 36px;
-  border-radius: 10px; overflow: hidden;
-}
+.code-block .comment { color: var(--muted); }
+.code-block .cmd { color: var(--ok); }
+.code-block .flag { color: var(--info); }
+.install-table { width: 100%; border-collapse: collapse; margin-top: 40px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .install-table th {
-  background: rgba(255,255,255,0.05); color: #94a3b8;
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
-  padding: 10px 14px; text-align: left;
+  background: var(--surface-2); color: var(--muted);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700;
+  padding: 11px 16px; text-align: left;
 }
-.install-table td {
-  padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.06);
-  font-size: 13px; color: #e2e8f0;
-}
-.install-table td code {
-  font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px;
-  color: #93c5fd;
-}
+.install-table td { padding: 11px 16px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--text); }
+.install-table td code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 2px 7px; border-radius: 4px; color: var(--signal); }
 
 /* ── FOOTER ───────────────────────────────────────────────────────── */
-footer {
-  background: #060c17; color: #64748b;
-  padding: 40px 32px; text-align: center;
-}
-.footer-brand {
-  font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 6px;
-}
-.footer-brand span { color: var(--blue-l); }
-.footer-sub { font-size: 13px; margin-bottom: 20px; }
-.footer-links {
-  display: flex; gap: 20px; justify-content: center;
-  flex-wrap: wrap; margin-bottom: 24px;
-}
+footer { background: #050810; color: var(--muted); padding: 48px 32px 32px; text-align: center; }
+.footer-sub { font-size: 13px; margin: 14px 0 22px; color: var(--muted); }
+.footer-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
 .footer-links a {
-  color: #64748b; font-size: 13px;
-  transition: color .15s;
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); font-size: 13px; font-weight: 600;
+  padding: 7px 13px; border-radius: var(--radius-sm);
+  transition: color .15s, background .15s;
 }
-.footer-links a:hover { color: #fff; text-decoration: none; }
-.footer-copy { font-size: 12px; color: #374151; }
+.footer-links a:hover { color: var(--text); background: var(--surface); }
+.footer-copy { font-size: 12px; color: var(--line-2); }
 
 /* ── RESPONSIVE ───────────────────────────────────────────────────── */
 @media(max-width: 768px) {
   nav { padding: 0 16px; }
   .nav-links a:not(.nav-cta) { display: none; }
-  section, .vista-section, .install-section { padding: 52px 20px; }
-  .hero { padding: 72px 20px 60px; }
-  .hero-stats { gap: 24px; }
+  section { padding: 60px 20px; }
+  .hero { padding: 56px 20px 64px; }
+  .hero-stats { gap: 22px; }
   .modules-grid { grid-template-columns: 1fr 1fr; }
-  .client-grid { grid-template-columns: 1fr; }
 }
 @media(max-width: 480px) {
   .modules-grid { grid-template-columns: 1fr; }
+  .hero-buttons { flex-direction: column; align-self: stretch; }
+  .hero-buttons .btn { justify-content: center; }
+  .release-header { flex-wrap: wrap; row-gap: 8px; }
+  .release-title { flex-basis: 100%; order: -1; }
 }
 </style>
 </head>
@@ -397,8 +429,8 @@ footer {
 
 <!-- NAV -->
 <nav>
-  <a href="https://voxikam.kpbtec.com" style="display:flex;align-items:center;text-decoration:none;">
-    <img src="logo.svg" alt="VoxiKam" style="height:32px;width:auto;">
+  <a href="https://voxikam.kpbtec.com" class="nav-logo">
+    <img src="logo.svg" alt="VoxiKam" style="height:28px;width:auto;">
   </a>
   <div class="nav-links">
     <a href="#features">Features</a>
@@ -406,74 +438,96 @@ footer {
     <a href="#client">Cliente</a>
     <a href="#releases">Releases</a>
     <a href="#install">Instalar</a>
-    <a href="https://t.me/KPBTec" class="btn-cta nav-cta" target="_blank">💬 Soporte</a>
+    <a href="https://t.me/KPBTec" class="nav-cta" target="_blank">
+      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
+      Soporte
+    </a>
   </div>
 </nav>
 
 <!-- HERO -->
-<section class="hero">
-  <a href="https://voxikam.kpbtec.com" style="display:inline-block;margin-bottom:28px;">
-    <img src="logo.svg" alt="VoxiKam" style="width:340px;max-width:90%;filter:drop-shadow(0 0 24px rgba(37,99,235,0.35))">
-  </a>
-  <p class="hero-sub">Billing · Monitoreo · Control de Tráfico SIP</p>
-  <p class="hero-desc">
-    Plataforma diseñada para operadores y revendedores de voz que necesitan saber exactamente
-    por dónde sale cada llamada, cuánto les cuesta y qué margen les genera — desde un panel web,
-    sin tocar consola.
-  </p>
-  <div class="hero-buttons">
-    <a href="https://github.com/KPBTec/VoxiKam/archive/refs/heads/main.zip" class="btn btn-primary" target="_blank">
-      ⬇ Descargar v2.4
-    </a>
-    <a href="https://github.com/KPBTec/VoxiKam" class="btn btn-outline" target="_blank">
-      🐙 Ver en GitHub
-    </a>
-    <a href="https://t.me/KPBTec" class="btn btn-tg" target="_blank">
-      💬 Telegram
-    </a>
-  </div>
-  <div class="hero-stats">
-    <div class="hero-stat"><div class="num">12</div><div class="lbl">Módulos Admin</div></div>
-    <div class="hero-stat"><div class="num">6</div><div class="lbl">Módulos Cliente</div></div>
-    <div class="hero-stat"><div class="num">~10</div><div class="lbl">min instalación</div></div>
-    <div class="hero-stat"><div class="num">v2.4</div><div class="lbl">Versión actual</div></div>
+<section class="hero" style="border-bottom:1px solid var(--line);padding-left:0;padding-right:0;">
+  <div class="hero-inner" style="padding:0 32px;">
+    <div>
+      <div class="hero-eyebrow">SIP Class 4 · SBC + Billing</div>
+      <h1>Kamailio ya rutea tus llamadas.<br>VoxiKam te dice <em>qué pasó</em> con cada una.</h1>
+      <p class="hero-desc">
+        Billing por minuto, trazas SIP capturadas vía HEP y firewall gestionado desde el panel —
+        sin abrir consola, sin perder de vista quién cortó cada llamada.
+      </p>
+      <div class="hero-buttons">
+        <a href="https://github.com/KPBTec/VoxiKam/archive/refs/heads/main.zip" class="btn btn-primary" target="_blank">
+          <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Descargar v2.52.4
+        </a>
+        <a href="https://github.com/KPBTec/VoxiKam" class="btn btn-outline" target="_blank">
+          <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.016-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.469-2.38 1.235-3.22-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.233 1.91 1.233 3.22 0 4.61-2.807 5.624-5.48 5.92.43.372.823 1.102.823 2.222 0 1.604-.015 2.896-.015 3.286 0 .32.216.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          Ver en GitHub
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="num mono">12 / 6</div><div class="lbl">Módulos admin / cliente</div></div>
+        <div class="hero-stat"><div class="num mono">~10 min</div><div class="lbl">Instalación en Debian 12+</div></div>
+        <div class="hero-stat"><div class="num mono">v2.52.4</div><div class="lbl">Versión actual</div></div>
+      </div>
+    </div>
+
+    <div class="trace-card">
+      <div class="trace-chrome">
+        <div class="trace-dots"><span></span><span></span><span></span></div>
+        <div class="trace-chrome-title mono">Trazas SIP · a3f92c...@203.0.113.10</div>
+        <div class="trace-live"><span></span>7 msgs</div>
+      </div>
+      <div class="trace-cols">
+        <span>CLIENTE</span><span>VOXIKAM SBC</span><span>CARRIER</span>
+      </div>
+      <div class="trace-rows">
+        <div class="trace-row"><span class="t">+0ms</span><span class="arrow">→</span><span class="msg m-invite">INVITE</span></div>
+        <div class="trace-row"><span class="t">+4ms</span><span class="arrow">←</span><span class="msg m-info">100 Trying</span></div>
+        <div class="trace-row"><span class="t">+6ms</span><span class="arrow">→</span><span class="msg m-invite">INVITE → carrier</span></div>
+        <div class="trace-row"><span class="t">+180ms</span><span class="arrow">←</span><span class="msg m-info">180 Ringing</span></div>
+        <div class="trace-row"><span class="t">+2.1s</span><span class="arrow">←</span><span class="msg m-ok">200 OK</span></div>
+        <div class="trace-row"><span class="t">+2.1s</span><span class="arrow">→</span><span class="msg m-ok">ACK</span></div>
+        <div class="trace-row"><span class="t">+96s</span><span class="arrow">→</span><span class="msg m-bye">BYE</span><span class="tag">cortó: CLIENTE</span></div>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- WHY -->
-<section id="features">
+<section id="features" class="on-ink">
   <div class="section-inner">
     <div class="section-tag">¿Por qué VoxiKam?</div>
     <h2 class="section-title">Todo lo que necesitas para operar tráfico SIP</h2>
     <p class="section-lead">Sin consola, sin scripts sueltos. Un solo panel para billing, monitoreo, firewall y portal para tus clientes.</p>
     <div class="why-grid">
       <div class="why-card">
-        <div class="why-icon">🔀</div>
+        <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17V9a4 4 0 0 1 4-4h6"/></svg></div>
         <h3>SIP Class 4 — Kamailio + RTPEngine</h3>
         <p>SBC de producción: LCR, failover automático, ACL por IP y captura de trazas HEP. VoxiKam no intercepta llamadas activas — actúa solo al finalizar para calcular costos.</p>
       </div>
       <div class="why-card">
-        <div class="why-icon">💰</div>
+        <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <h3>Billing en tiempo real</h3>
         <p>Longest-prefix match por prefijo E.164. Costo de compra (carrier) vs costo de venta (cliente) calculados por CDR. Balance prepago descontado automáticamente. Margen visible en cada registro.</p>
       </div>
       <div class="why-card">
-        <div class="why-icon">🛡️</div>
+        <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"/></svg></div>
         <h3>Firewall desde el panel web</h3>
         <p>Reglas ALLOW / DENY / JAIL por IP o CIDR gestionadas desde la interfaz. Sin SSH, sin editar archivos. Los cambios aplican en segundos — nftables regenerado automáticamente.</p>
       </div>
       <div class="why-card">
-        <div class="why-icon">👤</div>
+        <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h3>Portal cliente modular</h3>
         <p>Cada cliente ve solo lo que el operador habilita: llamadas, calidad ASR, reportes, facturas y trunk guide. Perfiles de módulos reutilizables asignables a múltiples clientes.</p>
       </div>
       <div class="why-card">
-        <div class="why-icon">🔍</div>
+        <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
         <h3>Trazas SIP sin Homer</h3>
-        <p>Mini-Homer embebido. Kamailio envía mensajes SIP vía HEP al backend. Ladder diagram visual desde el panel: INVITE, 180, 200 OK, BYE — diagnostica en segundos sin consola.</p>
+        <p>Mini-Homer embebido. Kamailio envía mensajes SIP vía HEP al backend. Ladder diagram visual desde el panel: INVITE, 180, 200 OK, BYE — diagnostica en segundos sin consola, con exportación a <code>.pcap</code> para Wireshark.</p>
       </div>
       <div class="why-card">
-        <div class="why-icon">🚀</div>
+        <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></div>
         <h3>Un comando para instalar</h3>
         <p>Debian 12+, ~10 minutos, sin dependencias previas. Detecta IPs, configura Kamailio, RTPEngine, MariaDB, Nginx y todos los servicios. Actualización sin cortar llamadas activas.</p>
       </div>
@@ -482,138 +536,72 @@ footer {
 </section>
 
 <!-- VISTA OPERADOR -->
-<section class="vista-section dark" id="admin">
+<section id="admin" class="on-surface">
   <div class="section-inner">
     <div class="section-tag">Panel de Administración</div>
-    <h2 class="section-title">🔧 Vista Operador</h2>
+    <h2 class="section-title">Vista Operador</h2>
     <p class="section-lead">Control total del sistema desde una sola interfaz. Solo accesible para administradores — validado en cada endpoint del backend.</p>
 
     <div class="modules-grid">
-      <div class="mod">
-        <div class="mod-ico">📈</div>
-        <div class="mod-name">Dashboard</div>
-        <div class="mod-desc">KPIs del día en tiempo real: llamadas activas, completadas, minutos, ingresos y ASR global con gráfico por cliente.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">🔴</div>
-        <div class="mod-name">Live</div>
-        <div class="mod-desc">Monitor de llamadas activas ahora mismo: cliente, carrier, origen, destino y duración en curso. Fuente: Kamailio dlg.briefing.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">👤</div>
-        <div class="mod-name">Clientes</div>
-        <div class="mod-desc">CRUD de trunks SIP: techprefix, tarifas, IPs autorizadas, carriers, balance prepago, límites y perfil de módulos del portal.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">🧩</div>
-        <div class="mod-name">Perfiles</div>
-        <div class="mod-desc">Conjuntos de módulos del portal asignables a múltiples clientes. Cambia un perfil y aplica a todos los clientes asignados.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">🌐</div>
-        <div class="mod-name">Carriers</div>
-        <div class="mod-desc">Gateways SIP de salida con rates de compra por prefijo. Failover automático por prioridad si el carrier falla.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">💰</div>
-        <div class="mod-name">Tarifas</div>
-        <div class="mod-desc">Rate plans con precio por minuto, cargo de conexión y tiempo mínimo por prefijo E.164. Vinculados a clientes para billing automático.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">📋</div>
-        <div class="mod-name">CDRs</div>
-        <div class="mod-desc">Historial completo de llamadas: costo de compra, costo de venta y margen por registro. Tabs separados: contestadas y no establecidas.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">🔍</div>
-        <div class="mod-name">Trazas SIP</div>
-        <div class="mod-desc">Ladder diagram de mensajes SIP capturados vía HEP desde Kamailio. Diagnostica llamadas sin abrir consola en segundos.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">📡</div>
-        <div class="mod-name">Calidad ASR</div>
-        <div class="mod-desc">Answer Seizure Ratio por cliente y hora. Desglose de códigos de fallo: 487, 486, 404, 503. Detecta carriers problemáticos antes de que impacten.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">📊</div>
-        <div class="mod-name">Reportes</div>
-        <div class="mod-desc">Rentabilidad consolidada por cliente y período: llamadas, minutos, costo de compra, venta y margen. Sin exportar datos.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">🧾</div>
-        <div class="mod-name">Facturas</div>
-        <div class="mod-desc">Generación automática de PDF desde CDRs del período seleccionado. El cliente puede descargarlo desde su portal si el operador lo habilita.</div>
-      </div>
-      <div class="mod">
-        <div class="mod-ico">🛡️</div>
-        <div class="mod-name">Firewall</div>
-        <div class="mod-desc">Reglas ALLOW / DENY / JAIL por IP o CIDR por servicio (SIP, RTP, SSH). Cambios aplicados en segundos — nftables regenerado automáticamente.</div>
-      </div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="mod-name">Dashboard</div><div class="mod-desc">KPIs del día en tiempo real: llamadas activas, completadas, minutos, ingresos y ASR global con gráfico por cliente.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="mod-name">Live</div><div class="mod-desc">Monitor de llamadas activas ahora mismo: cliente, carrier, origen, destino y duración en curso. Fuente: Kamailio dlg.briefing.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="mod-name">Clientes</div><div class="mod-desc">CRUD de trunks SIP: techprefix, tarifas, IPs autorizadas, carriers, balance prepago, límites y perfil de módulos del portal.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></div><div class="mod-name">Perfiles</div><div class="mod-desc">Conjuntos de módulos del portal asignables a múltiples clientes. Cambia un perfil y aplica a todos los clientes asignados.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div><div class="mod-name">Carriers</div><div class="mod-desc">Gateways SIP de salida con rates de compra por prefijo. Failover automático por prioridad si el carrier falla.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="mod-name">Tarifas</div><div class="mod-desc">Rate plans con precio por minuto, cargo de conexión y tiempo mínimo por prefijo E.164. Vinculados a clientes para billing automático.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg></div><div class="mod-name">CDRs</div><div class="mod-desc">Historial completo de llamadas: costo de compra, costo de venta y margen por registro. Tabs separados: contestadas y no establecidas.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><div class="mod-name">Trazas SIP</div><div class="mod-desc">Ladder diagram de mensajes SIP capturados vía HEP desde Kamailio. Diagnostica llamadas o exporta a <code>.pcap</code> sin abrir consola.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg></div><div class="mod-name">Calidad ASR</div><div class="mod-desc">Answer Seizure Ratio por cliente y hora. Desglose de códigos de fallo: 487, 486, 404, 503. Detecta carriers problemáticos antes de que impacten.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div><div class="mod-name">Reportes</div><div class="mod-desc">Rentabilidad consolidada por cliente y período: llamadas, minutos, costo de compra, venta y margen. Sin exportar datos.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div><div class="mod-name">Facturas</div><div class="mod-desc">Generación automática de PDF desde CDRs del período seleccionado. El cliente puede descargarlo desde su portal si el operador lo habilita.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"/></svg></div><div class="mod-name">Firewall</div><div class="mod-desc">Reglas ALLOW / DENY / JAIL por IP o CIDR por servicio (SIP, RTP, SSH). Cambios aplicados en segundos — nftables regenerado automáticamente.</div></div>
     </div>
 
     <details class="mod-detail">
-      <summary>⚙️ Configuración por cliente</summary>
+      <summary>Configuración por cliente <svg class="ico chev" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
       <div class="mod-detail-grid">
-        <div class="mod-detail-item"><div class="k">🏷️ Techprefix</div><div class="v">Identificador único — Kamailio lo usa para reconocer al cliente en cada INVITE</div></div>
-        <div class="mod-detail-item"><div class="k">💰 Plan de tarifas</div><div class="v">Rate plan asignado — define cuánto se cobra por minuto según destino</div></div>
-        <div class="mod-detail-item"><div class="k">⚡ Calls máx / CPS</div><div class="v">Límite de llamadas simultáneas y calls-per-second, aplicados en tiempo real</div></div>
-        <div class="mod-detail-item"><div class="k">🔒 IPs autorizadas</div><div class="v">Lista blanca de IPs y CIDRs — INVITEs de IPs no autorizadas son descartados</div></div>
-        <div class="mod-detail-item"><div class="k">🌐 Carriers de salida</div><div class="v">Carriers con prioridad — failover automático si el primero falla</div></div>
-        <div class="mod-detail-item"><div class="k">💳 Balance prepago</div><div class="v">Saldo descontado automáticamente por cada CDR contestado</div></div>
+        <div class="mod-detail-item"><div class="k">Techprefix</div><div class="v">Identificador único — Kamailio lo usa para reconocer al cliente en cada INVITE</div></div>
+        <div class="mod-detail-item"><div class="k">Plan de tarifas</div><div class="v">Rate plan asignado — define cuánto se cobra por minuto según destino</div></div>
+        <div class="mod-detail-item"><div class="k">Calls máx / CPS</div><div class="v">Límite de llamadas simultáneas y calls-per-second, aplicados en tiempo real</div></div>
+        <div class="mod-detail-item"><div class="k">IPs autorizadas</div><div class="v">Lista blanca de IPs y CIDRs — INVITEs de IPs no autorizadas son descartados</div></div>
+        <div class="mod-detail-item"><div class="k">Carriers de salida</div><div class="v">Carriers con prioridad — failover automático si el primero falla</div></div>
+        <div class="mod-detail-item"><div class="k">Balance prepago</div><div class="v">Saldo descontado automáticamente por cada CDR contestado</div></div>
       </div>
     </details>
   </div>
 </section>
 
 <!-- VISTA CLIENTE -->
-<section class="vista-section blue" id="client">
+<section id="client" class="on-ink">
   <div class="section-inner">
     <div class="section-tag">Portal Personal</div>
-    <h2 class="section-title">👤 Vista Cliente</h2>
+    <h2 class="section-title">Vista Cliente</h2>
     <p class="section-lead">Cada cliente accede a su propio portal con visibilidad exclusiva sobre su tráfico. Sin acceso a datos de otros clientes ni a funciones de administración.</p>
 
-    <div class="client-grid">
+    <div class="client-list">
       <div class="client-mod">
-        <div class="client-ico">🏠</div>
-        <div class="client-info">
-          <div class="name">Resumen</div>
-          <div class="desc">Actividad del día: llamadas, minutos y costo. Gráfico de tráfico en tiempo real con rangos 1h / 3h / 6h / 12h.</div>
-        </div>
+        <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></div>
+        <div class="client-info"><div class="name">Resumen</div><div class="desc">Actividad del día: llamadas, minutos y costo. Gráfico de tráfico en tiempo real con rangos 1h / 3h / 6h / 12h.</div></div>
       </div>
       <div class="client-mod">
-        <div class="client-ico">📞</div>
-        <div class="client-info">
-          <div class="name">Mis llamadas</div>
-          <div class="desc">Historial paginado de CDRs propios con filtros de fecha: origen, destino, duración y costo de cada llamada.</div>
-        </div>
+        <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384z"/></svg></div>
+        <div class="client-info"><div class="name">Mis llamadas</div><div class="desc">Historial paginado de CDRs propios con filtros de fecha: origen, destino, duración y costo de cada llamada.</div></div>
       </div>
       <div class="client-mod">
-        <div class="client-ico">📡</div>
-        <div class="client-info">
-          <div class="name">Calidad ASR</div>
-          <div class="desc">Dashboard de calidad del tráfico propio. Detecta problemas de terminación por destino sin llamar al soporte.</div>
-        </div>
+        <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg></div>
+        <div class="client-info"><div class="name">Calidad ASR</div><div class="desc">Dashboard de calidad del tráfico propio. Detecta problemas de terminación por destino sin llamar al soporte.</div></div>
       </div>
       <div class="client-mod">
-        <div class="client-ico">📊</div>
-        <div class="client-info">
-          <div class="name">Reportes</div>
-          <div class="desc">Resumen mensual con desglose día a día: llamadas, minutos y costo total. Monitorea el consumo antes de recibir la factura.</div>
-        </div>
+        <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div>
+        <div class="client-info"><div class="name">Reportes</div><div class="desc">Resumen mensual con desglose día a día: llamadas, minutos y costo total. Monitorea el consumo antes de recibir la factura.</div></div>
       </div>
       <div class="client-mod">
-        <div class="client-ico">🧾</div>
-        <div class="client-info">
-          <div class="name">Facturas</div>
-          <div class="desc">Facturas emitidas por el operador, descargables directamente desde el portal.</div>
-        </div>
+        <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div>
+        <div class="client-info"><div class="name">Facturas</div><div class="desc">Facturas emitidas por el operador, descargables directamente desde el portal.</div></div>
       </div>
       <div class="client-mod">
-        <div class="client-ico">📖</div>
-        <div class="client-info">
-          <div class="name">Trunk Guide</div>
-          <div class="desc">Guía de configuración personalizada con los datos propios del cliente: IP, puerto SIP, techprefix y ejemplos de dial plan.</div>
-        </div>
+        <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg></div>
+        <div class="client-info"><div class="name">Trunk Guide</div><div class="desc">Guía de configuración personalizada con los datos propios del cliente: IP, puerto SIP, techprefix y ejemplos de dial plan.</div></div>
       </div>
     </div>
 
@@ -624,45 +612,45 @@ footer {
 </section>
 
 <!-- SECURITY -->
-<section class="sec-section" id="security">
+<section id="security" class="on-surface">
   <div class="section-inner">
     <div class="section-tag">Seguridad</div>
-    <h2 class="section-title">🔐 Defensa en profundidad desde el kernel</h2>
-    <p class="section-lead">Cada capa activa por defecto desde el día uno — sin configuración adicional.</p>
+    <h2 class="section-title">Defensa en profundidad desde el kernel</h2>
+    <p class="section-lead">Cinco capas activas por defecto desde el día uno — sin configuración adicional. Cada una asume que la anterior puede fallar.</p>
 
     <div class="sec-layers">
       <div class="sec-layer">
         <div class="sec-dot"><span>1</span></div>
         <div class="sec-content">
-          <h4>🧱 nftables (nivel kernel)</h4>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>nftables (nivel kernel)</h4>
           <p>Bloqueo por IP/CIDR antes de que el paquete llegue a ningún servicio. Reglas gestionadas desde el panel web — sin tocar consola. ALLOW / DENY / JAIL por servicio: SIP, RTP, SSH.</p>
         </div>
       </div>
       <div class="sec-layer">
         <div class="sec-dot"><span>2</span></div>
         <div class="sec-content">
-          <h4>🔁 Nginx — rate limiting + bloqueo de scanners</h4>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Nginx — rate limiting + bloqueo de scanners</h4>
           <p>Rate limiting por endpoint. Bloqueo automático de user-agents maliciosos: sqlmap, nikto, masscan, nmap. Headers de seguridad HTTP activos por defecto.</p>
         </div>
       </div>
       <div class="sec-layer">
         <div class="sec-dot"><span>3</span></div>
         <div class="sec-content">
-          <h4>⚙️ FastAPI — rate limiting de API</h4>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7 11 2-2-2-2"/><path d="M11 13h4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>FastAPI — rate limiting de API</h4>
           <p>10 req/60s en login, 300 req/60s en API. Headers: X-Frame-Options DENY, CSP estricto, Referrer-Policy. Cada endpoint protegido por dependencia de rol — no por convención de URL.</p>
         </div>
       </div>
       <div class="sec-layer">
         <div class="sec-dot"><span>4</span></div>
         <div class="sec-content">
-          <h4>🎫 JWT HS256 + bcrypt</h4>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg>JWT HS256 + bcrypt</h4>
           <p>Tokens con expiración de 8 horas. Passwords hasheados con bcrypt (cost 12). Sin sesiones en servidor — sin riesgo de session fixation.</p>
         </div>
       </div>
       <div class="sec-layer">
         <div class="sec-dot"><span>5</span></div>
         <div class="sec-content">
-          <h4>🗄️ MariaDB — aislada por diseño</h4>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>MariaDB — aislada por diseño</h4>
           <p>Bind exclusivo en 127.0.0.1. Puerto no estándar (33100–33999). Usuario dedicado con permisos mínimos. Sin acceso remoto posible.</p>
         </div>
       </div>
@@ -670,17 +658,17 @@ footer {
 
     <div class="sec-extras">
       <div class="sec-extra">
-        <div class="ico">🔒</div>
+        <div class="ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
         <h4>ACL SIP en Kamailio</h4>
         <p>Cada INVITE verificado contra la lista blanca del cliente. IPs no autorizadas descartadas silenciosamente — sin revelar que el servidor existe.</p>
       </div>
       <div class="sec-extra">
-        <div class="ico">👁️</div>
+        <div class="ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg></div>
         <h4>Aislamiento de datos</h4>
         <p>Un cliente solo puede ver sus propios CDRs. La restricción está en la capa de base de datos, no en el frontend — un bug de UI no puede filtrar datos.</p>
       </div>
       <div class="sec-extra">
-        <div class="ico">👥</div>
+        <div class="ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <h4>Separación de roles</h4>
         <p>Admin y cliente son roles incompatibles. Acceder a <code>/api/admin/*</code> sin rol admin devuelve 403 — independientemente de lo que muestre el frontend.</p>
       </div>
@@ -689,97 +677,1060 @@ footer {
 </section>
 
 <!-- RELEASES -->
-<section class="releases-section" id="releases">
+<section id="releases" class="on-ink">
   <div class="section-inner">
     <div class="section-tag">Historial de versiones</div>
-    <h2 class="section-title">📋 Releases</h2>
-    <p class="section-lead">Historial completo en <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md">CHANGELOG.md</a> · Versión activa definida en <a href="https://github.com/KPBTec/VoxiKam/blob/main/release.conf">release.conf</a></p>
+    <h2 class="section-title">Releases</h2>
+    <p class="section-lead">Historial completo en <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md">CHANGELOG.md</a> · versión activa definida en <a href="https://github.com/KPBTec/VoxiKam/blob/main/release.conf">release.conf</a></p>
 
     <div class="releases-grid">
 
       <details class="release-card" open>
         <summary class="release-header">
-          <span class="release-tag latest">v2.4 latest</span>
-          <span class="release-title">Frontend: Logo SVG + rediseño profesional de la plataforma</span>
-          <span class="release-date">2026-06-30</span>
-          <span class="release-chevron">▼</span>
+          <span class="release-tag latest mono">v2.52.4 latest</span>
+          <span class="release-title">deploy.sh: 3378 → 2417 líneas (-28%) — bloque de migraciones históricas verificado y podado contra un dump real de producción</span>
+          <span class="release-date mono">2026-07-27</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
         <div class="release-body">
           <ul>
-            <li>Nuevo componente <code>Logo.tsx</code>: lettermark "K" en SVG con gradiente azul, 3 tamaños</li>
-            <li>Login: logo centrado, fondo con glow radial, card con sombra profunda, inputs con focus-border</li>
-            <li>Sidebar: logo reemplaza texto plano, gradiente sutil, avatar con inicial del usuario</li>
-            <li>Tema global más profundo: <code>--color-surface: #070c16</code>, paleta extendida brand-400 + scrollbar custom</li>
+            <li>Se exportó un dump real de producción (esquema completo + 500.000 CDRs reales, números de origen/destino enmascarados conservando el prefijo) y se cargó en MariaDB real (no la DB vacía de intentos anteriores) para poder validar de verdad qué migraciones de las ~570 líneas de "Migraciones DB" seguían haciendo algo</li>
+            <li>Corriendo el bloque completo contra ese snapshot real: <strong>el único cambio estructural real fue la limpieza de <code>show_*</code></strong> (ver hallazgo de abajo). Los otros ~500 líneas de <code>ALTER</code>/<code>CREATE TABLE IF NOT EXISTS</code> y 4 scripts <code>migrate_*.py</code> dieron 0 diferencia — confirmado con <code>mysqldump --no-data</code> antes/después, no por inspección. Dos falsos positivos descartados a mano (un <code>AUTO_INCREMENT</code> que subió sin insertar fila real, típico de <code>INSERT IGNORE</code> contra una clave que ya existía)</li>
+            <li><code>migrate_carrier_groups.py</code> resultó estar permanentemente roto para este server desde hace tiempo: depende de una columna (<code>active_carrier_id</code>) que otra migración del mismo bloque ya había borrado — cada deploy lo invocaba, fallaba en la primera query, tragado en silencio. Los otros 3 scripts (<code>lan_peers</code>, <code>dedupe_techprefix</code>, <code>5digit_techprefix</code>) confirmaron "nada para migrar" en modo diagnóstico</li>
+            <li>Podado en ambas ramas (<code>--update</code>/<code>--upgrade</code>): queda solo lo que sigue vivo — la migración de <code>show_*</code>, el catch-up de <code>cdr_summary_day_area</code>, <code>sync_balance_block.py</code>, y el rename de <code>connect_charge</code>. Reverificado de punta a punta: el bloque podado, corrido contra una copia fresca del mismo snapshot real, da resultado idéntico al bloque viejo completo (mismas 500.025 filas de <code>cdrs</code>, mismos conteos en <code>areas</code>/<code>prefixes</code>/<code>profile_permissions</code>)</li>
           </ul>
         </div>
       </details>
 
       <details class="release-card">
         <summary class="release-header">
-          <span class="release-tag">v2.3</span>
-          <span class="release-title">Instalador autónomo: Kamailio 5.7 + RTPEngine 10.x · Timer · Feedback</span>
-          <span class="release-date">2026-06-25</span>
-          <span class="release-chevron">▼</span>
+          <span class="release-tag mono">v2.52.3</span>
+          <span class="release-title">Las columnas show_* legacy volvían a aparecer en cada deploy — dos migraciones enfrentadas, una borraba y otra reintroducía</span>
+          <span class="release-date mono">2026-07-27</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Encontrado auditando producción real: <code>customers.show_calls/show_quality/show_reports/show_invoices/show_trunk_guide/show_api_access</code> seguían existiendo pese a que <code>schema.sql</code> ya no las define — la migración que las migra a <code>profile_permissions</code> y las borra (<code>DROP COLUMN IF EXISTS</code>) SÍ corría, pero más abajo en el mismo deploy otra migración más vieja (del arreglo de <code>profile_id</code>, nunca limpiada tras la migración a <code>profile_permissions</code>) las volvía a agregar con <code>ADD COLUMN IF NOT EXISTS</code> — se borraban y recreaban en el mismo run, silenciosamente, en cada deploy</li>
+            <li>Mismo patrón repetido 3 veces en el archivo para <code>show_api_access</code> y las 4 columnas <code>show_reseller_*</code> — 30 líneas en total (15 por rama <code>--update</code>/<code>--upgrade</code>) retiradas de <code>deploy.sh</code>, dejando solo el <code>DROP COLUMN</code> (que ahora sí se queda aplicado) y el <code>ADD COLUMN profile_id</code> (todavía necesario)</li>
+            <li>Reproducido y verificado el fix contra MariaDB real con el cliente <code>mysql</code> corriendo de verdad (un intento de verificación anterior había dado un falso "0 diferencias" porque el sandbox no tenía <code>mysql</code> instalado fuera de Docker y todas las queries fallaban en silencio tragadas por el mismo <code>2>/dev/null || true</code> que se estaba auditando — corregido el método antes de confirmar nada)</li>
+            <li>De paso: se encontró y eliminó un crontab huérfano (<code>/etc/cron.d/kaplabilling</code>, del nombre anterior del proyecto) que seguía corriendo cada minuto en paralelo contra rutas que ya no existen</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.52.2</span>
+          <span class="release-title">"Job no encontrado" en Recalcular tarifas y Reset facturación — carrera entre el primer poll del frontend y el propio job arrancando</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Reportado en producción real en Facturación → Recalcular tarifas: "Vista previa" devolvía "Job no encontrado — puede haber expirado" casi de inmediato. Diagnóstico descartó permisos (<code>/var/lib/voxikam/recalc_jobs/</code> tenía dueño y permisos correctos, y el archivo del job SÍ se había escrito bien, con resultado completo) — la causa real era el frontend: <code>pollJob()</code> hacía un único intento a los 1.5s y, si el <code>BackgroundTasks</code> del backend (que arranca recién DESPUÉS de que la respuesta del POST ya se mandó) todavía no había escrito su primer archivo de estado, tomaba ese 404 aislado como error final en vez de reintentar</li>
+            <li>Fix en los tres lugares que comparten este patrón (<code>billing-recalc</code>, <code>my/reseller/billing-recalc</code>, <code>billing-reset</code>): un 404 ahora solo se considera error real después de 10 intentos seguidos (~15s) — un 404 aislado simplemente sigue esperando</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.52.1</span>
+          <span class="release-title">Reset facturación se colgaba con 504 en producción real — pasado a background job</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>v2.52.0 lo dejó síncrono: el UPDATE de balance usaba una subquery correlacionada que reescaneaba los 4.5M+ CDRs UNA VEZ POR CLIENTE, y el DELETE de <code>balance_transactions</code> puede ser casi tan grande como <code>cdrs</code> (una fila por llamada facturada) — nginx corta a los 60s (<code>proxy_read_timeout</code>), confirmado con 504 real al primer uso</li>
+            <li>Mismo mecanismo que ya se usó para <code>billing_recalc.py</code> (que tuvo este idéntico síntoma con rangos de 1M+ CDRs): ahora corre en background con job_id + archivo de estado, sondeado por el frontend cada 2s</li>
+            <li>El UPDATE de balance pasó de subquery correlacionada a un solo <code>JOIN</code> agregado (un escaneo de <code>cdrs</code> en vez de uno por cliente) — reverificado contra MariaDB real, mismo resultado exacto que la versión anterior</li>
+            <li>El backup de seguridad ya no vuelca <code>balance_transactions</code> fila por fila (podía ser millones de filas, riesgo real de quedarse sin memoria) — ahora es un resumen agregado por cliente y tipo, más liviano y más legible para auditar</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.52.0</span>
+          <span class="release-title">Facturación → Reset facturación: borra facturas/balance de prueba y recalcula deuda pura, para cuando el balance queda sin sentido</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Encontrado en producción real: facturas duplicadas/de prueba para el mismo período (varias de un cliente con rangos de fecha solapados) dejaron <code>customers.balance</code> sin ninguna relación con el consumo real — reconciliar factura por factura no era viable</li>
+            <li>Nuevo <code>POST /admin/invoices/reset-module</code> + página "Facturación → Reset facturación" (confirmación por texto, "RESETEAR"): borra TODAS las facturas y TODO el ledger de <code>balance_transactions</code> de TODOS los clientes, y recalcula cada balance como deuda pura (suma de todo su consumo histórico, sin ningún pago aplicado) — antes vuelca ambas tablas a un JSON de respaldo en el servidor, mismo criterio que el dump de seguridad de <code>deploy.sh</code> antes de aplicar <code>schema.sql</code></li>
+            <li>Verificado contra MariaDB real antes de dar por buena la query: cliente con 3 CDRs contestados (100.50+150.25+49.25, una NO_ANSWER correctamente excluida) quedó en exactamente -300.00, tablas vaciadas, cliente sin llamadas quedó en 0</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.51.0</span>
+          <span class="release-title">El reporte de Áreas por período seguía mostrando "Sin área" en meses viejos + historial de balance auditable por cliente</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>El trigger/backfill de v2.48.2 arregla <code>cdrs.prefix_matched</code>, pero el reporte "Por destino" para días ya cerrados lee <code>cdr_summary_day_area</code> — una tabla de resumen nocturna que quedó grabada con el valor viejo y nunca se retocaba sola. <code>scripts/backfill_prefix_matched.py</code> ahora también reconstruye esa tabla, día por día, para todo el histórico</li>
+            <li>Bug encontrado probando el fix anterior contra MariaDB real antes de aplicarlo: sin un <code>DELETE</code> del día antes de reinsertar, el bucket viejo ("Sin área") quedaba como fila fantasma junto al nuevo, duplicando el conteo de llamadas. Corregido y reverificado (2 llamadas seguían siendo 2, no 4)</li>
+            <li>Nuevo: <code>GET /admin/customers/{id}/balance-transactions</code> + panel "Historial de balance" en la ficha del cliente — el ledger de <code>balance_transactions</code> (una fila por llamada facturada, ajuste manual, pago de factura o recálculo) ya existía en la base pero no había ninguna pantalla para auditar por qué el balance llegó al número que muestra</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.50.1</span>
+          <span class="release-title">deploy.sh: el banner de --upgrade/--update no decía de qué versión venía, solo a cuál iba</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Reportado en producción real: el log de un <code>--upgrade</code> mostraba "VOXIKAM v2.50.0" y nada más — no quedaba registro de que la instalación venía de v2.49.1, solo el "Marcador actualizado" al final</li>
+            <li>El banner inicial ahora lee <code>VERSION=</code> del marcador (<code>/etc/voxikam.conf</code>) ANTES de que el propio deploy lo sobreescriba, y muestra "Versión: vX.Y.Z → vA.B.C" en <code>--update</code>/<code>--upgrade</code>/<code>--reinstall</code> — sin marcador previo o en instalación <code>fresh</code> no se muestra (no hay "antes" que mostrar)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.50.0</span>
+          <span class="release-title">Gestión de áreas separada del reporte (Tarifas vs. Reportes) + Consumos ahora agrupa también por área/prefijo y se genera solo</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Reportes → Áreas mezclaba crear/editar áreas con el reporte de rentabilidad por destino — separado: el CRUD se mudó a Tarifas → Áreas (<code>/area-groups</code>), Reportes → Por destino queda solo con la tabla</li>
+            <li>Consumos exigía apretar "Generar" a mano cada vez que se abría la página o se cambiaba el período — ahora se auto-genera al entrar y al cambiar día/mes/vista, con "Actualizar" como refresco manual opcional</li>
+            <li>Consumos agrega "Por área" y "Por prefijo" junto a "Por cliente"/"Por carrier", reusando el mismo endpoint <code>/admin/areas/report?by=area|prefix</code> que ya usa el reporte de destino</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.49.1</span>
+          <span class="release-title">El backfill acotado de v2.48.1 seguía corriendo siempre — columna de fecha equivocada + tabla de reseller permanentemente vacía</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>La query consultaba una columna "day" que no existe (es "summary_date") — el error quedaba silenciado y siempre caía al fallback de "nunca corrió". Detectado porque se había probado contra una tabla simplificada, no el schema real</li>
+            <li>Además, tomar el mínimo contra cdr_summary_day_reseller (vacía para siempre sin resellers configurados) arrastraba el cálculo a 1970 sin importar que el área sí estuviera al día — ahora se usa solo cdr_summary_day_area</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.49.0</span>
+          <span class="release-title">Recalcular tarifas sin límite de 50.000 CDRs — motor reescrito en memoria, background job, 310x más rápido</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Un rango real de 6 días con 1M+ CDRs ni siquiera podía previsualizarse — el motor viejo hacía 2-3 queries por CDR. Reescrito en memoria (mismo enfoque que scripts/recalc_billing_blocks.py) + background job con progreso en vivo, sin tope duro</li>
+            <li>Verificado antes de reemplazar el motor viejo: paridad numérica 10/10 en casos límite reales (bloques de facturación, mínimo de facturación, cadena de reseller, sin carrier, billsec=0) y 310x de mejora medida (0.477ms → 0.0015ms por CDR)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.48.2</span>
+          <span class="release-title">/system/logs en 404 por el mismo bug de rsync (tercer caso) + trigger en MySQL para que ninguna llamada quede sin área</span>
+          <span class="release-date mono">2026-07-26</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li><code>--exclude='logs/'</code> tenía el mismo problema que <code>invoices/</code> en v2.48.1 — excluía también <code>frontend/app/(admin)/system/logs/</code>, esa página nunca se actualizaba. Búsqueda exhaustiva confirma que no quedan más colisiones de este tipo</li>
+            <li>Las llamadas NO_ANSWER/BUSY/etc. quedaban sin área para siempre (solo se calculaba al facturar, y esas nunca se facturan) — nuevo trigger BEFORE INSERT en MySQL que cubre cualquier disposition, sin lag y sin tocar Kamailio. Probado contra MariaDB real con las 3 dispositions relevantes</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.48.1</span>
+          <span class="release-title">La causa real de días de deploys fallando: un exclude de rsync sin anclar dejaba dos páginas de facturas congeladas para siempre</span>
+          <span class="release-date mono">2026-07-25</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li><code>deploy.sh</code> sincronizaba con <code>--exclude='invoices/'</code> (sin barra inicial) para proteger el storage real de PDFs — pero sin anclar, rsync excluye cualquier carpeta "invoices" en cualquier nivel, incluidas las dos páginas de facturas del frontend. Nunca se actualizaban en ningún --update/--upgrade, sin importar qué tan al día estuviera el código fuente. Reproducido con un rsync de prueba antes de tocar nada, fix: <code>--exclude='/invoices/'</code></li>
+            <li>Backfill de resumen de reseller/área ya no reprocesa siempre desde el día 1 del mes en cada deploy — arranca desde el último día ya cubierto en la DB, con tope de 31 días</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.48.0</span>
+          <span class="release-title">Sistema → Infraestructura — TLS, backup y alertas activables desde la web, verificado en vivo con MariaDB+backend+frontend reales</span>
+          <span class="release-date mono">2026-07-25</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Nueva página Sistema → Infraestructura: activar/desactivar HTTPS (certbot) con un botón, toggle + "ejecutar ahora" + historial real del backup automático, toggle de alertas de infraestructura por correo — los tres scripts de v2.47.0 dejan de necesitar SSH</li>
+            <li>setup_tls.sh gana modo --disable (revertir a HTTP plano) y detecta modo no interactivo para no colgarse cuando lo dispara el panel</li>
+            <li>Verificado en vivo antes de este release: MariaDB real + schema completo (49 tablas) + backend con privilegios de DB acotados + frontend real + login real + Playwright — confirmado que el fix de doble facturación no rompe contra MariaDB real y que toda la página nueva funciona de punta a punta con datos reales</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.47.0</span>
+          <span class="release-title">Auditoría de arquitectura completa — 17 hallazgos cerrados: doble facturación posible, TLS, backup automático, alertas de infra y más</span>
+          <span class="release-date mono">2026-07-25</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Crítico: el worker de billing podía facturar el mismo CDR dos veces con varios workers de uvicorn (configuración real de producción) — corregido con FOR UPDATE SKIP LOCKED, sin cambios de schema</li>
+            <li>Cero TLS en toda la plataforma, cero backup automático de la DB — nuevos scripts/setup_tls.sh (certbot) y scripts/backup_db.sh (MariaDB + ClickHouse), con cron diario</li>
+            <li>schema.sql podía dejar el deploy caído indefinidamente si fallaba a mitad de camino — ahora hace un dump de seguridad antes y muestra el restore exacto en vez de morir en silencio</li>
+            <li>Nuevo scripts/cron_infra_alert.py — primera alerta por correo que se dispara sola cuando un cron se cuelga o el disco/memoria se agotan, sin depender de que alguien abra el panel</li>
+            <li>Logger raíz del backend nunca se configuraba (ningún log.info llegaba a ningún lado), privilegios de DB acotados de GRANT ALL a lo mínimo necesario, hardening systemd, validación de payload en el único endpoint de ingesta de CDR sin schema, captura de errores de cliente en el frontend (antes cero)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.46.0</span>
+          <span class="release-title">Sistema de permisos granular (MagnusBilling), recalculo de tarifas, 10 fixes de panel admin, responsive real y auditoría de seguridad en vivo</span>
+          <span class="release-date mono">2026-07-24</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Sistema de permisos granular nuevo — reemplaza los 10 flags sueltos (show_*) por un árbol real (menú→submenú/sección) con tablas permission_resources/profile_permissions. Cierra 2 huecos reales que no tenían NINGÚN flag hasta ahora: el resumen de KPIs de /my/overview y "Mis carriers" — antes siempre visibles, sin forma de apagarlos</li>
+            <li>Recalcular tarifas (admin y reseller) — recalcula CDRs ya facturados contra tarifas actuales, con vista previa obligatoria y bloqueo duro si el rango pisa una factura ya emitida. Marcar una factura pagada ahora sí acredita el balance del cliente (antes eran dos sistemas desconectados)</li>
+            <li>10 puntos de revisión punto a punto del panel: dashboard sin clientes duplicados, carrier visible en Live, alerta de grupos de ruteo sin carriers pero en uso, país real en Áreas con selector en cascada, Firewall separado en 3 páginas, Auditoría reagrupada por categoría, Logs del sistema sin SSH</li>
+            <li>Responsive real — bug sistemático de ~40 páginas con tablas que cortaban contenido en mobile en vez de scrollear, corregido en toda la plataforma, incluida la ficha de cliente completa</li>
+            <li>Auditoría de seguridad con ataques reales, no solo lectura de código — SQLi probado contra MariaDB real y la API viva, IDOR y bypass de auth verificados con cuentas de prueba reales, 2 XSS reales encontrados y corregidos (HTML sin escapar en emails), CSP que no llegaba al frontend corregido, 3 CVEs de dependencias resueltas</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.45.0</span>
+          <span class="release-title">Menú "Reportes" consolidado + consumo por área/destino y por campaña (admin y cliente), con ASR/ACD/PDD</span>
+          <span class="release-date mono">2026-07-23</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Nuevo grupo "Reportes" en el menú admin, agrupando Reportes/Áreas/Calidad ASR (antes dispersos en Facturación/Tarifas/Tráfico) — investigado comparando en vivo contra el portal de un carrier real</li>
+            <li>GET /admin/areas/report gana desglose opcional por cliente (antes solo global) y columnas ASR/ACD/PDD — PDD (post-dial delay) es nuevo en toda la plataforma, aproximado con start_ts→answer_ts</li>
+            <li>Nuevo GET /my/report/by-area (portal cliente) — el cliente final no tenía NINGUNA vista de a qué destinos llama ni cuánto le cuesta cada uno, solo totales globales por día/mes. Aparece como sección "Por destino" en /my/reports, mismo motor SQL que el reporte admin, forzado al propio cliente</li>
+            <li>GET /my/campaigns (consumo por prefijo interno del cliente, ej. líneas de Vicidial) pasa del escaneo en vivo al mismo patrón híbrido días-cerrados+hoy-en-vivo del resto de la sesión — quedaba pendiente desde que se creó, documentado explícitamente como "no se toca en esta primera vuelta"</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.44.0</span>
+          <span class="release-title">Bloqueo de llamadas nuevas para prepago sin saldo + varios fixes de UI (Live, Perfiles, ficha de cliente)</span>
+          <span class="release-date mono">2026-07-23</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Cliente prepago con saldo agotado ya no puede originar llamadas nuevas (rechazo SIP 402 real en Kamailio) — no corta llamadas en curso, solo evita las nuevas. Mismo mecanismo htable/dbmode=1 validado antes para Grupos de ruteo, ahora como lista de bloqueo separada (balance_block). Cron cada 1 min habilitado por defecto, el propio deploy ya lo aplica una vez</li>
+            <li>GET /admin/areas/report (rentabilidad por área) tenía el mismo escaneo en vivo de meses completos. Nueva tabla cdr_summary_day_area, con la clave siendo el prefijo crudo (no el nombre de área ya resuelto) para que renombrar un área se refleje al instante en el histórico cacheado sin recalcular nada</li>
+            <li>Selector de mes/año homogenizado entre Reportes admin y portal cliente (antes admin usaba el date-picker nativo del navegador) — y acotado al rango real de datos de toda la plataforma, mismo criterio que el fix reciente de /my/reports</li>
+            <li>Fix: apiGet/apiDelete no leían el mensaje de error del backend (solo mostraban el código HTTP) — un DELETE bloqueado por estar en uso mostraba "409" en vez de explicar qué lo está usando. Ahora los 409 de Grupos de ruteo listan cliente y cantidad de prefijos</li>
+            <li>Fix: la ficha de cliente mostraba un "0" suelto para clientes que no son reseller (customers.is_reseller llega como 0/1 de MySQL, no como boolean real — {0 && ...} en JSX pinta el 0 literal)</li>
+            <li>Live: "Activas por cliente" mostraba un mismo cliente repetido una fila por cada prefijo de campaña activo, como si fueran clientes distintos — ahora se agrupan en una sola fila expandible</li>
+            <li>Perfiles: layout angosto y una sola columna con hasta 10 pastillas de módulos amontonadas — ahora grilla responsive con los módulos de cliente/reseller separados</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.43.1</span>
+          <span class="release-title">Fix: 3 endpoints escaneaban CDRs en vivo sin límite + selector de mes/año del portal ofrecía años sin datos</span>
+          <span class="release-date mono">2026-07-23</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>GET /my/reports (portal cliente) agregaba el mes completo en vivo contra cdrs en cada carga — hasta 11s en clientes de alto volumen. Ahora usa el mismo patrón híbrido que ya tenían los reportes admin: días completados desde cdr_summary_day (agregado nocturno), solo el día de hoy se calcula en vivo y acotado a su propia partición</li>
+            <li>GET /admin/areas/backfill-status contaba en vivo contra el histórico completo de cdrs (4.25M+ filas, sin filtro de fecha posible) en cada carga de /areas. Nuevo cron horario cachea el resultado en settings; el panel muestra cuándo se calculó y avisa explícito si el cache aún no existe</li>
+            <li>GET /reseller/dashboard (margen del reseller) tenía el mismo problema, un mes completo en vivo. No se pudo reusar cdr_summary_day tal cual (reseller_cost es un subconjunto distinto de filas, mezclarlo ahí habría inflado el margen) — se agregó una tabla de resumen separada, cdr_summary_day_reseller, con el mismo patrón días-cerrados+hoy-en-vivo</li>
+            <li>El selector de mes/año de /my/reports ofrecía cualquier mes de los últimos 3 años calendario sin importar cuándo se dio de alta el cliente (ej. mostraba 2024 completo a un cliente nuevo). Nuevo endpoint GET /my/report/range acota el selector al rango real de datos del cliente</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.43.0</span>
+          <span class="release-title">Grupos de ruteo (reemplaza el pin único de carrier) + fix crítico de recarga en caliente + reorganización del panel</span>
+          <span class="release-date mono">2026-07-23</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Grupos de ruteo: nombre + algoritmo (priority/round_robin/percent) + carriers miembros, cada prefijo de un cliente elige a qué grupo rutea — reemplaza el pin único viejo (active_carrier_id) y la tabla customer_carriers, que se elimina por completo. Todo cliente pasa a tener un único grupo ("Principal"), creado solo la primera vez que se le asigna un carrier — mismo gesto simple de siempre</li>
+            <li><strong>Bug crítico encontrado y corregido en producción real (vd1sbc2)</strong>: un cliente con reparto 50/50 entre dos carriers seguía enrutando el 100% al de siempre — el mapeo techprefix→grupo vivía en un archivo compilado una sola vez al arrancar Kamailio (#!include_file), dispatcher.reload nunca lo tocaba. Reemplazado por un htable de Kamailio respaldado en MySQL con recarga en caliente real, validado contra Kamailio 5.6.3 real antes de tocar producción</li>
+            <li>Página nueva "Entrante" (LAN Peers) — el tráfico carrier→Asterisk dependía de un campo de texto suelto sin ningún CRUD ni pantalla propia</li>
+            <li>Numeración de techprefix unificada por tipo de entidad (1001+/2001+/5000+/7000+), antes dispersa entre archivos</li>
+            <li>Reorganización completa del panel tras auditar las 43 páginas y comparar contra MagnusBilling/Yeti/ASTPP: sidebar de 7 a 6 grupos con orden narrativo, fichas de Cliente/Sub-cliente (8 bloques apilados) divididas en tabs, "Usado por" en cada Grupo de ruteo para no borrarlo sin saber que corta a otro cliente</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.42.0</span>
+          <span class="release-title">Prefijos de campaña por cliente (multi-techprefix, ej. Vicidial) con desglose de consumo en el panel</span>
+          <span class="release-date mono">2026-07-16</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Un cliente puede tener, además de su prefijo técnico principal, varios prefijos adicionales — uno por campaña de su Vicidial/marcador, cada uno con su propia etiqueta — todos facturando al mismo balance. El prefijo (4 dígitos) se autogenera siempre, nunca a mano</li>
+            <li>gen_dispatcher.py y kamailio.cfg.j2 capturan el prefijo real de cada llamada en un dlg_var nuevo y lo persisten en cdrs.techprefix — el portal del cliente (/my/campaigns) y el reporte mensual ahora muestran consumo desglosado por campaña, y la guía de trunk lista todos los prefijos con su dialplan</li>
+            <li>Bug independiente encontrado y corregido de paso: el snapshot en vivo (cron_dlg_stats.py) extraía el prefijo con un largo fijo de 4 caracteres, pero el autogenerador real usa 5 dígitos — el widget "Activas por cliente" ya estaba roto en silencio para esos clientes. Ahora hace longest-prefix-match real, igual criterio que el billing</li>
+            <li>Limitación honesta: el techprefix de una llamada se descartaba en Kamailio antes de esta versión y nunca se guardó en ningún lado — los CDRs anteriores a este cambio quedan como "Sin campaña" para siempre, sin backfill posible</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.41.1</span>
+          <span class="release-title">Bug de facturación por bloques de 60s, carrier sin tarifas rutando en silencio, calidad de llamada por promedio</span>
+          <span class="release-date mono">2026-07-16</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Bug real de facturación: initblock/billingblock=60 de fábrica redondeaba toda llamada al minuto completo en vez de cobrar por segundo real — afectaba los 3 planes de venta y los 3 carriers de compra por igual. Default cambiado a 1/1, corregido el ON DUPLICATE KEY que no actualizaba estos campos, y nuevo scripts/recalc_billing_blocks.py recalculó ~2M CDRs históricos y ajustó balances (~S/22,865 y ~S/5,743 de crédito)</li>
+            <li>customers.rate_plan_id pasó a obligatorio al crear cliente/sub-cliente — un cliente sin plan nunca facturaba nada, en silencio (caso real encontrado en producción)</li>
+            <li>Un carrier sin ninguna tarifa cargada se podía asignar y rutear tráfico real igual (gen_dispatcher.py no lo validaba) — el costo quedaba en $0 sin aviso, y el reporte lo mostraba como 100% de margen en vez de señalar el error. Ahora se rechaza la asignación (admin y reseller) si el carrier no tiene carrier_rates, y el panel marca con "⚠ sin tarifas" los que faltan cargar</li>
+            <li>Calidad de llamada (badge RTP): se agregó jitter/pérdida promedio junto al peor pico — el peor-caso aislado mostraba "Regular" en llamadas que el portal del carrier reportaba como excelentes</li>
+            <li>Dashboard en vivo: el gráfico "Por carrier" siempre mostraba "Sin nombre" (carrier_id quedaba hardcodeado en 0). Ahora se resuelve cruzando sip_traces en ClickHouse (dst_ip real de cada llamada activa contra la IP del carrier), sin tocar el routing de Kamailio ni repetir el incidente de "reply too big" de v2.24.15</li>
+            <li>Auditoría de valores hardcodeados que podían ocultar datos reales: la importación masiva de tarifas por CSV tenía el mismo default 60→1 pendiente de corregir, y la sincronización externa de CDRs tragaba cualquier error por fila reportando "ok" aunque se perdieran filas — ahora distingue duplicados (tolerado) de fallos reales (contados y visibles como estado "partial")</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.41.0</span>
+          <span class="release-title">sip_traces migrada de MariaDB a ClickHouse — el disco crecía ~8.5GB/día con 90 días de retención</span>
+          <span class="release-date mono">2026-07-12</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>La captura HEP de cada paquete SIP (sip_traces) crecía ~8.5GB/día medido en producción — con 90 días de retención eso implicaba ~765GB, muy por encima del disco disponible del server</li>
+            <li>Migrada completa a ClickHouse (self-hosted, open source): compresión columnar + TTL nativo, sin tocar la política de retención de 90 días</li>
+            <li>backend/hep_listener.py escribe a ClickHouse (clickhouse-connect); backend/routers/traces.py lee de ahí en los 4 endpoints — mismo JSON, sin cambios en el frontend. call_media_stats (RTCP) sigue en MariaDB</li>
+            <li>Cambiar la retención desde el panel Traffic Sampling ahora sincroniza el TTL de ClickHouse en vivo</li>
+            <li>Corte de producción en dos fases separadas (scripts/migrate_sip_traces_to_clickhouse.py --cutover/--truncate) — solo se conservaron las últimas 48h del histórico en MariaDB, el resto se descartó a pedido explícito</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.40.2</span>
+          <span class="release-title">Fix de permisos: reseller veía cualquier carrier de plataforma + prefijo técnico 100% automático</span>
+          <span class="release-date mono">2026-07-11</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Un reseller veía y podía asignar CUALQUIER carrier de plataforma a sus sub-clientes, no solo los que el admin le concedió explícitamente — corregido en /reseller/carriers/assignable y en la validación de asignación</li>
+            <li>Prefijo técnico de sub-cliente: ahora 100% autogenerado (arranca en 10000, 5 dígitos) y no editable por el reseller — evita colisiones accidentales con los rangos cortos que asigna el admin a mano</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.40.1</span>
+          <span class="release-title">Fix: el panel de CDRs confundía duración total con tiempo hablado</span>
+          <span class="release-date mono">2026-07-11</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>El detalle de CDR mostraba una sola fila "Duración" ligada a billsec (segundos facturables) — nunca mostraba sessiontime (duración real de la llamada, incluye timbrado antes de contestar)</li>
+            <li>Backend: agregado sessiontime al SELECT de /admin/cdrs (base_ok y base_fail)</li>
+            <li>Frontend: panel de detalle separa "Duración total" de "Tiempo hablado", con nota si hubo timbrado antes de contestar</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.40.0</span>
+          <span class="release-title">Auditoría dedicada de CVEs — fastapi/starlette, Next.js, Kamailio, RTPEngine bloqueado</span>
+          <span class="release-date mono">2026-07-09</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>CRÍTICO: Starlette vulnerable a CVE-2026-48710 "BadHost" (bypass de auth vía Host header) — actualizado fastapi/starlette, probado en venv real</li>
+            <li>CRÍTICO: Next.js vulnerable a CVE-2025-29927 (bypass de middleware) + 2 CVEs más — actualizado a 15.5.18 dentro de la misma rama 15.x</li>
+            <li>CRÍTICO: RTPEngine vulnerable a CVE-2025-53399 (RTP Inject/Bleed, CVSS 9.3) — sin corregir, la versión parcheada dejó de dar soporte a Debian 12; decisión de arquitectura pendiente, documentada</li>
+            <li>ALTO: Kamailio vulnerable a CVE-2026-39863 — actualizado el instalador a la rama 5.8 (solo instalaciones nuevas)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.39.1</span>
+          <span class="release-title">Fix: el login nunca guardaba show_api_access ni los toggles de reseller</span>
+          <span class="release-date mono">2026-07-09</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>ALTO: el objeto guardado tras loguearse nunca incluía show_api_access ni los 4 módulos de reseller — el menú del portal no respetaba los toggles del admin (los de reseller llevaban 2 versiones así, sin efecto real en el frontend)</li>
+            <li>Cerradas varias páginas que el barrido de v2.39.0 se había saltado (ficha de cliente, lista de clientes, perfiles, firewall, historial de llamadas del cliente)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.39.0</span>
+          <span class="release-title">Cierre de pendientes: API keys, jail de fail2ban, manejo de errores en ~40 páginas</span>
+          <span class="release-date mono">2026-07-09</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Nueva página /my/api-keys — el backend existía desde antes pero no había forma de habilitarlo ni usarlo desde ningún lugar del panel</li>
+            <li>Toggle para banear/liberar una IP (jail de fail2ban) directo desde /firewall, sin editar la base de datos a mano</li>
+            <li>~40 páginas del panel (admin + cliente) ahora muestran un error visible si falla la carga de datos, en vez de listas vacías indistinguibles de "sin datos" — incluidos 2 casos reales de loading infinito encontrados de paso</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.38.0</span>
+          <span class="release-title">Auditoría global de 6 agentes — fixes críticos de seguridad y facturación</span>
+          <span class="release-date mono">2026-07-09</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>CRÍTICO: el endpoint que registra CDRs y descuenta saldo (POST /ingest) no tenía ninguna autenticación — protegido con secreto compartido</li>
+            <li>CRÍTICO: el bloque inicial de facturación (initblock) se guardaba pero nunca se usaba en ningún cálculo — esquemas "60/6" facturaban todo a 6s sin el primer bloque</li>
+            <li>CRÍTICO: el camino de respaldo de facturación ignoraba el bloque de facturación por completo — dos llamadas de igual duración podían cobrarse distinto según qué camino las procesara</li>
+            <li>ALTO: desactivar una tarifa no la sacaba de circulación en el camino que procesa la mayoría de llamadas reales; dependencia con CVE de DoS actualizada; sudoers no se sincronizaba en modo --update; columna profile_id faltante en una rama de migración</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.37.1</span>
+          <span class="release-title">Fix de colisión de techprefix + limpieza de tokens de color</span>
+          <span class="release-date mono">2026-07-09</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Encontrado en la validación de 4 agentes (lógica/frontend/QA/funcional, nueva práctica de esta versión): la validación de prefijo técnico comparaba igualdad exacta, pero Kamailio matchea por prefijo de string — dos prefijos donde uno es prefijo del otro podían enrutar/facturar llamadas cruzadas. Corregido con validación bidireccional</li>
+            <li>6 páginas del portal de reseller y carriers admin migradas de clases Tailwind fijas a los tokens de color del panel — un cambio de paleta futuro ya no requiere tocar archivo por archivo</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.37.0</span>
+          <span class="release-title">Perfiles granulares para el portal de reseller</span>
+          <span class="release-date mono">2026-07-09</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>El admin ahora puede habilitar/ocultar, por reseller puntual o por perfil reusable, cada una de las 4 páginas del portal de reseller (Sub-clientes, Tarifas propias, Carriers propios, Resumen) — antes un reseller las veía siempre todas, sin control</li>
+            <li>Mismo patrón que los módulos de cliente normal (show_calls/show_quality/etc): flag propio en el cliente o heredado de un perfil, con COALESCE resolviendo cuál manda</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.36.0</span>
+          <span class="release-title">Prefijo técnico automático + menú Resellers separado</span>
+          <span class="release-date mono">2026-07-09</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>El prefijo técnico (identifica al cliente en Kamailio) nunca se validaba como único — dos clientes con el mismo prefijo podían enrutarse/facturarse cruzados. Ahora se autogenera para sub-clientes de reseller y se valida contra toda la plataforma en ambos caminos (admin y reseller)</li>
+            <li>Nueva página "Resellers" en el panel admin, separada de "Clientes" — con conteo de sub-clientes; un reseller desactivado se queda listado como inactivo, no desaparece</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.35.0</span>
+          <span class="release-title">Reseller: carriers propios (modelo MagnusBilling)</span>
+          <span class="release-date mono">2026-07-09</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Un reseller puede cargar sus propias troncales SIP (carriers), con sus propios costos por minuto, y asignarlas a sus sub-clientes junto o en vez de las de la plataforma</li>
+            <li>Nueva página "Carriers propios" en el portal de reseller + sección "Carriers asignados" en cada sub-cliente</li>
+            <li>Sin cambios en el ruteo real de Kamailio — el dispatcher ya agrupa por cliente, no por dueño del carrier</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.34.1</span>
+          <span class="release-title">Auditoría: barrido completo — 6 routers con acciones reales sin registrar</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Tarifas y prefijos (pricing), facturas (marcar pagada, reenviar, plantilla), correo, perfiles de cliente y apagar/reencender servicios — ninguno dejaba rastro en Auditoría pese a tener impacto real en dinero/servicio/seguridad</li>
+            <li>Agregados los filtros de entidad que faltaban en el panel — varios ya se registraban desde antes pero nunca tuvieron botón de filtro</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.34.0</span>
+          <span class="release-title">Traza SIP completa — tramo de entrada de INVITE/BYE, sin duplicados</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Causa raíz encontrada en el código fuente de <code>siptrace.c</code>: el modo anterior no tiene callback de "request recibido", solo de "enviado" — por eso el ladder nunca mostraba el tramo de llegada de INVITE/BYE</li>
+            <li>Reemplazado por <code>trace_mode</code> (eventos de red del núcleo, ambos sentidos, automático) — quitados los <code>sip_trace()</code> dispersos por el script</li>
+            <li>Agregado filtro para no trazar OPTIONS/REGISTER (antes invisibles a la traza, con <code>trace_mode</code> se verían todos sin este filtro)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.33.4</span>
+          <span class="release-title">Sistema → Salud: uso del CLI voxikam ahora explicado en el panel</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>El texto que mencionaba el CLI nunca decía cómo usarlo — ahora es un desplegable con sintaxis completa y ejemplos en la tarjeta "Servicios VoxiKam"</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.33.3</span>
+          <span class="release-title">Feedback de UI real: CDRs, Salud del sistema y traza SIP</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Búsqueda de CDRs por teléfono+fecha: eliminado un <code>COUNT(*)</code> duplicado que escaneaba lo mismo dos veces — corta el costo a la mitad en búsquedas angostas</li>
+            <li>Cron jobs marcaban error viejo como si fuera de la corrida actual (buscaba en 4KB de historial, no en la última línea) — corregido, y cada fila ahora muestra el estado en texto, no solo un color</li>
+            <li>Panel de CDR: "Estado" separado en Resultado / Código SIP / Colgó, y semáforo verde-amarillo-rojo de calidad (jitter + pérdida de paquetes)</li>
+            <li>Traza SIP: agregado el tramo de entrada faltante en <code>kamailio.cfg.j2</code> (requiere <code>--upgrade</code>)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.33.2</span>
+          <span class="release-title">Bug real: voxikam-autotune.service fallaba con "Permission denied"</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li><code>scripts/autotune.sh</code> estaba trackeado en git sin el bit +x — el único chmod que lo arreglaba vivía dentro del bloque exclusivo de <code>--upgrade</code>, así que un <code>--update</code> posterior lo rompía de nuevo</li>
+            <li>Agregado un <code>chmod +x scripts/*.sh</code> incondicional en TODOS los modos de deploy, justo después del rsync</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.33.1</span>
+          <span class="release-title">Grabación de llamadas confirmada sin uso — a la allowlist de un click</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li><code>rtpengine-recording-daemon</code>, <code>rtpengine-recording-nfs-mount</code> y <code>rpcbind</code> pasan de "requiere confirmación humana" a apagable con un click en Sistema → Salud, tras confirmar que no se usa grabación de llamadas</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.33.0</span>
+          <span class="release-title">Plantilla de factura editable</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Reportes → Plantilla de factura: logo, encabezado de empresa, pie de página y color de acento — cada uno opcional con su propio check, la estructura del PDF no cambia</li>
+            <li>El logo se guarda dentro de <code>invoices/branding/</code>, ya protegido del <code>rsync --delete</code> de cada deploy desde v2.29.0</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.32.0</span>
+          <span class="release-title">CLI voxikam, panel de servicios del sistema, y correo multi-proveedor</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>CLI <code>voxikam -s|-r|-p|-l</code> para status/restart/stop/logs de los servicios sin acordarse de los nombres reales de las unidades systemd</li>
+            <li>Sistema → Salud: estado y logs de los servicios propios de VoxiKam, más un barrido de TODOS los servicios del server clasificados en necesarios / candidatos a apagar / no reconocidos — apagar solo habilitado para una allowlist chica y explícita, nunca <code>systemctl</code> genérico</li>
+            <li>Sistema → Correo: ahora soporta SMTP propio además de Resend, con explicación de cada proveedor y botón de correo de prueba</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.31.0</span>
+          <span class="release-title">Gestión de prefijos de destino — bug de descubrimiento + reseller "mini admin"</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Bug real: el selector de área al crear un prefijo salía de una lista que solo incluye grupos con al menos un prefijo — un área recién creada nunca podía recibir su primer prefijo desde la UI. Corregido para salir del registro formal de áreas, y se sumó edición inline de prefijos (antes solo alta/baja)</li>
+            <li>Reseller ahora puede crear sus propios prefijos/destinos y grupos, como "mini admin" (modelo MagnusBilling) — antes era solo lectura. Cada reseller ve y edita solo lo suyo, pero puede tarifar tanto sus prefijos propios como los de la plataforma</li>
+            <li>Portal reseller: sección "Mis prefijos" + tarifa por grupo en bloque, mismo patrón que ya tenía el admin</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.30.0</span>
+          <span class="release-title">Dashboard simplificado — diagnóstico interno mudado a Sistema → Salud</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Nueva página Sistema → Salud: cron jobs y captura de trazas (mini-Homer), sacados del Dashboard — no es información de negocio</li>
+            <li>Dashboard: la tabla "Llamadas activas por cliente" se reemplazó por un resumen compacto con link a Live para el detalle</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.29.0</span>
+          <span class="release-title">Kamailio/RTPEngine sin reinicio manual tras reboot, PDFs de facturas ya no se borran</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Kamailio esperaba a MariaDB por unit de systemd, no por conexión real — espera activa nueva por TCP antes de arrancar. Autotune ahora también reintenta si Kamailio quedó caído, no solo si cambió la config</li>
+            <li>RTPEngine: el módulo kernel <code>xt_RTPENGINE</code> no se cargaba solo en un boot en frío — <code>modprobe</code> agregado antes del arranque</li>
+            <li>Bug real de pérdida de datos: cada deploy borraba la carpeta de PDFs de facturas generados (<code>rsync --delete</code> sin excluirla) — corregido, y los PDF perdidos se pueden regenerar sin perder el histórico</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.28.2</span>
+          <span class="release-title">Traza SIP con dual-NIC del SBC identificado, panel de CDR en tabla</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>La traza SIP mostraba la IP pública del SBC como "Destino" — con dual-NIC el SBC aparece dos veces (LAN hacia el cliente, WAN hacia el carrier) y la heurística solo detectaba una. Ahora reconoce ambas IPs directo y las etiqueta "SBC (LAN)"/"SBC (WAN)"</li>
+            <li>Panel de detalle de CDR: de grids sueltos a una sola tabla de 2 columnas, alineación consistente. "Compra" dejó de ser rojo (no es un error, es un dato normal)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.28.1</span>
+          <span class="release-title">Backfill de historial, fix de ASR con llamadas huérfanas, auditoría de reseller</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>ASR ya no cuenta llamadas <code>RESTART_ORPHANED</code> (interrumpidas por reinicio de Kamailio, v2.26.0) como fallidas — corregido en 6 lugares distintos: reportes admin (hoy y resumen histórico nocturno), ASR Dashboard admin y su cron de fondo, y el ASR/reporte mensual del portal cliente</li>
+            <li><code>update_sub_customer()</code> del panel reseller ahora deja rastro en Auditoría, igual que su equivalente admin</li>
+            <li>Sub-clientes desactivados: ocultos por defecto en el listado del reseller (con su propio "Mostrar desactivados"), bloqueado el ajuste de balance sobre uno desactivado</li>
+            <li>Historial de versiones de esta página al día — 5 tarjetas nuevas cubriendo v2.9.0 a v2.24.17, que venían sin documentar desde antes de esta sesión</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.28.0</span>
+          <span class="release-title">UI de reseller — sub-clientes, tarifas propias y dashboard de margen</span>
+          <span class="release-date mono">2026-07-08</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Botón "Convertir en reseller" en el panel admin (detalle de cliente) — el backend de reventa multinivel existía desde v2.24.18 pero sin ninguna pantalla</li>
+            <li>Portal del reseller: nueva sección en <code>/my/*</code> con dashboard de margen, gestión de sub-clientes y planes de tarifas propios</li>
+            <li>Fix de rendimiento adicional en el cálculo de margen mensual (mismo patrón de partition pruning de v2.27.0)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.27.0</span>
+          <span class="release-title">CDRs 6s→rápido (partition pruning), detalle inline, fix 500 en Calidad ASR</span>
+          <span class="release-date mono">2026-07-07</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Búsquedas de CDR por fecha tardaban 6s+ — <code>DATE(start_ts)</code> en el filtro impedía usar índice y partition pruning; corregido en 7 archivos (admin, portal cliente, <code>/api/v1</code>, facturas, calidad, timeseries, reportes)</li>
+            <li>Detalle de llamada en CDRs admin ya no es un popup — se muestra dentro de la misma tarjeta de resultados; fecha de hoy por defecto al entrar</li>
+            <li>Calidad ASR admin: filtrar por cliente tiraba 500 (alias SQL mezclado entre <code>cdrs</code> y <code>cdrs_failed</code>) — corregido</li>
+            <li>Toggle en Sistema → Correo para activar/desactivar el aviso de llamadas huérfanas por reinicio</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.26.0</span>
+          <span class="release-title">Llamadas huérfanas por reinicio de Kamailio ya no se pierden en silencio</span>
+          <span class="release-date mono">2026-07-07</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Si Kamailio se reinicia con llamadas en curso, pierde el diálogo y nunca genera su CDR — ahora se archivan en <code>cdrs</code> con <code>disposition='RESTART_ORPHANED'</code> (sin autofacturar) en vez de perderse</li>
+            <li>Correo opcional al admin con el detalle de cada llamada interrumpida</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.25.0</span>
+          <span class="release-title">"Eliminar cliente" ahora desactiva, no borra</span>
+          <span class="release-date mono">2026-07-07</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li><code>cdrs.customer_id</code> no puede tener FK (tabla particionada) — borrar un cliente con historial dejaba CDRs huérfanas; ahora "eliminar" pasa el cliente a <code>status='deleted'</code>, reversible con "Reactivar"</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.24.9–v2.24.17</span>
+          <span class="release-title">Calidad de medio (RTP) por CDR, hardening de RTPEngine/mini-Homer, CDR rediseñado</span>
+          <span class="release-date mono">2026-07-06 · 2026-07-07</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Calidad de medio (RTP) por llamada — RTPEngine manda sus estadísticas RTCP vía HEP, correlacionadas por Call-ID, sin tocar Kamailio. Badge de calidad en cada CDR (jitter, % pérdida, paquetes perdidos)</li>
+            <li>Fix crítico en producción: el snapshot de Kamailio roto (<code>kamcmd</code> fallando en silencio) hacía que el panel Live <strong>borrara <code>active_calls</code> entera</strong> creyendo que todo era zombie — corregido, con banner de aviso cuando el snapshot no es confiable</li>
+            <li>RTPEngine: logs separados de Kamailio (antes se mezclaban en el mismo archivo por una facility de syslog compartida), override de systemd corregido (apuntaba a una unidad que no era la real, nunca se había aplicado), kernel forwarding validado en producción</li>
+            <li>CDR: detalle completo con traza SIP embebida + descarga de PCAP, tabla principal reducida a 5 columnas, búsqueda explícita en vez de cargar todo el historial al abrir la página</li>
+            <li>Super admin — el admin primario no puede ser desactivado ni tener su contraseña reseteada por otros admins</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.24.0–v2.24.8</span>
+          <span class="release-title">Sidebar en grupos colapsables + Dashboard: disco, cron jobs, fix crítico de zombie cleanup</span>
+          <span class="release-date mono">2026-07-05 · 2026-07-06</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>La sidebar admin creció de 4 a 22 items en la sesión — reorganizada en grupos colapsables (Clientes/Red/Tarifas/Tráfico/Reportes/Alertas/Sistema), acordeón sincronizado con la ruta activa</li>
+            <li>Dashboard: gauge de disco nuevo, red simplificada a tabla compacta, cron jobs con resumen de estado y jerarquía visual — antes era una pared de puntos sin distinción</li>
+            <li>Fix real encontrado en el camino: un dato muerto (<code>MEMORY=256</code>) en <code>/etc/default/kamailio</code> daba una falsa alarma de que el autotune de memoria no se estaba aplicando</li>
+            <li>Config de correo (Resend) movida a su propio panel — la usaban 3 módulos distintos y vivía embebida en uno de ellos</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.20.0–v2.23.0</span>
+          <span class="release-title">Pricelists (borrador/aprobación de tarifas), envío automático de facturas, Logic log</span>
+          <span class="release-date mono">2026-07-05</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Pricelists: crear un borrador de tarifas, revisar el % de cambio contra la tarifa vigente (rojo si sube, verde si baja) y recién ahí publicar — el billing nunca lee un draft en progreso. Import/export CSV sobre el mismo flujo</li>
+            <li>Envío automático de factura por email al generarla (toggle, apagado por defecto) + botón manual de reenvío, con adjunto PDF</li>
+            <li>Logic log — notas internas de texto libre en Clientes y Carriers, se van acumulando (no un campo que se pisa como el <code>notes</code> que ya existía)</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.15.0–v2.19.0</span>
+          <span class="release-title">Webhooks, Disconnect Policies, Routing Simulation, Traffic Sampling, Sync externa de CDRs</span>
+          <span class="release-date mono">2026-07-05</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Webhooks: suscribir una URL a eventos de CDR/balance/estado de cliente, firmados HMAC-SHA256, best-effort (un reintento, nunca bloquea el request que los dispara)</li>
+            <li>Disconnect Policies: alerta cuando un cliente cruza un % de cortes (503/486/404) en una hora — solo informa, nunca suspende</li>
+            <li>Routing Simulation: dado un cliente y un destino, muestra qué tarifa y qué carrier saldría la llamada, sin originar tráfico real</li>
+            <li>Traffic Sampling: ventana de retención de trazas SIP configurable desde el panel (antes fija en "solo hoy", y un bug real donde el valor de <code>.env</code> nunca estuvo conectado a la limpieza)</li>
+            <li>Sincronización externa de CDRs hacia MySQL/PostgreSQL/SQL Server para BI, sin tocar la base de producción</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.9.0–v2.14.0</span>
+          <span class="release-title">Alertas de balance, usuarios admin multi-persona, auditoría, particionado de cdrs/sip_traces, Áreas</span>
+          <span class="release-date mono">2026-07-04 · 2026-07-05</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Alertas de balance (prepago/postpago) con ledger de transacciones — primer módulo de la ronda de mejoras inspirada en Yeti/ASTPP/MagnusBilling, sin auto-suspensión a propósito (había clientes reales en producción con balance negativo)</li>
+            <li>Usuarios admin multi-persona (antes una sola cuenta compartida) + auditoría de config selectiva (lo que afecta plata, servicio o seguridad, no todo)</li>
+            <li><code>cdrs</code>/<code>sip_traces</code> particionadas por fecha (mes/día) — instalaciones existentes requieren un paso manual en ventana de mantenimiento, no se migran solas</li>
+            <li>Áreas: formaliza los grupos de prefijos en una tabla propia, con reporte de rentabilidad por área</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.8.9</span>
+          <span class="release-title">Trazas SIP → .pcap para Wireshark, fix de captura de BYE en Kamailio</span>
+          <span class="release-date mono">2026-07-03</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Exportar cualquier traza SIP como <code>.pcap</code> real (Ethernet/IPv4/UDP sintéticos, IPs/timestamps/mensaje reales) — abrible directo en Wireshark</li>
+            <li>Fix de raíz: <code>sip_trace()</code> en <code>kamailio.cfg.j2</code> solo corría en el INVITE inicial — BYE, re-INVITE y ACK in-dialog nunca quedaban capturados</li>
+            <li>Portal cliente: gráfico de llamadas ya no muestra "Sin nombre"; overview sin la tabla redundante de llamadas activas</li>
+            <li>Logs de cron (<code>nft.log</code>, <code>dispatcher.log</code>) ahora traen timestamp por corrida</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.8.5–v2.8.8</span>
+          <span class="release-title">Hardening de producción: RTPEngine, orden de arranque y logs de failover</span>
+          <span class="release-date mono">2026-07-02</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Regresión crítica corregida: <code>max-sessions=500</code> en <code>rtpengine.conf</code> volvía a estar activo tras un upgrade — cap que ya había causado 2306 rechazos en producción</li>
+            <li>Fix de orden de arranque: Kamailio podía iniciar antes que MariaDB tras un reboot completo, tumbando el sondeo de carriers del dispatcher</li>
+            <li>Mensajes de failover reescritos — ya no dicen "FAILOVER" cuando en realidad no había otro carrier al cual saltar</li>
+            <li>Consistencia visual entre VoxiKam y VoxiDet: badge de versión ya no solapa el footer de marca</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.8.0–v2.8.4</span>
+          <span class="release-title">Autotuneo de recursos + fixes críticos de instalador</span>
+          <span class="release-date mono">2026-07-01</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Autotuneo de <code>children=</code> de Kamailio y workers de uvicorn según CPU/RAM reales del host, en cada arranque del sistema</li>
+            <li>Fix crítico: la migración desde la plataforma anterior podía instalar en <code>/root/...</code> — los servicios nunca arrancaban (<code>Permission denied</code>)</li>
+            <li>Fix crítico: migración fallaba en pleno proceso por falta de <code>root_password</code> de MariaDB</li>
+            <li>Sesiones RTPEngine huérfanas en llamadas rechazadas (486/404/503, sin BYE ni CANCEL) — liberadas explícitamente</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.7.0–v2.7.4</span>
+          <span class="release-title">Migración desde la plataforma anterior + memoria de Kamailio autoajustada</span>
+          <span class="release-date mono">2026-07-01</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Migración automática desde la plataforma anterior (evolución del mismo proyecto, mismo instalador)</li>
+            <li>Tuning de memoria compartida de Kamailio autoajustado por RAM real del host, priorizando margen de seguridad</li>
+            <li>Fix: sesiones RTPEngine huérfanas que nunca se liberaban al colgar</li>
+            <li>Fix: <code>children=8</code> de Kamailio estaba fijo, sin relación al CPU real del servidor</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.6.0–v2.6.5</span>
+          <span class="release-title">fail2ban + techo real de ~90 llamadas concurrentes resuelto</span>
+          <span class="release-date mono">2026-07-01</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>fail2ban (sshd + rechazos del backend) — ver/desbanear IPs directo desde Firewall en el panel</li>
+            <li>Fix crítico: techo real de ~90 llamadas simultáneas causado por el valor de fábrica de memoria compartida de Kamailio</li>
+            <li>Versionado homogeneizado a <code>MAJOR.MINOR.PATCH</code></li>
+            <li><code>get_current_user()</code> dejó de consultar MySQL en cada request — cache en memoria</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.5</span>
+          <span class="release-title">Voxi Design System — acento ámbar reemplaza azul/cian en toda la UI</span>
+          <span class="release-date mono">2026-06-30</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Identidad compartida con VoxiDet bajo KPBTec — ámbar <code>#dd8b3d</code> tomado del rayo del logo, ya no azul/cian genérico de dashboard</li>
+            <li>Manrope (UI) + IBM Plex Mono (toda lectura numérica en vivo) como tipografía de firma</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.4</span>
+          <span class="release-title">Logo SVG + rediseño del login y sidebar</span>
+          <span class="release-date mono">2026-06-30</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Nuevo componente <code>Logo.tsx</code>: lettermark "K" en SVG, 3 tamaños</li>
+            <li>Login: logo centrado, fondo con glow radial, card con sombra profunda</li>
+            <li>Sidebar: logo reemplaza texto plano, avatar con inicial del usuario</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.3</span>
+          <span class="release-title">Instalador autónomo: Kamailio 5.7 + RTPEngine 10.x</span>
+          <span class="release-date mono">2026-06-25</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
         <div class="release-body">
           <ul>
             <li>El instalador ya no requiere Kamailio ni RTPEngine pre-instalados — los instala desde repos oficiales</li>
-            <li>Kamailio 5.7.x desde <code>deb.kamailio.org/kamailio57</code> · RTPEngine 10.x desde Sipwise</li>
             <li>Detección automática: si ya están instalados, los omite sin tocar nada</li>
-            <li>Resumen final muestra el tiempo total de instalación (<code>Xm Ys</code>) en todos los modos</li>
-            <li>Resumen incluye link a <code>github.com/KPBTec/VoxiKam</code> para feedback</li>
+            <li>Resumen final muestra el tiempo total de instalación en todos los modos</li>
           </ul>
         </div>
       </details>
 
       <details class="release-card">
         <summary class="release-header">
-          <span class="release-tag">v2.2</span>
+          <span class="release-tag mono">v2.2</span>
           <span class="release-title">Live desde Kamailio · CDRs refactorizados · Modo --update</span>
-          <span class="release-date">2026-06-22</span>
-          <span class="release-chevron">▼</span>
+          <span class="release-date mono">2026-06-22</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
         <div class="release-body">
           <ul>
             <li>Live dashboard usa <code>kamcmd dlg.briefing</code> como fuente de verdad — sin llamadas zombie</li>
             <li>CDRs en dos tabs: Contestadas (200 OK) y No establecidas con códigos SIP reales</li>
-            <li>Búsqueda por número de teléfono + filtros rápidos por código (487, 486, 404, 503)</li>
-            <li>Timeseries: snapshot real de Kamailio por minuto (reemplaza conteo de CDRs)</li>
-            <li>Nuevo modo <code>./install.sh --update</code> — actualiza código sin tocar Kamailio</li>
-            <li>RTPEngine: <code>listen-cli</code> para estadísticas de jitter y packet loss</li>
+            <li>Nuevo modo <code>--update</code> — actualiza código sin tocar Kamailio</li>
           </ul>
         </div>
       </details>
 
       <details class="release-card">
         <summary class="release-header">
-          <span class="release-tag">v2.1</span>
-          <span class="release-title">Fix: Llamadas zombie + búsqueda de trazas 14s → &lt;100ms</span>
-          <span class="release-date">2026-06-22</span>
-          <span class="release-chevron">▼</span>
+          <span class="release-tag mono">v2.1</span>
+          <span class="release-title">Fix: llamadas zombie + búsqueda de trazas 14s → &lt;100ms</span>
+          <span class="release-date mono">2026-06-22</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
         <div class="release-body">
           <ul>
-            <li>Kamailio: <code>dlg_set_timeout(5400)</code> y <code>event_route[dialog:expired]</code> — limpieza automática de zombies</li>
-            <li>Detección inteligente en trazas: Call-ID usa índice → <code>&lt;100ms</code> vs 14s anterior</li>
-            <li>Índice compuesto <code>(call_id, captured_at)</code> en <code>sip_traces</code></li>
-            <li>Botón "Limpiar colgadas" en panel Live</li>
+            <li>Kamailio: limpieza automática de diálogos zombie por timeout</li>
+            <li>Índice compuesto en <code>sip_traces</code> — búsqueda de Call-ID de 14s a menos de 100ms</li>
           </ul>
         </div>
       </details>
 
       <details class="release-card">
         <summary class="release-header">
-          <span class="release-tag">v2.0</span>
+          <span class="release-tag mono">v2.0</span>
           <span class="release-title">Performance Layer — System Tuning</span>
-          <span class="release-date">2026-06-22</span>
-          <span class="release-chevron">▼</span>
+          <span class="release-date mono">2026-06-22</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
         <div class="release-body">
           <ul>
-            <li>sysctl: <code>rmem_max/wmem_max = 64MB</code>, <code>nf_conntrack</code> tuneado — elimina drops RTP</li>
-            <li>Kamailio: <code>mlock_pages=yes</code>, <code>hash_size</code> aumentado, DSCP QoS</li>
-            <li>RTPEngine: <code>num-threads=0</code> (auto), buffer 4MB, cap de sesiones</li>
+            <li>sysctl tuneado: elimina drops de RTP bajo carga</li>
             <li>MariaDB: <code>innodb_buffer_pool_size</code> auto-calculado por RAM disponible</li>
           </ul>
         </div>
@@ -787,75 +1738,27 @@ footer {
 
       <details class="release-card">
         <summary class="release-header">
-          <span class="release-tag">v1.9</span>
-          <span class="release-title">Dashboard timeseries + Call State en CDRs</span>
-          <span class="release-date">2026-06-22</span>
-          <span class="release-chevron">▼</span>
-        </summary>
-        <div class="release-body">
-          <ul>
-            <li>Tabla <code>calls_timeseries</code>: snapshot por minuto, retención 25h</li>
-            <li>Gráfico SVG de líneas en dashboard admin y portal cliente con selector 1h/3h/6h/12h</li>
-            <li>Columna <code>call_state</code> en CDRs: COMPLETED, BUSY, CANCELLED, REJECTED</li>
-          </ul>
-        </div>
-      </details>
-
-      <details class="release-card">
-        <summary class="release-header">
-          <span class="release-tag">v1.7</span>
-          <span class="release-title">Portal cliente + Firewall por servicio + Normalización E.164</span>
-          <span class="release-date">2026-06-21</span>
-          <span class="release-chevron">▼</span>
-        </summary>
-        <div class="release-body">
-          <ul>
-            <li>Admin crea acceso portal desde el detalle del cliente (crear, eliminar, cambiar contraseña)</li>
-            <li>Firewall por servicio: SIP, RTP, SSH — reglas con restricción de puerto específico</li>
-            <li>Normalización de <code>dst_number</code>: strip de techprefix y outbound_prefix antes del billing</li>
-          </ul>
-        </div>
-      </details>
-
-      <details class="release-card">
-        <summary class="release-header">
-          <span class="release-tag">v1.6</span>
-          <span class="release-title">Mini-Homer embebido — Trazas SIP desde el panel</span>
-          <span class="release-date">2026-06-21</span>
-          <span class="release-chevron">▼</span>
-        </summary>
-        <div class="release-body">
-          <ul>
-            <li>Servicio HEP3 receiver en Python asyncio — captura mensajes SIP de Kamailio</li>
-            <li>Ladder diagram multicolumna dinámico: Asterisk | SBC | Carrier</li>
-            <li>Stream en vivo de tráfico SIP + búsqueda por número o Call-ID</li>
-          </ul>
-        </div>
-      </details>
-
-      <details class="release-card">
-        <summary class="release-header">
-          <span class="release-tag">v1.5</span>
-          <span class="release-title">Portal cliente + Facturación + Modos de instalación</span>
-          <span class="release-date">—</span>
-          <span class="release-chevron">▼</span>
+          <span class="release-tag mono">v1.5–v1.9</span>
+          <span class="release-title">Portal cliente, facturación PDF, mini-Homer y timeseries</span>
+          <span class="release-date mono">2026-06-21 → 22</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
         <div class="release-body">
           <ul>
             <li>Portal cliente <code>/my/*</code>: resumen, llamadas, trunk guide, facturas</li>
-            <li>Generación de facturas PDF automática desde CDRs del período</li>
-            <li>Modos <code>--upgrade</code> y <code>--reinstall</code> en el instalador</li>
-            <li><code>release.conf</code>: nombre y versión centralizados para re-branding</li>
+            <li>Servicio HEP3 receiver en Python asyncio — nace el mini-Homer embebido</li>
+            <li>Firewall por servicio (SIP, RTP, SSH), normalización E.164 de destinos</li>
+            <li>Gráfico de timeseries con selector 1h/3h/6h/12h en dashboard y portal cliente</li>
           </ul>
         </div>
       </details>
 
       <details class="release-card">
         <summary class="release-header">
-          <span class="release-tag">v1.0</span>
+          <span class="release-tag mono">v1.0</span>
           <span class="release-title">Release inicial</span>
-          <span class="release-date">—</span>
-          <span class="release-chevron">▼</span>
+          <span class="release-date mono">—</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
         <div class="release-body">
           <ul>
@@ -868,14 +1771,15 @@ footer {
       </details>
 
     </div>
+    <p class="releases-more">Historial línea por línea de cada patch en <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md">CHANGELOG.md</a>.</p>
   </div>
 </section>
 
 <!-- INSTALL -->
-<section class="install-section" id="install">
+<section id="install" class="on-surface">
   <div class="section-inner">
     <div class="section-tag">Instalación</div>
-    <h2 class="section-title">🚀 Un comando para empezar</h2>
+    <h2 class="section-title">Un comando para empezar</h2>
     <p class="section-lead">Debian 12+. Configura Kamailio, RTPEngine, MariaDB, Nginx, servicios systemd y crontabs automáticamente.</p>
 
     <div class="install-grid">
@@ -883,7 +1787,7 @@ footer {
         <div class="code-block"><span class="comment"># Instalación inicial</span>
 <span class="cmd">git clone</span> &lt;repo&gt; /opt/voxikam
 <span class="cmd">cd</span> /opt/voxikam
-<span class="cmd">sudo ./install.sh</span></div>
+<span class="cmd">sudo ./deploy.sh</span></div>
       </div>
       <div>
         <div class="code-block"><span class="comment"># Reiniciar servicios</span>
@@ -902,10 +1806,10 @@ footer {
         <tr><th>Comando</th><th>Descripción</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>./install.sh</code></td><td>Primera instalación completa</td></tr>
-        <tr><td><code>./install.sh --update</code></td><td>✅ Código + DB + frontend. Kamailio no se toca — sin corte de llamadas</td></tr>
-        <tr><td><code>./install.sh --upgrade</code></td><td>Como --update pero también reinicia Kamailio</td></tr>
-        <tr><td><code>./install.sh --reinstall</code></td><td>Reinstalación completa desde cero</td></tr>
+        <tr><td><code>./deploy.sh</code></td><td>Detecta el estado del sistema y ofrece el modo correcto — primera instalación o actualización</td></tr>
+        <tr><td><code>./deploy.sh</code> → Actualizar</td><td>Código + DB + frontend. Kamailio no se toca — sin corte de llamadas</td></tr>
+        <tr><td><code>./deploy.sh</code> → Upgrade</td><td>Como Actualizar, pero también reinicia Kamailio</td></tr>
+        <tr><td><code>./deploy.sh</code> → Reinstalar</td><td>Reinstalación completa desde cero — borra la base de datos</td></tr>
       </tbody>
     </table>
   </div>
@@ -913,16 +1817,27 @@ footer {
 
 <!-- FOOTER -->
 <footer>
-  <a href="https://voxikam.kpbtec.com" style="display:inline-block;margin-bottom:12px;">
-    <img src="logo.svg" alt="VoxiKam" style="height:52px;width:auto;filter:drop-shadow(0 0 12px rgba(37,99,235,0.3))">
+  <a href="https://voxikam.kpbtec.com" style="display:inline-block;">
+    <img src="logo.svg" alt="VoxiKam" style="height:44px;width:auto;">
   </a>
   <div class="footer-sub">By KPBTec · Knowledge, Protection &amp; Business Technology</div>
   <div class="footer-links">
-    <a href="https://github.com/KPBTec/VoxiKam" target="_blank">🐙 GitHub</a>
-    <a href="https://t.me/KPBTec" target="_blank">💬 Telegram</a>
-    <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md" target="_blank">📋 Changelog</a>
-    <a href="https://github.com/KPBTec/VoxiKam/blob/main/LICENSE" target="_blank">⚖️ AGPL v3</a>
-    <a href="https://github.com/KPBTec" target="_blank">@KPBTec</a>
+    <a href="https://github.com/KPBTec/VoxiKam" target="_blank">
+      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.016-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.469-2.38 1.235-3.22-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.233 1.91 1.233 3.22 0 4.61-2.807 5.624-5.48 5.92.43.372.823 1.102.823 2.222 0 1.604-.015 2.896-.015 3.286 0 .32.216.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+    <a href="https://t.me/KPBTec" target="_blank">
+      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
+      Telegram
+    </a>
+    <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md" target="_blank">
+      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
+      Changelog
+    </a>
+    <a href="https://github.com/KPBTec/VoxiKam/blob/main/LICENSE" target="_blank">
+      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      AGPL v3
+    </a>
   </div>
   <div class="footer-copy">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · Todos los derechos reservados.</div>
 </footer>

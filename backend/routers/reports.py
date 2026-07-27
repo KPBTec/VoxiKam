@@ -13,6 +13,23 @@ from database import get_db
 
 router = APIRouter()
 
+
+@router.get("/range")
+async def report_range(db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
+    """
+    Mes más antiguo con datos en toda la plataforma — mismo propósito que
+    portal.py::my_report_range() (evita ofrecer años sin ningún CDR en el
+    selector), acá sin filtro de cliente. Lee de cdr_summary_month (chica),
+    no de cdrs.
+    """
+    import datetime as _dt
+    r = await db.execute(text("SELECT MIN(summary_month) AS min_month FROM cdr_summary_month"))
+    return {
+        "min_month": r.scalar(),
+        "current_month": _dt.date.today().strftime("%Y-%m"),
+    }
+
+
 @router.get("/day")
 async def report_day(
     date: str,
@@ -33,6 +50,13 @@ async def report_day(
 
     is_today = date == str(_date.today())
 
+    # RESTART_ORPHANED (v2.26.0) se excluye del ASR — no es "contestada" (nunca
+    # se confirmó que se facturó) NI "fallida" (sí se atendió de verdad, el
+    # BYE se perdió por el reinicio de Kamailio). Contarla en cualquiera de
+    # los dos lados distorsiona el % — se saca del todo el cálculo hasta que
+    # un admin la reclasifique a mano. Mismo criterio en report_month(),
+    # dashboard() más abajo, y scripts/cron_summary.py (fuente real de los
+    # días históricos vía cdr_summary_day).
     if is_today:
         cid_live = "AND cd.customer_id = :cid" if customer_id else ""
         r = await db.execute(text(f"""
@@ -52,7 +76,8 @@ async def report_day(
             JOIN customers c  ON cd.customer_id = c.id
             LEFT JOIN carriers ca ON cd.carrier_id = ca.id
             WHERE cd.customer_id IS NOT NULL
-              AND DATE(cd.start_ts) = :date {cid_live}
+              AND cd.disposition != 'RESTART_ORPHANED'
+              AND cd.start_ts >= :date AND cd.start_ts < DATE_ADD(:date, INTERVAL 1 DAY) {cid_live}
             GROUP BY c.id, c.name, ca.id, ca.name
             ORDER BY sessionbill DESC
         """), params)
@@ -134,9 +159,10 @@ async def report_month(
                    SUM(sessionbill)                                          AS sessionbill,
                    SUM(sessionbill - buycost)                                AS lucro
             FROM   cdrs
-            WHERE  DATE_FORMAT(start_ts, '%Y-%m') = :month
-              AND  DATE(start_ts) = CURDATE()
+            WHERE  start_ts >= CURDATE() AND start_ts < CURDATE() + INTERVAL 1 DAY
+              AND  DATE_FORMAT(start_ts, '%Y-%m') = :month
               AND  customer_id IS NOT NULL
+              AND  disposition != 'RESTART_ORPHANED'
               {cid_filter.replace('customer_id', 'cdrs.customer_id') if customer_id else ''}
             GROUP  BY customer_id, carrier_id
         ) t
@@ -161,7 +187,8 @@ async def dashboard(db: AsyncSession = Depends(get_db), _=Depends(require_admin)
             SUM(sessionbill - buycost)            AS lucro_today,
             SUM(disposition = 'ANSWERED') * 100.0
               / NULLIF(COUNT(*), 0)               AS asr_today
-        FROM cdrs WHERE DATE(start_ts) = CURDATE()
+        FROM cdrs WHERE start_ts >= CURDATE() AND start_ts < CURDATE() + INTERVAL 1 DAY
+          AND disposition != 'RESTART_ORPHANED'
     """))
     active = await db.execute(text("SELECT COUNT(*) FROM active_calls"))
     return {**dict(today.mappings().first()), "active_calls": active.scalar()}

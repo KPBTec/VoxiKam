@@ -4,15 +4,17 @@ import { useParams } from 'next/navigation'
 import { apiGet, apiPost, apiDelete, apiPut } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Trash2, Layers, Hash } from 'lucide-react'
+import { EntityComments } from '@/components/EntityComments'
 
 interface Carrier {
   id: number; name: string; host: string; port: number
   priority: number; status: string; outbound_prefix: string
   remove_prefix: string; failover_id: number | null; notes: string | null
+  cps_limit: number | null
 }
 interface BuyRate {
   id: number; prefix: string; destination: string; group_name: string
-  buy_rate: number; connect_charge: number; billingblock: number
+  buy_rate: number; connectcharge: number; billingblock: number
 }
 interface Prefix { id: number; prefix: string; destination: string; group_name: string }
 interface Group  { group_name: string; prefix_count: number }
@@ -22,7 +24,7 @@ const input = 'w-full bg-[var(--color-surface)] border border-[var(--color-borde
 const lbl   = 'block text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1'
 
 const GROUP_COLORS: Record<string, string> = {
-  'FIJO LIMA':      'bg-blue-900/30 text-blue-300',
+  'FIJO LIMA':      'bg-info-900/50 text-info-300',
   'FIJO PROVINCIA': 'bg-purple-900/30 text-purple-300',
   'MOVILES':        'bg-amber-900/30 text-amber-300',
 }
@@ -42,23 +44,23 @@ export default function CarrierDetailPage() {
   const [addMode,  setAddMode]  = useState<'group' | 'individual'>('group')
 
   // Group rate form
-  const [grpForm,    setGrpForm]    = useState({ group_name: '', buy_rate: '', connect_charge: '0', billingblock: '60' })
+  const [grpForm,    setGrpForm]    = useState({ group_name: '', buy_rate: '', connectcharge: '0', billingblock: '1' })
   const [grpSaving,  setGrpSaving]  = useState(false)
 
   // Individual rate form
-  const [rateForm,   setRateForm]   = useState({ prefix_id: '', buy_rate: '', connect_charge: '0', billingblock: '60' })
+  const [rateForm,   setRateForm]   = useState({ prefix_id: '', buy_rate: '', connectcharge: '0', billingblock: '1' })
   const [rateSaving, setRateSaving] = useState(false)
 
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState('')
 
-  const loadCarrier = () => apiGet(`/admin/carriers/${id}`).then((c: Carrier) => { setCarrier(c); setForm(c) })
-  const loadRates   = () => apiGet(`/admin/carriers/${id}/rates`).then(setRates)
+  const loadCarrier = () => apiGet(`/admin/carriers/${id}`).then((c: Carrier) => { setCarrier(c); setForm(c) }).catch((e: any) => setError(e.message))
+  const loadRates   = () => apiGet(`/admin/carriers/${id}/rates`).then(setRates).catch((e: any) => setError(e.message))
 
   useEffect(() => {
     loadCarrier(); loadRates()
-    apiGet('/admin/rates/prefixes').then(setPrefixes)
-    apiGet('/admin/rates/groups').then(setGroups)
+    apiGet('/admin/rates/prefixes').then(setPrefixes).catch((e: any) => setError(e.message))
+    apiGet('/admin/rates/groups').then(setGroups).catch((e: any) => setError(e.message))
   }, [id])
 
   async function saveCarrier(e: React.FormEvent) {
@@ -78,10 +80,10 @@ export default function CarrierDetailPage() {
       const res: any = await apiPost(`/admin/carriers/${id}/group-rates`, {
         group_name:    grpForm.group_name,
         buy_rate:      +grpForm.buy_rate,
-        connect_charge: +grpForm.connect_charge,
+        connectcharge: +grpForm.connectcharge,
         billingblock:  +grpForm.billingblock,
       })
-      setGrpForm({ group_name: '', buy_rate: '', connect_charge: '0', billingblock: '60' })
+      setGrpForm({ group_name: '', buy_rate: '', connectcharge: '0', billingblock: '1' })
       loadRates()
       if (res?.updated !== undefined) alert(`Actualizado en ${res.updated} prefijos del grupo ${grpForm.group_name}`)
     } catch (e: any) { setError(e.message) }
@@ -96,10 +98,10 @@ export default function CarrierDetailPage() {
       await apiPost(`/admin/carriers/${id}/rates`, {
         prefix_id:     +rateForm.prefix_id,
         buy_rate:      +rateForm.buy_rate,
-        connect_charge: +rateForm.connect_charge,
+        connectcharge: +rateForm.connectcharge,
         billingblock:  +rateForm.billingblock,
       })
-      setRateForm({ prefix_id: '', buy_rate: '', connect_charge: '0', billingblock: '60' })
+      setRateForm({ prefix_id: '', buy_rate: '', connectcharge: '0', billingblock: '1' })
       loadRates()
     } catch (e: any) { setError(e.message) }
     finally { setRateSaving(false) }
@@ -110,6 +112,7 @@ export default function CarrierDetailPage() {
     loadRates()
   }
 
+  if (!carrier && error) return <div className="p-6 text-red-400">{error}</div>
   if (!carrier) return <div className="p-6 text-[var(--color-text-2)]">Cargando…</div>
 
   return (
@@ -143,12 +146,13 @@ export default function CarrierDetailPage() {
         </div>
 
         {!editMode ? (
-          <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
             {([
               ['Host / IP',        carrier.host],
               ['Puerto',           carrier.port.toString()],
               ['Prefijo saliente', carrier.outbound_prefix || '—'],
               ['Prioridad',        carrier.priority.toString()],
+              ['Límite CPS',       carrier.cps_limit ? `${carrier.cps_limit}/seg` : 'Sin límite'],
               ['Notas',            carrier.notes || '—'],
             ] as [string, string][]).map(([k, v]) => (
               <div key={k} className="flex justify-between border-b border-[var(--color-border)]/40 pb-1">
@@ -158,7 +162,7 @@ export default function CarrierDetailPage() {
             ))}
           </dl>
         ) : (
-          <form onSubmit={saveCarrier} className="grid grid-cols-2 gap-4">
+          <form onSubmit={saveCarrier} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {([
               ['Nombre',           'name',           'text'],
               ['Host / IP',        'host',           'text'],
@@ -179,6 +183,15 @@ export default function CarrierDetailPage() {
                 <option value="active">Activo</option>
                 <option value="inactive">Inactivo</option>
               </select>
+            </div>
+            <div>
+              <label className={lbl}>Límite CPS (vacío = sin límite)</label>
+              <input type="number" min={1} max={65535} className={input}
+                value={form.cps_limit ?? ''}
+                onChange={e => setForm(f => ({ ...f, cps_limit: e.target.value === '' ? null : +e.target.value }))} />
+              <p className="text-[10px] text-[var(--color-muted)] mt-1">
+                El excedente se encola (no se rechaza) hasta 2s antes de fallar.
+              </p>
             </div>
             <div className="col-span-2">
               <label className={lbl}>Notas</label>
@@ -243,8 +256,8 @@ export default function CarrierDetailPage() {
             <div>
               <label className={lbl}>Cargo conexión</label>
               <input type="number" step="0.0001" min="0" placeholder="0.00"
-                value={grpForm.connect_charge}
-                onChange={e => setGrpForm(f => ({ ...f, connect_charge: e.target.value }))}
+                value={grpForm.connectcharge}
+                onChange={e => setGrpForm(f => ({ ...f, connectcharge: e.target.value }))}
                 className="w-28 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
             <div>
@@ -283,8 +296,8 @@ export default function CarrierDetailPage() {
             <div>
               <label className={lbl}>Cargo conexión</label>
               <input type="number" step="0.0001" min="0" placeholder="0.00"
-                value={rateForm.connect_charge}
-                onChange={e => setRateForm(f => ({ ...f, connect_charge: e.target.value }))}
+                value={rateForm.connectcharge}
+                onChange={e => setRateForm(f => ({ ...f, connectcharge: e.target.value }))}
                 className="w-28 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
             <div>
@@ -302,7 +315,7 @@ export default function CarrierDetailPage() {
         )}
 
         {/* Tabla buy rates */}
-        <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
+        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)] bg-[var(--color-surface)]">
@@ -328,7 +341,7 @@ export default function CarrierDetailPage() {
                     S/ {(+r.buy_rate).toFixed(4)}
                   </td>
                   <td className="px-5 py-2.5 text-right font-mono text-[var(--color-muted)]">
-                    S/ {(+r.connect_charge).toFixed(4)}
+                    S/ {(+r.connectcharge).toFixed(4)}
                   </td>
                   <td className="px-5 py-2.5 text-right text-[var(--color-muted)]">{r.billingblock}s</td>
                   <td className="px-5 py-2.5 text-right">
@@ -346,6 +359,8 @@ export default function CarrierDetailPage() {
           </table>
         </div>
       </div>
+
+      <EntityComments entity="carrier" entityId={parseInt(id)} />
     </div>
   )
 }

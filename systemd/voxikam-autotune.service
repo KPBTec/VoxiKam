@@ -1,0 +1,16 @@
+[Unit]
+Description=VoxiKam — autotuneo de recursos al arrancar (CPU/RAM reales)
+After=network-online.target mariadb.service kamailio.service voxikam-backend.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=__INSTALL_DIR__
+ExecStart=__INSTALL_DIR__/scripts/autotune.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=voxikam-autotune
+
+[Install]
+WantedBy=multi-user.target

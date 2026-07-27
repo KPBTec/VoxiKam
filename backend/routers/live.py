@@ -5,13 +5,12 @@
 
 import json
 import logging
-from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 import time as _time
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import require_admin
@@ -21,6 +20,7 @@ router = APIRouter()
 log = logging.getLogger("live")
 
 _SNAPSHOT_FILE = Path("/var/lib/voxikam/live_snapshot.json")
+_STALE_AFTER_SECONDS = 90  # cron_dlg_stats.py escribe cada 10s — más de esto y algo está fallando
 
 
 def _read_snapshot() -> dict:
@@ -30,14 +30,47 @@ def _read_snapshot() -> dict:
         return {}
 
 
+def _snapshot_is_fresh(snap: dict) -> bool:
+    """
+    Antes esto era `bool(snap)` — siempre True apenas existiera el archivo,
+    sin importar qué tan viejo fuera. Si cron_dlg_stats.py se cuelga (kamcmd
+    falla/cuelga), el archivo deja de actualizarse pero seguía marcado como
+    "available" — el panel Live mostraba números viejos/en cero como si
+    fueran el estado real, sin ninguna señal de que algo estaba mal.
+    """
+    ts = snap.get("ts")
+    if not ts:
+        return False
+    try:
+        age = (datetime.now() - datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")).total_seconds()
+    except ValueError:
+        return False
+    return age <= _STALE_AFTER_SECONDS
+
+
 async def _prefix_map(db) -> dict[str, dict]:
-    """techprefix → {id, name}"""
-    r = await db.execute(text(
-        "SELECT id, techprefix, name FROM customers "
-        "WHERE techprefix IS NOT NULL AND techprefix != '' "
-        "ORDER BY LENGTH(techprefix) DESC"
-    ))
-    return {row["techprefix"]: {"id": row["id"], "name": row["name"]}
+    """
+    techprefix → {id, name, label}. Incluye tanto el techprefix principal de
+    cada cliente (customers.techprefix, label="Principal") como sus prefijos
+    de campaña (customer_prefixes.label — mismo criterio que portal.py::
+    my_campaigns()) — cron_dlg_stats.py ya resuelve el `prefijo` exacto
+    (longest-prefix-match contra la misma unión de ambas fuentes), así que
+    acá alcanza con un lookup exacto por clave.
+
+    El `label` es lo que permite en "Activas por cliente" (live.py) distinguir
+    varias filas de UN MISMO cliente con varios prefijos de campaña — antes
+    todas mostraban solo el nombre del cliente repetido, como si fueran
+    clientes distintos.
+    """
+    r = await db.execute(text("""
+        SELECT c.id, c.techprefix, c.name, 'Principal' AS label FROM customers c
+        WHERE c.techprefix IS NOT NULL AND c.techprefix != ''
+        UNION ALL
+        SELECT cp.customer_id AS id, cp.techprefix, c.name,
+               NULLIF(cp.label, '') AS label
+        FROM customer_prefixes cp JOIN customers c ON c.id = cp.customer_id
+    """))
+    return {row["techprefix"]: {"id": row["id"], "name": row["name"], "label": row["label"] or row["techprefix"]}
             for row in r.mappings().all()}
 
 
@@ -54,22 +87,30 @@ async def live_calls(db: AsyncSession = Depends(get_db), _=Depends(require_admin
     ongoing    = resumen.get("llamadas_activas", 0)
     timbrando  = resumen.get("timbrando", 0)
     total      = resumen.get("total", 0)
+    fresh      = _snapshot_is_fresh(snap)
 
-    # Zombie cleanup silencioso
-    total_db = (await db.execute(text("SELECT COUNT(*) FROM active_calls"))).scalar() or 0
-    if total_db > ongoing + 5:
-        deleted = await db.execute(text("""
-            DELETE FROM active_calls
-            WHERE call_id NOT IN (
-                SELECT call_id FROM (
-                    SELECT call_id FROM active_calls
-                    ORDER BY started_at DESC LIMIT :lim
-                ) sub
-            )
-        """), {"lim": max(ongoing, 0)})
-        await db.commit()
-        if deleted.rowcount:
-            log.warning("Auto-sync: %d zombie(s) eliminados", deleted.rowcount)
+    # Zombie cleanup silencioso — SOLO si el snapshot es reciente y confiable.
+    # Antes esto corría con cualquier snapshot, incluido uno viejo/roto con
+    # ongoing=0: con lim=max(0,0)=0, el subquery "ORDER BY... LIMIT 0" no
+    # devuelve NINGUNA fila, así que "call_id NOT IN (nada)" hace match con
+    # TODAS las filas — ¡borraba activas_calls entera creyendo que eran todas
+    # zombies! Encontrado en vivo mientras se investigaba el reporte del
+    # usuario de "0 arriba pero 20 llamadas reales abajo".
+    if fresh:
+        total_db = (await db.execute(text("SELECT COUNT(*) FROM active_calls"))).scalar() or 0
+        if total_db > ongoing + 5:
+            deleted = await db.execute(text("""
+                DELETE FROM active_calls
+                WHERE call_id NOT IN (
+                    SELECT call_id FROM (
+                        SELECT call_id FROM active_calls
+                        ORDER BY started_at DESC LIMIT :lim
+                    ) sub
+                )
+            """), {"lim": max(ongoing, 0)})
+            await db.commit()
+            if deleted.rowcount:
+                log.warning("Auto-sync: %d zombie(s) eliminados", deleted.rowcount)
 
     # Enriquecer resumen_por_prefijo con nombre de cliente
     pmap = await _prefix_map(db)
@@ -79,8 +120,9 @@ async def live_calls(db: AsyncSession = Depends(get_db), _=Depends(require_admin
         cust = _resolve(pfx, pmap)
         by_customer.append({
             "prefijo":         pfx,
-            "customer_id":     cust["id"]   if cust else None,
-            "customer_name":   cust["name"] if cust else pfx,
+            "customer_id":     cust["id"]    if cust else None,
+            "customer_name":   cust["name"]  if cust else pfx,
+            "label":           cust["label"] if cust else None,
             "active_calls":    entry.get("llamadas_activas", 0),
             "timbrando":       entry.get("timbrando", 0),
             "total":           entry.get("total", 0),
@@ -94,7 +136,9 @@ async def live_calls(db: AsyncSession = Depends(get_db), _=Depends(require_admin
             "ongoing":     ongoing,
             "connecting":  timbrando,
             "starting":    0,
-            "available":   bool(snap),
+            # antes era bool(snap) — True apenas existiera el archivo, sin
+            # importar la antigüedad. Ahora refleja si de verdad es reciente.
+            "available":   fresh,
             "snapshot_ts": snap.get("ts", ""),
         },
     }
@@ -111,9 +155,11 @@ async def live_detail(db: AsyncSession = Depends(get_db), _=Depends(require_admi
             SELECT ac.call_id, ac.src_number AS origen, ac.dst_number AS destino,
                    ac.src_ip AS ip_origen, ac.started_at,
                    c.name AS customer_name,
+                   ca.name AS carrier_name,
                    TIMESTAMPDIFF(SECOND, ac.started_at, NOW()) AS duration_sec
             FROM active_calls ac
             JOIN customers c ON ac.customer_id = c.id
+            LEFT JOIN carriers ca ON ca.id = ac.carrier_id
             ORDER BY ac.started_at
         """))
         rows = []
@@ -126,6 +172,23 @@ async def live_detail(db: AsyncSession = Depends(get_db), _=Depends(require_admi
 
     pmap = await _prefix_map(db)
     now_ts = int(_time.time())
+
+    # El snapshot liviano (dlg.briefing, cada 10s) no puede traer dlg_vars
+    # custom como carrier_id (ver comentario grande sobre esto en gen_
+    # dispatcher.py/kamailio.cfg.j2) — pero active_calls SÍ lo tiene, escrito
+    # en tiempo real por Kamailio en cada event_route[dialog:start]
+    # (kamailio.cfg.j2, INSERT INTO active_calls). Un solo cruce por call_id,
+    # sin tocar Kamailio/AWK/ClickHouse.
+    call_ids = [c.get("call_id", "") for c in calls if c.get("call_id")]
+    carrier_by_call: dict[str, str] = {}
+    if call_ids:
+        cr = await db.execute(text("""
+            SELECT ac.call_id, ca.name AS carrier_name
+            FROM active_calls ac
+            LEFT JOIN carriers ca ON ca.id = ac.carrier_id
+            WHERE ac.call_id IN :call_ids
+        """).bindparams(bindparam("call_ids", expanding=True)), {"call_ids": call_ids})
+        carrier_by_call = {row["call_id"]: row["carrier_name"] for row in cr.mappings().all()}
 
     result = []
     for c in calls:
@@ -141,6 +204,7 @@ async def live_detail(db: AsyncSession = Depends(get_db), _=Depends(require_admi
             "destino":       c.get("destino", ""),
             "prefijo":       pfx,
             "customer_name": cust["name"] if cust else pfx,
+            "carrier_name":  carrier_by_call.get(c.get("call_id", "")),
             "tiempo":        c.get("tiempo", "00:00:00"),
             "duration_sec":  dur_sec,
             # ISO UTC para que el browser muestre hora local correcta

@@ -82,7 +82,7 @@ ENUM('draft', 'sent', 'paid', 'cancelled')
 ENUM('active', 'suspended', 'expired')
 ```
 
-## Seed: placeholders que reemplaza install.sh
+## Seed: placeholders que reemplaza deploy.sh
 
 ```sql
 -- seed.sql contiene:
@@ -95,7 +95,7 @@ ENUM('active', 'suspended', 'expired')
 '__PLATFORM_VERSION__'  ← leído de release.conf (PLATFORM_VERSION)
 ```
 
-`install.sh` los reemplaza con `sed` antes de pipar a mysql (PASO 9, después de crear venv).
+`deploy.sh` los reemplaza con `sed` antes de pipar a mysql (PASO 9, después de crear venv).
 El PASO 7 también hace un upsert de `platform_version` en settings vía SQL directo (garantiza que upgrade actualice la versión aunque seed no se re-ejecute).
 
 ## prefix_lengths (optimización)

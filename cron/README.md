@@ -1,6 +1,6 @@
 # cron/
 
-Archivo crontab del sistema. install.sh aplica `sed` para reemplazar placeholders y lo copia a `/etc/cron.d/voxikam`.
+Archivo crontab del sistema. deploy.sh aplica `sed` para reemplazar placeholders y lo copia a `/etc/cron.d/voxikam`.
 
 ## Archivo
 

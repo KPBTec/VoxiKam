@@ -1,5 +1,5 @@
 # KPBTec VoxiKam — permisos sudo para el usuario voxikam
-# Copiado por install.sh a /etc/sudoers.d/voxikam
+# Copiado por deploy.sh a /etc/sudoers.d/voxikam
 # Validar con: visudo -c -f /etc/sudoers.d/voxikam
 
 # Permite recargar nftables (firewall desde panel web)
@@ -8,4 +8,40 @@ voxikam ALL=(ALL) NOPASSWD: /usr/sbin/nft
 # Permite recargar dispatcher de Kamailio (cuando se cambia carrier/cliente)
 voxikam ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd
 
-# NO se permite ningún otro comando sudo
+# Permite ver/desbanear IPs de fail2ban desde el panel (Firewall → fail2ban)
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client
+
+# Permite apagar/reencender SOLO estos servicios puntuales desde el panel
+# (Sistema → Salud → "Otros servicios del sistema") — comandos exactos, uno
+# por uno, nunca "systemctl" genérico. La allowlist real vive en
+# backend/routers/system_services.py::ACTIONABLE — si se agrega un servicio
+# ahí, hay que agregar su línea acá también, o el endpoint devuelve 502.
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now rpcbind.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now rpcbind.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now avahi-daemon.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now avahi-daemon.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now cups.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now cups.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now cups-browsed.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now cups-browsed.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now ModemManager.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now ModemManager.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now bluetooth.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now bluetooth.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now snapd.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now snapd.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now rtpengine-recording-daemon.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now rtpengine-recording-daemon.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl disable --now rtpengine-recording-nfs-mount.service
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/systemctl enable --now rtpengine-recording-nfs-mount.service
+
+# Permite activar/desactivar HTTPS y correr el backup manual desde el panel
+# (Sistema → Infraestructura, backend/routers/system_infra.py) — scripts
+# fijos, mismo criterio que las líneas de arriba: nunca un comando genérico.
+voxikam ALL=(root) NOPASSWD: /opt/voxikam/scripts/setup_tls.sh
+voxikam ALL=(root) NOPASSWD: /opt/voxikam/scripts/backup_db.sh
+voxikam ALL=(root) NOPASSWD: /usr/bin/systemctl reload nginx
+
+# NO se permite ningún otro comando sudo — en particular, nunca "systemctl"
+# sin argumentos fijos (eso permitiría apagar sshd/mariadb/kamailio vía la
+# API si el JWT de un admin se compromete)

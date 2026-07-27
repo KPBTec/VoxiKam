@@ -52,6 +52,11 @@ def run_summary(conn, target_date: date):
     print(f"  Procesando CDRs de {target_date}...")
 
     # ── Resumen diario por cliente + carrier ──────────────────────────────────
+    # disposition != 'RESTART_ORPHANED' (v2.26.0): esas llamadas sí se
+    # contestaron pero nunca se confirmó si se facturaron (Kamailio se
+    # reinició antes del BYE) — no son "contestada" ni "fallida", se sacan
+    # del ASR entero para no distorsionarlo en ningún sentido. Mismo criterio
+    # en backend/routers/reports.py.
     cur.execute("""
         INSERT INTO cdr_summary_day
             (summary_date, customer_id, carrier_id,
@@ -77,6 +82,7 @@ def run_summary(conn, target_date: date):
             )                                   AS aloc
         FROM cdrs c
         WHERE DATE(c.start_ts) = %s
+          AND c.disposition != 'RESTART_ORPHANED'
         GROUP BY DATE(c.start_ts), c.customer_id, c.carrier_id
         ON DUPLICATE KEY UPDATE
             nbcall      = VALUES(nbcall),
@@ -128,6 +134,103 @@ def run_summary(conn, target_date: date):
             aloc        = VALUES(aloc)
     """, (month_str, month_str))
     print(f"    ✓ cdr_summary_month: {cur.rowcount} filas")
+
+    # ── Margen de reseller (tabla separada — ver comentario en db/schema.sql) ──
+    # Mismo filtro exacto que reseller.py::dashboard() usa hoy en vivo:
+    # disposition='ANSWERED' AND reseller_cost IS NOT NULL. reseller_cost solo
+    # existe para sub-clientes de un reseller con billsec>0 (cdrs.py::ingest_cdr),
+    # por eso esto NO puede vivir como columna extra en cdr_summary_day (ese
+    # sum incluye llamadas fallidas, inflaría el margen).
+    cur.execute("""
+        INSERT INTO cdr_summary_day_reseller
+            (summary_date, customer_id, nbcall, revenue, cost, margin)
+        SELECT
+            DATE(c.start_ts)                        AS summary_date,
+            c.customer_id,
+            COUNT(*)                                AS nbcall,
+            ROUND(SUM(c.sessionbill), 4)             AS revenue,
+            ROUND(SUM(c.reseller_cost), 4)           AS cost,
+            ROUND(SUM(c.sessionbill - c.reseller_cost), 4) AS margin
+        FROM cdrs c
+        WHERE DATE(c.start_ts) = %s
+          AND c.disposition = 'ANSWERED'
+          AND c.reseller_cost IS NOT NULL
+        GROUP BY DATE(c.start_ts), c.customer_id
+        ON DUPLICATE KEY UPDATE
+            nbcall  = VALUES(nbcall),
+            revenue = VALUES(revenue),
+            cost    = VALUES(cost),
+            margin  = VALUES(margin)
+    """, (target_date,))
+    print(f"    ✓ cdr_summary_day_reseller: {cur.rowcount} filas")
+
+    # ── Consumo por área, por cliente (tabla separada — ver comentario en db/schema.sql) ──
+    # Clave = (día, cliente, prefix_matched), NUNCA el nombre de área ya
+    # resuelto — se resuelve con JOIN a prefixes al leer (areas.py::
+    # area_report() / portal.py::my_report_by_area()), así un rename de área
+    # se refleja al instante en todo el histórico sin recalcular esta tabla.
+    # nbcall_fail/pdd_ms_sum nuevos — para ASR/ACD/PDD (pedido explícito,
+    # comparando contra lo que muestra un competidor real). disposition
+    # NOT IN ('ANSWERED','RESTART_ORPHANED') = fallida real, mismo criterio
+    # de exclusión de RESTART_ORPHANED que el resto de este script.
+    cur.execute("""
+        INSERT INTO cdr_summary_day_area
+            (summary_date, customer_id, prefix_matched, nbcall, nbcall_fail,
+             sessiontime, pdd_ms_sum, buycost, sessionbill, lucro)
+        SELECT
+            DATE(c.start_ts)                    AS summary_date,
+            c.customer_id,
+            COALESCE(c.prefix_matched, '')       AS prefix_matched,
+            SUM(c.disposition = 'ANSWERED')      AS nbcall,
+            SUM(c.disposition NOT IN ('ANSWERED', 'RESTART_ORPHANED')) AS nbcall_fail,
+            SUM(CASE WHEN c.disposition = 'ANSWERED' THEN c.billsec ELSE 0 END) AS sessiontime,
+            SUM(CASE WHEN c.answer_ts IS NOT NULL
+                     THEN TIMESTAMPDIFF(MICROSECOND, c.start_ts, c.answer_ts) / 1000
+                     ELSE 0 END)                 AS pdd_ms_sum,
+            ROUND(SUM(c.buycost), 4)             AS buycost,
+            ROUND(SUM(c.sessionbill), 4)         AS sessionbill,
+            ROUND(SUM(c.sessionbill - c.buycost), 4) AS lucro
+        FROM cdrs c
+        WHERE DATE(c.start_ts) = %s
+          AND c.customer_id IS NOT NULL
+          AND c.disposition != 'RESTART_ORPHANED'
+        GROUP BY DATE(c.start_ts), c.customer_id, COALESCE(c.prefix_matched, '')
+        ON DUPLICATE KEY UPDATE
+            nbcall      = VALUES(nbcall),
+            nbcall_fail = VALUES(nbcall_fail),
+            sessiontime = VALUES(sessiontime),
+            pdd_ms_sum  = VALUES(pdd_ms_sum),
+            buycost     = VALUES(buycost),
+            sessionbill = VALUES(sessionbill),
+            lucro       = VALUES(lucro)
+    """, (target_date,))
+    print(f"    ✓ cdr_summary_day_area: {cur.rowcount} filas")
+
+    # ── Consumo por campaña propia del cliente (portal.py::my_campaigns()) ──
+    # techprefix acá es el prefijo del marcador del CLIENTE (ej. Vicidial),
+    # no el destino — mismo filtro (disposition != 'RESTART_ORPHANED') que
+    # ya usaba my_campaigns() en vivo.
+    cur.execute("""
+        INSERT INTO cdr_summary_day_campaign
+            (summary_date, customer_id, techprefix, nbcall, sessiontime, sessionbill)
+        SELECT
+            DATE(c.start_ts)                    AS summary_date,
+            c.customer_id,
+            COALESCE(c.techprefix, '')           AS techprefix,
+            SUM(c.disposition = 'ANSWERED')      AS nbcall,
+            SUM(CASE WHEN c.disposition = 'ANSWERED' THEN c.billsec ELSE 0 END) AS sessiontime,
+            ROUND(SUM(c.sessionbill), 4)         AS sessionbill
+        FROM cdrs c
+        WHERE DATE(c.start_ts) = %s
+          AND c.customer_id IS NOT NULL
+          AND c.disposition != 'RESTART_ORPHANED'
+        GROUP BY DATE(c.start_ts), c.customer_id, COALESCE(c.techprefix, '')
+        ON DUPLICATE KEY UPDATE
+            nbcall      = VALUES(nbcall),
+            sessiontime = VALUES(sessiontime),
+            sessionbill = VALUES(sessionbill)
+    """, (target_date,))
+    print(f"    ✓ cdr_summary_day_campaign: {cur.rowcount} filas")
 
     # Limpiar llamadas activas huérfanas (por si Kamailio se reinició)
     cur.execute("""

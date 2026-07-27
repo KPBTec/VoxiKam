@@ -1,7 +1,10 @@
 [Unit]
 Description=VoxiKam — HEP3 SIP trace receiver
-After=network.target mariadb.service
+After=network.target mariadb.service clickhouse-server.service
 Requires=mariadb.service
+# Soft (no Requires=): sip_traces va a ClickHouse, pero call_media_stats
+# (RTCP) sigue necesitando MariaDB — no queremos que este servicio se niegue
+# a arrancar si clickhouse-server tarda un poco más en levantar.
 
 [Service]
 Type=simple
@@ -12,6 +15,13 @@ EnvironmentFile=__INSTALL_DIR__/backend/.env
 ExecStart=__INSTALL_DIR__/venv/bin/python3 hep_listener.py
 Restart=always
 RestartSec=5
+
+# Hardening — hep_listener.py no invoca sudo/setuid, puede llevar NoNewPrivileges
+# (a diferencia de voxikam-backend.service, ver el comentario ahí).
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=voxikam-hep

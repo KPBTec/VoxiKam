@@ -18,7 +18,7 @@ Si el marker no existe (modo dev), hacen fallback a `Path(__file__).parent.paren
 ## Scripts de runtime
 
 ### gen_configs.py
-**Cuándo:** install.sh PASO 8, una sola vez.
+**Cuándo:** deploy.sh PASO 8, una sola vez.
 **Qué hace:** Recibe todos los valores de configuración como argumentos CLI y renderiza las plantillas Jinja2:
 - `templates/backend.env.j2` → `backend/.env`
 - `templates/frontend.env.j2` → `frontend/.env.local`
@@ -61,7 +61,7 @@ Los reportes del panel admin leen de estas tablas pre-calculadas para no hacer q
 
 ## Setup scripts (setup/)
 
-Llamados por install.sh PASOS 1-3. No ejecutar directamente.
+Llamados por deploy.sh PASOS 1-3. No ejecutar directamente.
 
 | Script | Qué verifica/hace |
 |---|---|

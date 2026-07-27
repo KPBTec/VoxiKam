@@ -1,11 +1,12 @@
 # systemd/
 
-Unit files para los dos servicios de la plataforma. Contienen `__INSTALL_DIR__` como placeholder — install.sh los procesa con `sed` y los copia a `/etc/systemd/system/`.
+Unit files para los dos servicios de la plataforma. Contienen `__INSTALL_DIR__` como placeholder — deploy.sh los procesa con `sed` y los copia a `/etc/systemd/system/`.
 
 ## Servicios
 
 ### sip-backend.service
-- **Ejecuta:** `uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2`
+- **Ejecuta:** `uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips=127.0.0.1`
+  (`--proxy-headers` + `--forwarded-allow-ips` — sin esto `request.client.host` en el backend siempre es 127.0.0.1, la IP de nginx, no la del usuario real; rompe el rate-limit por IP y el feed de fail2ban)
 - **User/Group:** voxikam
 - **WorkingDirectory:** `__INSTALL_DIR__/backend`
 - **EnvironmentFile:** `__INSTALL_DIR__/backend/.env`
@@ -43,7 +44,7 @@ systemctl restart sip-backend sip-frontend
 
 Editar `/etc/systemd/system/sip-backend.service`:
 ```ini
-ExecStart=.../uvicorn main:app --host 127.0.0.1 --port 8000 --workers 4
+ExecStart=.../uvicorn main:app --host 127.0.0.1 --port 8000 --workers 4 --proxy-headers --forwarded-allow-ips=127.0.0.1
 ```
 Luego `systemctl daemon-reload && systemctl restart sip-backend`.
 

@@ -4,6 +4,9 @@ import { apiGet } from "@/lib/api";
 import { PhoneCall, TrendingUp, DollarSign, Activity } from "lucide-react";
 import { CallsChart, ChartSeries } from "@/components/CallsChart";
 import { Gauge } from "@/components/Gauge";
+import { groupByCustomer } from "@/lib/liveGrouping";
+import { ErrorBanner } from "@/components/ErrorBanner";
+import { LiveIndicator } from "@/components/LiveIndicator";
 
 function KpiCard({ label, value, sub, icon: Icon, color }:
   { label: string; value: string; sub?: string; icon: React.ElementType; color: string }) {
@@ -40,19 +43,26 @@ export default function Dashboard() {
   const [ts,    setTs]    = useState<TsData | null>(null);
   const [sys,   setSys]   = useState<any>(null);
   const [range, setRange] = useState(1);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const loadTs = useCallback(async (r: number) => {
-    const res = await apiGet(`/timeseries/admin?range=${r}`);
-    setTs(res);
+    try {
+      const res = await apiGet(`/timeseries/admin?range=${r}`);
+      setTs(res); setError("");
+    } catch (e: any) { setError(e.message || "Error cargando el gráfico"); }
   }, []);
 
   const loadAll = useCallback(async () => {
-    const [d, l, s] = await Promise.all([
-      apiGet("/admin/reports/dashboard"),
-      apiGet("/admin/live"),
-      apiGet("/admin/system"),
-    ]);
-    setData(d); setLive(l); setSys(s);
+    try {
+      const [d, l, s] = await Promise.all([
+        apiGet("/admin/reports/dashboard"),
+        apiGet("/admin/live"),
+        apiGet("/admin/system"),
+      ]);
+      setData(d); setLive(l); setSys(s); setError("");
+    } catch (e: any) { setError(e.message || "Error actualizando el dashboard"); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -74,48 +84,66 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <span className="text-xs text-[var(--color-muted)]">Auto-actualiza cada 30s</span>
+        <LiveIndicator label="Auto-actualiza cada 30s" className="text-xs text-[var(--color-muted)]" />
       </div>
 
-      {/* Sistema — CPU | RAM | Red  (siempre arriba de todo) */}
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-5">
-        <div className="grid grid-cols-3 gap-4 items-center">
-          {/* CPU */}
-          <div className="flex justify-center">
-            <Gauge value={sys?.cpu_percent ?? 0} max={100} label="CPU" unit="%" size={130} />
-          </div>
-          {/* RAM */}
-          <div className="flex justify-center">
-            <Gauge
-              value={sys?.ram_percent ?? 0} max={100} label="RAM" unit="%"
-              sub={sys ? `${sys.ram_used_gb} / ${sys.ram_total_gb} GB` : undefined}
-              size={130}
-            />
-          </div>
-          {/* Red — interfaces */}
-          <div className="flex flex-col gap-3 pl-4 border-l border-[var(--color-border)]">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium">Red</p>
-            {(sys?.net ?? []).map((n: any) => (
-              <div key={n.iface} className="flex flex-col gap-1">
-                <span className="font-mono text-xs text-zinc-300">{n.iface}</span>
-                <div className="flex gap-4">
-                  <span className="text-xs text-zinc-500">↓ <span className="text-green-400 font-mono">{n.rx_str}</span></span>
-                  <span className="text-xs text-zinc-500">↑ <span className="text-blue-400 font-mono">{n.tx_str}</span></span>
-                </div>
-              </div>
-            ))}
-            {!sys?.net?.length && <span className="text-xs text-zinc-600">—</span>}
-            <p className="text-xs text-zinc-600">acumulado desde boot</p>
+      {error && <ErrorBanner>{error}</ErrorBanner>}
+
+      {/* Sistema — CPU | RAM | Disco | Red  (siempre arriba de todo) */}
+      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-6">
+        <div className="flex flex-wrap items-center gap-x-10 gap-y-6">
+          <Gauge value={sys?.cpu_percent ?? 0} max={100} label="CPU" unit="%" size={128} />
+          <Gauge
+            value={sys?.ram_percent ?? 0} max={100} label="RAM" unit="%"
+            sub={sys ? `${sys.ram_used_gb} / ${sys.ram_total_gb} GB` : undefined}
+            size={128}
+          />
+          <Gauge
+            value={sys?.disk_percent ?? 0} max={100} label="DISCO" unit="%"
+            sub={sys ? `${sys.disk_used_gb} / ${sys.disk_total_gb} GB` : undefined}
+            size={128}
+          />
+
+          {/* Red — interfaces, en tabla compacta en vez de columnas apiladas */}
+          <div className="flex-1 min-w-[220px] pl-8 border-l border-[var(--color-border)] self-stretch flex flex-col justify-center">
+            <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-3">Red — acumulado desde boot</p>
+            {(sys?.net ?? []).length > 0 ? (
+              <table className="text-xs w-full">
+                <tbody>
+                  {(sys?.net ?? []).map((n: any) => (
+                    <tr key={n.iface}>
+                      <td className="font-mono text-zinc-300 py-1 pr-4">{n.iface}</td>
+                      <td className="py-1 pr-4 text-right">
+                        <span className="text-zinc-500">↓ </span>
+                        <span className="text-green-400 font-mono">{n.rx_str}</span>
+                      </td>
+                      <td className="py-1 text-right">
+                        <span className="text-zinc-500">↑ </span>
+                        <span className="text-brand-400 font-mono">{n.tx_str}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <span className="text-xs text-zinc-600">—</span>
+            )}
           </div>
         </div>
       </div>
 
+      {live && live?.kamailio?.available === false && (
+        <div className="bg-yellow-950/40 border border-yellow-800/50 rounded-xl px-5 py-3 text-sm text-yellow-300">
+          ⚠ El snapshot de llamadas activas de Kamailio no se actualiza — "Activas ahora" no es confiable ahora mismo. Ver detalle en <a href="/live" className="underline">Live</a>.
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard label="Activas ahora"    value={fmtN(live?.total)}            icon={Activity}    color="bg-brand-600/20 text-brand-400" />
-        <KpiCard label="Llamadas hoy"     value={fmtN(data?.calls_today)}      icon={PhoneCall}   color="bg-green-900/30 text-green-400" />
-        <KpiCard label="Facturado hoy"    value={fmt(data?.sessionbill_today)} icon={DollarSign}  color="bg-yellow-900/30 text-yellow-400" />
-        <KpiCard label="Ganancia hoy"     value={fmt(data?.lucro_today)}       icon={TrendingUp}  color="bg-purple-900/30 text-purple-400" />
+        <KpiCard label="Activas ahora"    value={loading ? "···" : fmtN(live?.total)}            icon={Activity}    color="bg-brand-600/20 text-brand-400" />
+        <KpiCard label="Llamadas hoy"     value={loading ? "···" : fmtN(data?.calls_today)}      icon={PhoneCall}   color="bg-success/15 text-success" />
+        <KpiCard label="Facturado hoy"    value={loading ? "···" : fmt(data?.sessionbill_today)} icon={DollarSign}  color="bg-warning/15 text-warning" />
+        <KpiCard label="Ganancia hoy"     value={loading ? "···" : fmt(data?.lucro_today)}       icon={TrendingUp}  color="bg-purple-900/30 text-purple-400" />
       </div>
 
       {/* Panel de timeseries */}
@@ -160,36 +188,34 @@ export default function Dashboard() {
 
       </div>
 
-      {/* Tabla activas por cliente */}
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl">
-        <div className="px-6 py-4 border-b border-[var(--color-border)] flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-          <h2 className="font-semibold text-sm">Llamadas activas por cliente</h2>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-[var(--color-text-2)] text-xs uppercase border-b border-[var(--color-border)]">
-              <th className="px-6 py-3 text-left">Cliente</th>
-              <th className="px-6 py-3 text-right">Activas</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(live?.by_customer ?? []).map((r: any) => (
-              <tr key={r.customer_id} className="border-b border-[var(--color-border)]/50 hover:bg-white/2">
-                <td className="px-6 py-3">{r.customer_name}</td>
-                <td className="px-6 py-3 text-right">
-                  <span className="bg-brand-600/20 text-brand-400 px-2 py-0.5 rounded-full text-xs font-mono">
-                    {r.active_calls}
-                  </span>
-                </td>
-              </tr>
-            ))}
-            {!live?.by_customer?.length && (
-              <tr><td colSpan={2} className="px-6 py-8 text-center text-[var(--color-muted)] text-sm">Sin llamadas activas</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Resumen compacto por cliente — el detalle completo (contestadas/timbrando)
+          ya vive en Live; acá solo un vistazo rápido, no una tabla duplicada */}
+      {(() => {
+        const activeClients = groupByCustomer(live?.by_customer ?? []).filter((r: any) => r.active_calls > 0);
+        if (!activeClients.length) return null;
+        return (
+          <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl px-5 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <LiveIndicator
+                  label={`${activeClients.length} ${activeClients.length === 1 ? "cliente" : "clientes"} con llamadas activas`}
+                  className="text-sm text-[var(--color-text-2)]"
+                />
+              </div>
+              <a href="/live" className="text-xs text-brand-400 hover:text-brand-300">Ver detalle en Live →</a>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeClients.map((r: any) => (
+                <span key={r.customer_id ?? r.customer_name}
+                  className="flex items-center gap-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full pl-3 pr-2 py-1 text-xs">
+                  <span className="text-[var(--color-text-2)]">{r.customer_name}</span>
+                  <span className="bg-brand-600/20 text-brand-400 px-1.5 py-0.5 rounded-full font-mono">{r.active_calls}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

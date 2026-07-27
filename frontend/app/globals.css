@@ -1,13 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50:  #f0f9ff;
-  --color-brand-100: #e0f2fe;
-  --color-brand-400: #38bdf8;
-  --color-brand-500: #0ea5e9;
-  --color-brand-600: #0284c7;
-  --color-brand-700: #0369a1;
-  --color-brand-900: #0c4a6e;
+  /* Voxi Design System — ver Proyectos-Public/VOXI_DESIGN_SYSTEM.md.
+     "brand" = signal (ámbar, tomado del rayo del logo). No usar azul/cian
+     saturado como color de marca — queda reservado para "info" de bajo énfasis. */
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  /* Firma compartida Voxi: toda lectura numérica en vivo (costo, ms, %,
+     contadores) usa font-mono — ya aplicado en varias páginas via className.
+     Redefinir el theme var alcanza para retematizarlas todas. */
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --color-brand-50:  #fef3e8;
+  --color-brand-100: #fbe0c4;
+  --color-brand-300: #f0b783;
+  --color-brand-400: #e8a262;
+  --color-brand-500: #dd8b3d;
+  --color-brand-600: #c17429;
+  --color-brand-700: #995c21;
+  --color-brand-900: #47290f;
 
   --color-surface:  #070c16;
   --color-card:     #0d1526;
@@ -21,14 +31,40 @@
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger:  #ef4444;
+  /* info: azul apagado — único lugar donde sobrevive el azul, para tags
+     categóricos neutros (tipo de carrier, código HTTP, etc). Nunca color
+     de marca ni de acción primaria — eso es "brand" (ámbar). */
+  --color-info-100: #24344e;
+  --color-info-300: #8ba3c2;
+  --color-info-400: #6b8fb5;
+  --color-info-900: #182338;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* El preflight de Tailwind deja cursor:default en <button> (a propósito, para
+   no asumir que todo botón es "clickeable" visualmente) — pero acá casi todos
+   lo son. Sin esto, cada botón nuevo necesita cursor-pointer a mano (ya pasaba
+   con el botón de logout) y es fácil olvidarlo, como en los headers de grupo
+   de la sidebar (reportado por el usuario: "Dashboard/Live sale la manito
+   pero el resto no"). Una sola regla global en vez de parchar botón por botón
+   en cada página. */
+button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+
+/* Foco por teclado real — antes varios formularios del portal cliente solo
+   cambiaban el color del borde en :focus (focus:border-brand-500), señal
+   débil para quien navega con teclado. box-shadow ámbar sutil, sin tocar el
+   layout (no ocupa espacio como un outline). Uso: className="... focus-ring". */
+.focus-ring:focus {
+  outline: none;
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-500) 35%, transparent);
+}
+
 body {
   background: var(--color-surface);
   color: var(--color-text);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
