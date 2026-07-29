@@ -160,8 +160,8 @@ _drop_db() {
             FLUSH PRIVILEGES;" 2>/dev/null
 }
 
-# ── Migración automática desde una instalación previa de la plataforma anterior ───────
-# VoxiKam es la evolución de la plataforma anterior (mismo proyecto, nombre nuevo) — si
+# ── Migración automática desde una instalación previa de KaplaBilling ───────
+# VoxiKam es la evolución de KaplaBilling (mismo proyecto, nombre nuevo) — si
 # se detecta una instalación vieja y todavía no hay marcador de VoxiKam, se
 # REUSA su base de datos y credenciales de MySQL tal cual (mismo usuario/
 # password/DB — cero objetos nuevos, cero riesgo de permisos mal dados) y se
@@ -175,10 +175,10 @@ _LEGACY_CREDS="/kaplabilling-install/logs-configs/credentials.conf"
 if [[ "$MODE" == "fresh" && ! -f "$MARKER_FILE" ]] \
    && { [[ -f "$_LEGACY_ENV" ]] || [[ -f "$_LEGACY_CREDS" ]] \
         || systemctl list-units --full -all 2>/dev/null | grep -q "kaplabilling-backend"; }; then
-    hdr "Instalación previa de la plataforma anterior detectada"
+    hdr "Instalación previa de KaplaBilling detectada"
 
     if [[ -f "$_LEGACY_CREDS" ]]; then
-        # Preferido: la plataforma anterior ya usaba este mismo formato credentials.conf
+        # Preferido: KaplaBilling ya usaba este mismo formato credentials.conf
         # (VoxiKam evolucionó de este proyecto) — trae TODOS los datos de una,
         # incluido root_password de MariaDB, que el .env de la app nunca tuvo
         # (DATABASE_URL solo trae credenciales de nivel aplicación). Sin
@@ -264,7 +264,7 @@ jwt_secret    = $JWT_SECRET
 url           = http://$DOMAIN:$WEB_PORT
 CREDSEOF
     chmod 600 "$LOG_DIR/credentials.conf"
-    ok "Credenciales de la plataforma anterior reusadas → $LOG_DIR/credentials.conf"
+    ok "Credenciales de KaplaBilling reusadas → $LOG_DIR/credentials.conf"
 
     MODE="upgrade"
     ok "Modo forzado a 'upgrade' — la base de datos existente se reusa sin tocarla"
@@ -369,7 +369,7 @@ if [[ "$MODE" == "upgrade" || "$MODE" == "reinstall" || "$MODE" == "update" ]]; 
             echo -e "  ${BOLD}Directorio:${NC} $INSTALL_DIR (en sitio)"
         fi
     else
-        # Sin marker previo (típico de una migración la plataforma anterior: es la
+        # Sin marker previo (típico de una migración KaplaBilling: es la
         # primera instalación de VoxiKam aunque la DB se reuse en modo
         # upgrade) — NUNCA usar $SCRIPT_DIR a ciegas: si el usuario subió el
         # código a /root/algo (común al subir manual como root, sin git), el
@@ -1179,7 +1179,7 @@ EOF
 
     # Symlink visible en la carpeta del proyecto — mismo espíritu que el .env
     # de VoxiDet (ahí, a la vista), sin mover el archivo real de $LOG_DIR
-    # (evita romper el path que ya usa el modo --upgrade y la migración la plataforma anterior).
+    # (evita romper el path que ya usa el modo --upgrade y la migración KaplaBilling).
     ln -sf "$CREDS_FILE" "$INSTALL_DIR/credentials.conf"
 
     cat > "$MARKER_FILE" <<EOF
@@ -1208,11 +1208,11 @@ if [[ "$MODE" == "upgrade" && -f "$MARKER_FILE" ]]; then
     ok "Marcador actualizado → v${INSTALLER_VERSION}"
 fi
 
-# Migración la plataforma anterior: MODE se fuerza a "upgrade" pero todavía no existe
+# Migración KaplaBilling: MODE se fuerza a "upgrade" pero todavía no existe
 # $MARKER_FILE (nunca se creó, porque el bloque de arriba solo escribe
 # credenciales/marker cuando MODE != upgrade, y el de actualización de VERSION
 # requiere que el marker YA exista). Sin esto, cada corrida futura de
-# deploy.sh sin flags volvería a detectar "instalación previa de la plataforma anterior"
+# deploy.sh sin flags volvería a detectar "instalación previa de KaplaBilling"
 # y forzar upgrade de nuevo, en vez de mostrar el menú normal update/upgrade.
 if [[ "$MODE" == "upgrade" && ! -f "$MARKER_FILE" ]]; then
     cat > "$MARKER_FILE" <<EOF

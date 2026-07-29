@@ -3,7 +3,7 @@ name: Bug report
 about: Report a problem with VoxiKam
 title: '[BUG] '
 labels: bug
-assignees: KPBTec
+assignees: carrionmecapp
 ---
 
 **Describe the bug**
