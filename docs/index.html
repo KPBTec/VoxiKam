@@ -714,7 +714,7 @@ footer { background: #050810; color: var(--muted); padding: 48px 32px 32px; text
             <li>Encontrado auditando producción real: <code>customers.show_calls/show_quality/show_reports/show_invoices/show_trunk_guide/show_api_access</code> seguían existiendo pese a que <code>schema.sql</code> ya no las define — la migración que las migra a <code>profile_permissions</code> y las borra (<code>DROP COLUMN IF EXISTS</code>) SÍ corría, pero más abajo en el mismo deploy otra migración más vieja (del arreglo de <code>profile_id</code>, nunca limpiada tras la migración a <code>profile_permissions</code>) las volvía a agregar con <code>ADD COLUMN IF NOT EXISTS</code> — se borraban y recreaban en el mismo run, silenciosamente, en cada deploy</li>
             <li>Mismo patrón repetido 3 veces en el archivo para <code>show_api_access</code> y las 4 columnas <code>show_reseller_*</code> — 30 líneas en total (15 por rama <code>--update</code>/<code>--upgrade</code>) retiradas de <code>deploy.sh</code>, dejando solo el <code>DROP COLUMN</code> (que ahora sí se queda aplicado) y el <code>ADD COLUMN profile_id</code> (todavía necesario)</li>
             <li>Reproducido y verificado el fix contra MariaDB real con el cliente <code>mysql</code> corriendo de verdad (un intento de verificación anterior había dado un falso "0 diferencias" porque el sandbox no tenía <code>mysql</code> instalado fuera de Docker y todas las queries fallaban en silencio tragadas por el mismo <code>2>/dev/null || true</code> que se estaba auditando — corregido el método antes de confirmar nada)</li>
-            <li>De paso: se encontró y eliminó un crontab huérfano (<code>/etc/cron.d/kaplabilling</code>, del nombre anterior del proyecto) que seguía corriendo cada minuto en paralelo contra rutas que ya no existen</li>
+            <li>De paso: se encontró y eliminó un crontab huérfano de una instalación anterior que seguía corriendo cada minuto en paralelo contra rutas que ya no existen</li>
           </ul>
         </div>
       </details>
@@ -1602,7 +1602,7 @@ footer { background: #050810; color: var(--muted); padding: 48px 32px 32px; text
         <div class="release-body">
           <ul>
             <li>Autotuneo de <code>children=</code> de Kamailio y workers de uvicorn según CPU/RAM reales del host, en cada arranque del sistema</li>
-            <li>Fix crítico: la migración desde la plataforma anterior podía instalar en <code>/root/...</code> — los servicios nunca arrancaban (<code>Permission denied</code>)</li>
+            <li>Fix crítico: la migración desde una versión anterior de la plataforma podía instalar en <code>/root/...</code> — los servicios nunca arrancaban (<code>Permission denied</code>)</li>
             <li>Fix crítico: migración fallaba en pleno proceso por falta de <code>root_password</code> de MariaDB</li>
             <li>Sesiones RTPEngine huérfanas en llamadas rechazadas (486/404/503, sin BYE ni CANCEL) — liberadas explícitamente</li>
           </ul>
@@ -1612,13 +1612,13 @@ footer { background: #050810; color: var(--muted); padding: 48px 32px 32px; text
       <details class="release-card">
         <summary class="release-header">
           <span class="release-tag mono">v2.7.0–v2.7.4</span>
-          <span class="release-title">Migración desde la plataforma anterior + memoria de Kamailio autoajustada</span>
+          <span class="release-title">Migración automática de instalación previa + memoria de Kamailio autoajustada</span>
           <span class="release-date mono">2026-07-01</span>
           <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </summary>
         <div class="release-body">
           <ul>
-            <li>Migración automática desde la plataforma anterior (evolución del mismo proyecto, mismo instalador)</li>
+            <li>Migración automática desde una instalación previa (evolución del mismo proyecto, mismo instalador)</li>
             <li>Tuning de memoria compartida de Kamailio autoajustado por RAM real del host, priorizando margen de seguridad</li>
             <li>Fix: sesiones RTPEngine huérfanas que nunca se liberaban al colgar</li>
             <li>Fix: <code>children=8</code> de Kamailio estaba fijo, sin relación al CPU real del servidor</li>

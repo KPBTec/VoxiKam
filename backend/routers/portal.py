@@ -191,7 +191,7 @@ async def my_report(
     partición de hoy — mismo patrón híbrido que reports.py::report_month()
     (admin), nunca aplicado acá: esta consulta escaneaba el mes completo en
     vivo contra cdrs en cada carga de /my/reports (~11s con clientes de alto
-    volumen, ej. un cliente).
+    volumen).
     """
     import datetime as _dt
     cid = _customer_id(user)

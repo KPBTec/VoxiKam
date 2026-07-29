@@ -427,7 +427,7 @@ async def reset_billing_module(background_tasks: BackgroundTasks, admin=Depends(
     que billing_recalc.py).
 
     Pedido explícito del admin tras encontrar facturas duplicadas/de prueba
-    para el mismo período (ver #5-#12 de un cliente, generadas mientras se
+    para el mismo período (varias facturas de un cliente generadas mientras se
     probaba el módulo) que dejaron el balance sin sentido. Confirmado que
     estas facturas son PDFs internos sin validez tributaria (sin SUNAT), así
     que un DELETE liso es aceptable acá.

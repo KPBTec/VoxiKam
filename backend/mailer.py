@@ -4,7 +4,7 @@
 # © 2026 – Todos los derechos reservados.
 
 """
-Envío de correo — Resend (mismo proveedor y mecanismo que otro proyecto interno) o SMTP
+Envío de correo — Resend o SMTP
 propio, a elección del admin en Sistema → Correo.
 
 La configuración se guarda en la tabla `settings` — NO en `.env`. `.env`

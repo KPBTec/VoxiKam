@@ -85,7 +85,7 @@ El response incluye `"capped": true` cuando se llega al límite para que el fron
   - `/api/auth/login`: 10 req/60s por IP
   - `/api/`: 300 req/60s por IP
 - Bloquea UAs: `sqlmap`, `nikto`, `masscan`, `nmap`
-- Security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, CSP, `Server: KPBTec-VoxiKam`
+- Security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, CSP
 
 ## Variables de entorno (.env generado por deploy.sh)
 

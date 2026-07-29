@@ -181,7 +181,7 @@ async def delete_group(gid: int, db: AsyncSession = Depends(get_db), admin=Depen
     users = in_use.mappings().all()
     if users:
         # Acotado a 5 nombres — un cliente con muchos prefijos de campaña
-        # (ej. un cliente con 12) no debe volver el mensaje ilegible.
+        # no debe volver el mensaje ilegible.
         shown = ", ".join(f"{u['customer_name']} ({u['n_prefixes']})" for u in users[:5])
         extra = f" y {len(users) - 5} más" if len(users) > 5 else ""
         raise HTTPException(409, f"Este grupo está en uso por: {shown}{extra} — desasignalo antes de borrarlo")
