@@ -760,7 +760,7 @@ footer { background: #050810; color: var(--muted); padding: 48px 32px 32px; text
         </summary>
         <div class="release-body">
           <ul>
-            <li>Encontrado en producción real: facturas duplicadas/de prueba para el mismo período (varias de un cliente con rangos de fecha solapados) dejaron <code>customers.balance</code> sin ninguna relación con el consumo real — reconciliar factura por factura no era viable</li>
+            <li>Encontrado en producción real: facturas duplicadas/de prueba para el mismo período (varias facturas de un cliente con rangos de fecha solapados) dejaron <code>customers.balance</code> sin ninguna relación con el consumo real — reconciliar factura por factura no era viable</li>
             <li>Nuevo <code>POST /admin/invoices/reset-module</code> + página "Facturación → Reset facturación" (confirmación por texto, "RESETEAR"): borra TODAS las facturas y TODO el ledger de <code>balance_transactions</code> de TODOS los clientes, y recalcula cada balance como deuda pura (suma de todo su consumo histórico, sin ningún pago aplicado) — antes vuelca ambas tablas a un JSON de respaldo en el servidor, mismo criterio que el dump de seguridad de <code>deploy.sh</code> antes de aplicar <code>schema.sql</code></li>
             <li>Verificado contra MariaDB real antes de dar por buena la query: cliente con 3 CDRs contestados (100.50+150.25+49.25, una NO_ANSWER correctamente excluida) quedó en exactamente -300.00, tablas vaciadas, cliente sin llamadas quedó en 0</li>
           </ul>

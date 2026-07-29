@@ -3,7 +3,7 @@
 # VoxiKam — SIP Class 4 Billing & Monitoring Platform
 #
 # Copyright (c) 2026 KPBTec
-# MIT License — https://github.com/KPBTec/voxikam/blob/main/LICENSE
+# MIT License — https://github.com/KPBTec/VoxiKam/blob/main/LICENSE
 # Contact & support: https://t.me/KPBTec
 #
 # By KPBTec
