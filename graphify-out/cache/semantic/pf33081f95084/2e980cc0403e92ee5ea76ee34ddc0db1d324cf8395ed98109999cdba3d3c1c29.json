@@ -1,1 +1,0 @@
-{"nodes": [{"id": "db_schema", "label": "MariaDB Schema", "file_type": "code", "source_file": "db/README.md", "source_location": null}, {"id": "db_seed", "label": "Initial Seed Data", "file_type": "code", "source_file": "db/README.md", "source_location": null}], "edges": [], "hyperedges": []}
