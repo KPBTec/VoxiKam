@@ -32,8 +32,7 @@ html { scroll-behavior: smooth; }
   overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 .content {
-  position: absolute; right: 0; top: 0;
-  margin-left: 300px;
+  position: absolute; top: 0; left: 300px; right: 0;
   min-height: 100%;
 }
 main { display: block; }
@@ -46,14 +45,14 @@ main { display: block; }
 .sidebar-toggle .sidebar-toggle-button { display: flex; flex-direction: column; gap: 4px; }
 .sidebar-toggle span { display: block; width: 16px; height: 2px; }
 body.close .sidebar { transform: translateX(-300px); }
-body.close .content { margin-left: 0; }
+body.close .content { left: 0; }
 body.close .sidebar-toggle { left: 0; }
 @media (min-width: 768px) { .sidebar-toggle { display: none; } }
 @media (max-width: 767px) {
   .sidebar { transform: translateX(-300px); transition: transform .2s; }
   body.close .sidebar { transform: translateX(0); }
-  .content { margin-left: 0; }
-  body.close .content { margin-left: 0; }
+  .content { left: 0; }
+  body.close .content { left: 0; }
 }
 
 body {
