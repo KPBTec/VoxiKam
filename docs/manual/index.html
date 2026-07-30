@@ -39,5 +39,46 @@ window.$docsify = {
 <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docsify-pagination@2/dist/docsify-pagination.min.js"></script>
+<script>
+// Lightbox de imágenes — click en cualquier captura del manual la abre en
+// grande, con botón × y cierre por click-afuera/Escape. Delegado en
+// `document` (no en las imágenes directamente) porque docsify reemplaza el
+// contenido de .markdown-section en cada navegación — un listener atado a
+// un <img> puntual se perdería en la siguiente página.
+(function () {
+  function closeLightbox() {
+    var ov = document.querySelector('.img-lightbox-overlay');
+    if (!ov) return;
+    ov.remove();
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKeydown);
+  }
+  function onKeydown(e) {
+    if (e.key === 'Escape') closeLightbox();
+  }
+  document.addEventListener('click', function (e) {
+    var overlay = e.target.closest('.img-lightbox-overlay');
+    if (overlay) { closeLightbox(); return; }
+
+    var img = e.target.closest('.markdown-section img');
+    if (!img) return;
+
+    var ov = document.createElement('div');
+    ov.className = 'img-lightbox-overlay';
+    var big = document.createElement('img');
+    big.src = img.src;
+    big.alt = img.alt || '';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'img-lightbox-close';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.innerHTML = '&times;';
+    ov.appendChild(big);
+    ov.appendChild(closeBtn);
+    document.body.appendChild(ov);
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKeydown);
+  });
+})();
+</script>
 </body>
 </html>
