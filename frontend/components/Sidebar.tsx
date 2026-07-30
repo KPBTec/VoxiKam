@@ -227,14 +227,14 @@ function SidebarContent({ role, onNavigate }: { role: "admin" | "client"; onNavi
   return (
     <>
       {/* Logo */}
-      <div className="px-4 py-3.5 border-b border-[var(--color-border)] flex items-center gap-3 flex-shrink-0">
+      <div className="riveted px-4 py-3.5 border-b border-[var(--color-border)] flex items-center gap-3 flex-shrink-0">
         <Logo size="sm" variant="icon" />
         <div>
-          <div className="text-[15px] font-bold leading-tight tracking-tight">
+          <div className="nameplate text-[16px] leading-tight">
             <span style={{ color: "var(--color-brand-400)" }}>Voxi</span>
-            <span style={{ color: "#94a3b8" }}>Kam</span>
+            <span style={{ color: "var(--color-text-2)" }}>Kam</span>
           </div>
-          <div className="text-[10px] font-medium tracking-widest uppercase" style={{ color: "var(--color-muted)" }}>
+          <div className="text-[10px] font-mono tracking-widest uppercase" style={{ color: "var(--color-muted)" }}>
             SIP Class 4
           </div>
         </div>
@@ -327,8 +327,8 @@ export function Sidebar({ role }: { role: "admin" | "client" }) {
           <Menu size={20} />
         </button>
         <Logo size="sm" variant="icon" />
-        <span className="text-[15px] font-bold tracking-tight">
-          <span style={{ color: "var(--color-brand-400)" }}>Voxi</span><span style={{ color: "#94a3b8" }}>Kam</span>
+        <span className="nameplate text-[16px]">
+          <span style={{ color: "var(--color-brand-400)" }}>Voxi</span><span style={{ color: "var(--color-text-2)" }}>Kam</span>
         </span>
       </div>
 

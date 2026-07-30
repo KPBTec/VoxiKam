@@ -215,9 +215,9 @@ async def create_customer(body: CustomerIn, db: AsyncSession = Depends(get_db), 
     data["techprefix"] = techprefix
     await db.execute(text("""
         INSERT INTO customers (name, company, email, phone, rate_plan_id, profile_id, calllimit,
-                               cpslimit, techprefix, currency, is_reseller, status, notes)
+                               cpslimit, techprefix, currency, is_reseller, status, billing_type, notes)
         VALUES (:name, :company, :email, :phone, :rate_plan_id, :profile_id, :calllimit,
-                :cpslimit, :techprefix, :currency, :is_reseller, :status, :notes)
+                :cpslimit, :techprefix, :currency, :is_reseller, :status, :billing_type, :notes)
     """), data)
     r = await db.execute(text("SELECT LAST_INSERT_ID() AS id"))
     new_id = r.scalar()

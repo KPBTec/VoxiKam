@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.52.5 — 2026-07-30
+
+- Corregido: al crear un cliente nuevo con tipo de facturación "postpago", quedaba guardado como "prepago" hasta que se editaba manualmente. Ahora se guarda correctamente desde la creación.
+
+---
+
 ## v2.52.4 — 2026-07-27
 
 - Mejoras internas de mantenimiento y optimización del proceso de despliegue, sin cambios visibles para el usuario.

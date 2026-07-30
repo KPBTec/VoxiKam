@@ -1,14 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  /* Voxi Design System — ver Proyectos-Public/VOXI_DESIGN_SYSTEM.md.
-     "brand" = signal (ámbar, tomado del rayo del logo). No usar azul/cian
-     saturado como color de marca — queda reservado para "info" de bajo énfasis. */
-  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  /* Voxi Design System v2 — ver Proyectos-Public/_patterns/PATTERN_VOXI_DESIGN.md.
+     "brand" = signal (ámbar, tomado del rayo del logo) — SIN CAMBIOS respecto
+     a v1, es el token de marca y no se reinterpreta. Lo que cambia en v2 es
+     todo lo demás: los neutros pasan de navy azulado a bronce/grafito cálido
+     (el "navy + ámbar + Manrope" de v1 se volvió su propio cliché de landing
+     genérica de IA), y la tipografía deja de ser la pareja "seguro" Manrope +
+     IBM Plex Mono. No usar azul/cian saturado como color de marca — sigue
+     reservado para "info" de bajo énfasis, igual que en v1. */
+  --font-sans: 'Public Sans', var(--font-public-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   /* Firma compartida Voxi: toda lectura numérica en vivo (costo, ms, %,
      contadores) usa font-mono — ya aplicado en varias páginas via className.
-     Redefinir el theme var alcanza para retematizarlas todas. */
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+     Redefinir el theme var alcanza para retematizarlas todas. Martian Mono
+     tiene look de contador digital — más "instrumento real" que un mono de
+     código genérico. */
+  --font-mono: 'Martian Mono', var(--font-martian-mono), ui-monospace, monospace;
+  /* Nuevo en v2 — SOLO para nameplates de marca (wordmark de sidebar, hero de
+     landing, títulos de sección). Nunca para cuerpo de texto de UI densa (el
+     panel admin sigue siendo "2 fuentes alcanza" — ver PATTERN_VOXI_DESIGN.md). */
+  --font-display: 'Big Shoulders', var(--font-big-shoulders), sans-serif;
 
   --color-brand-50:  #fef3e8;
   --color-brand-100: #fbe0c4;
@@ -19,21 +30,25 @@
   --color-brand-700: #995c21;
   --color-brand-900: #47290f;
 
-  --color-surface:  #070c16;
-  --color-card:     #0d1526;
-  --color-card-2:   #111d35;
-  --color-border:   #1a2744;
-  --color-border-2: #243356;
-  --color-muted:    #4e6a8a;
-  --color-text:     #e2e8f0;
-  --color-text-2:   #6b87a8;
+  /* Neutros v2 — bronce/grafito cálido en vez de navy azulado. Mismo rol que
+     cada token tenía en v1 (surface = fondo base, card = paneles, etc.), solo
+     cambia el matiz: de #0xx16xx (azul) a #2x1x0x (bronce). */
+  --color-surface:  #16110c;
+  --color-card:     #221a12;
+  --color-card-2:   #2e2317;
+  --color-border:   #43331f;
+  --color-border-2: #5c4527;
+  --color-muted:    #9c876c;
+  --color-text:     #f0e6d2;
+  --color-text-2:   #c9b99e;
 
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger:  #ef4444;
   /* info: azul apagado — único lugar donde sobrevive el azul, para tags
      categóricos neutros (tipo de carrier, código HTTP, etc). Nunca color
-     de marca ni de acción primaria — eso es "brand" (ámbar). */
+     de marca ni de acción primaria — eso es "brand" (ámbar). Semántico, sin
+     cambios en v2 (igual que success/warning/danger arriba). */
   --color-info-100: #24344e;
   --color-info-300: #8ba3c2;
   --color-info-400: #6b8fb5;
@@ -75,3 +90,34 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-border-2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
+
+/* ── Voxi Design System v2 — motivo "instrumento de rack" ──────────────────
+   Nameplate: la placa de marca (wordmark de sidebar, títulos de sección) —
+   Big Shoulders condensada, uppercase, tracking amplio, como una placa
+   grabada de equipo real en vez de un logo de SaaS. Uso: className="nameplate". */
+.nameplate {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Riveted: el panel remachado — reemplaza el card genérico "rounded-lg +
+   sombra suave" en las superficies más visibles (sidebar, cards de KPI clave).
+   No se aplica a TODA la UI a propósito — a la escala de un panel admin denso,
+   remaches por todos lados se vuelve ruido; se reserva para las superficies
+   que definen la identidad de marca. Uso: className="riveted" en un elemento
+   position:relative. */
+.riveted {
+  position: relative;
+  border-radius: 3px;
+}
+.riveted::before, .riveted::after {
+  content: ''; position: absolute; top: 6px; width: 5px; height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--color-border-2), var(--color-surface) 70%);
+  box-shadow: 0 1px 0 rgba(0,0,0,.5);
+  pointer-events: none;
+}
+.riveted::before { left: 6px; }
+.riveted::after  { right: 6px; }

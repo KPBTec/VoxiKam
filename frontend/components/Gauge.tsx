@@ -63,7 +63,7 @@ export function Gauge({ value, max, label, sub, unit = "%", size = 140 }: GaugeP
       {/* Track */}
       <path
         d={`M ${lx} ${ly} A ${r} ${r} 0 1 1 ${rx} ${ry}`}
-        fill="none" stroke="#27272a" strokeWidth={sw} strokeLinecap="round"
+        fill="none" stroke="var(--color-border)" strokeWidth={sw} strokeLinecap="round"
       />
       {/* Fill */}
       <path
@@ -71,17 +71,17 @@ export function Gauge({ value, max, label, sub, unit = "%", size = 140 }: GaugeP
         fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
         style={{ filter: glow }}
       />
-      {/* Value */}
+      {/* Value — instrumento digital (Martian Mono vía --font-mono) */}
       <text
         x={cx} y={cy - r * 0.15}
         textAnchor="middle" dominantBaseline="middle"
-        fill="white" fontSize={W * 0.17} fontWeight="700" fontFamily="monospace"
+        fill="var(--color-text)" fontSize={W * 0.17} fontWeight="600" fontFamily="var(--font-mono)"
       >
         {fmtValue(value, unit)}
       </text>
       {/* Min / Max ticks */}
-      <text x={lx + 2} y={ticksY} textAnchor="start" fill="#52525b" fontSize={W * 0.075}>0</text>
-      <text x={rx - 2} y={ticksY} textAnchor="end"   fill="#52525b" fontSize={W * 0.075}>
+      <text x={lx + 2} y={ticksY} textAnchor="start" fill="var(--color-muted)" fontSize={W * 0.075}>0</text>
+      <text x={rx - 2} y={ticksY} textAnchor="end"   fill="var(--color-muted)" fontSize={W * 0.075}>
         {unit === "Mbps" ? fmtValue(max, "Mbps") : `${max}${unit}`}
       </text>
       {/* Sub-label (e.g. "3.9 / 8.0 GB") — fila propia, nunca pisa los ticks */}
@@ -89,7 +89,7 @@ export function Gauge({ value, max, label, sub, unit = "%", size = 140 }: GaugeP
         <text
           x={cx} y={subY}
           textAnchor="middle" dominantBaseline="middle"
-          fill="#71717a" fontSize={W * 0.085} fontFamily="monospace"
+          fill="var(--color-muted)" fontSize={W * 0.085} fontFamily="var(--font-mono)"
         >
           {sub}
         </text>
@@ -98,7 +98,7 @@ export function Gauge({ value, max, label, sub, unit = "%", size = 140 }: GaugeP
       <text
         x={cx} y={labelY}
         textAnchor="middle" dominantBaseline="auto"
-        fill="#a1a1aa" fontSize={W * 0.1} fontWeight="600"
+        fill="var(--color-text-2)" fontSize={W * 0.1} fontWeight="600"
       >
         {label}
       </text>

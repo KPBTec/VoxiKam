@@ -4,7 +4,7 @@
 
 ### Plataforma SIP Class 4 — Billing, Monitoreo y Control de Tráfico
 
-[![Version](https://img.shields.io/badge/version-2.52.4-e8a262?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.52.5-e8a262?style=flat-square)](CHANGELOG.md)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Debian%2012%2B-orange?style=flat-square)](#-instalación)
 [![Telegram](https://img.shields.io/badge/soporte-Telegram-2CA5E0?style=flat-square&logo=telegram)](https://t.me/KPBTec)
@@ -18,6 +18,13 @@
 
 ---
 
+### 📖 [Manual de uso completo →](docs/manual/README.md)
+
+Guía paso a paso con capturas reales de los 13 módulos del panel — desde el primer login hasta
+el portal de reseller. Si es tu primera vez con VoxiKam, empieza ahí, no acá abajo.
+
+---
+
 ## 🎯 ¿Por qué VoxiKam?
 
 La mayoría de plataformas de billing SIP fueron diseñadas para equipos técnicos: configuración en consola, sin visibilidad en tiempo real y con portales cliente básicos o inexistentes. VoxiKam cambia ese paradigma.
@@ -25,6 +32,25 @@ La mayoría de plataformas de billing SIP fueron diseñadas para equipos técnic
 > **Un operador no debería necesitar acceso SSH para agregar una IP al firewall, ver cuánto está generando un cliente hoy o detectar que un carrier está fallando.**
 
 VoxiKam reúne en un solo panel todo lo que un operador necesita para administrar su tráfico SIP, controlar sus márgenes y darle a cada cliente visibilidad sobre su propio consumo — sin tocar una consola.
+
+---
+
+## 🖥️ Así se ve
+
+El panel real, con datos de un ambiente de demostración — no mockups.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/manual/img/admin-dashboard.png" alt="Dashboard"/><div align="center"><sub>Dashboard — KPIs del día en tiempo real</sub></div></td>
+<td width="50%"><img src="docs/manual/img/admin-live.png" alt="Llamadas en curso"/><div align="center"><sub>Live — llamadas activas ahora mismo</sub></div></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/manual/img/admin-customer-detail.png" alt="Ficha de cliente"/><div align="center"><sub>Ficha de cliente — balance, tarifas, historial</sub></div></td>
+<td width="50%"><img src="docs/manual/img/client-reports.png" alt="Portal cliente"/><div align="center"><sub>Portal del cliente — su propio consumo, sin ver el de nadie más</sub></div></td>
+</tr>
+</table>
+
+Más capturas — panel completo, portal cliente y portal reseller — en el [manual de uso](docs/manual/README.md).
 
 ---
 
@@ -86,7 +112,7 @@ VoxiKam es una plataforma **Class 4**: switching de tránsito y billing. No incl
 
 ## 🔑 Dos vistas, dos mundos
 
-VoxiKam tiene dos portales completamente separados: uno para el operador que administra el sistema, y otro para cada cliente que usa el servicio. Cada uno con su propio acceso, sus propios datos y sus propias funciones.
+VoxiKam tiene dos portales completamente separados: uno para el operador que administra el sistema, y otro para cada cliente que usa el servicio. Cada uno con su propio acceso, sus propios datos y sus propias funciones. El [manual de uso](docs/manual/README.md) cubre ambos, capítulo por capítulo.
 
 ---
 
@@ -191,8 +217,8 @@ La mayoría de plataformas SIP exponen su panel en el puerto 80 sin rate limitin
 ## 🚀 Instalación
 
 ```bash
-git clone https://github.com/KPBTec/VoxiKam.git
-cd /voxikam
+git clone <repo> /opt/voxikam
+cd /opt/voxikam
 sudo ./deploy.sh
 ```
 
@@ -210,6 +236,7 @@ Corre en **Debian 12+**. Detecta IPs del servidor, solicita configuración míni
 
 | Recurso | Ubicación |
 |---|---|
+| 📖 Manual de uso | [`docs/manual/`](docs/manual/README.md) — paso a paso con capturas, panel y portal cliente |
 | 🌐 Panel web | `http://<DOMAIN>:<WEB_PORT>` (puerto default: `7666`) |
 | 🔑 Credenciales | `/voxikam-install/logs-configs/credentials.conf` |
 | 📄 Logs | `/voxikam-install/logs-configs/install-YYYYMMDD.log` |
