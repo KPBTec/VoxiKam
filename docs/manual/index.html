@@ -34,6 +34,36 @@ window.$docsify = {
     crossChapterText: true,
   },
   formatUpdated: false,
+  plugins: [
+    // El scrollspy interno de docsify a veces no sincroniza el resaltado de
+    // la sidebar con el "?id=" de la URL al entrar por link directo/recarga
+    // — se queda marcada la sub-sección anterior (visto en vivo: capítulo 11,
+    // sub-sección 11.9 quedaba con "11.8 Logs" resaltado). Corrección puntual:
+    // justo después de cada render, si la URL trae un id, forzar que ESE
+    // link quede activo. No toca el resaltado por scroll normal (eso ya
+    // funciona bien con el comportamiento por defecto de docsify).
+    function (hook) {
+      function fixActiveLink() {
+        var match = location.hash.match(/[?&]id=([^&]+)/);
+        if (!match) return;
+        var id = decodeURIComponent(match[1]);
+        var links = document.querySelectorAll('.sidebar-nav a');
+        links.forEach(function (a) {
+          var href = a.getAttribute('href') || '';
+          if (href.indexOf('?id=') === -1) return; // no tocar los links de página completa
+          a.parentElement.classList.toggle('active', href.indexOf('id=' + id) !== -1);
+        });
+      }
+      hook.doneEach(function () {
+        // docsify sigue recalculando el resaltado por su cuenta durante un
+        // rato tras cada render (webfonts + imágenes asentando el layout),
+        // y una corrección única queda pisada por la siguiente pasada suya.
+        // Reafirmar varias veces durante ~3s hasta que todo se estabilice.
+        var ticks = [50, 200, 500, 900, 1400, 2000, 2700, 3500];
+        ticks.forEach(function (ms) { setTimeout(fixActiveLink, ms); });
+      });
+    },
+  ],
 };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
