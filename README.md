@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/logo.svg" alt="VoxiKam" width="380"/>
+<img src="docs/assets/logo.svg" alt="VoxiKam" width="380"/>
 
 ### Plataforma SIP Class 4 — Billing, Monitoreo y Control de Tráfico
 
@@ -14,14 +14,36 @@
 
 **Un producto de [KPBTec](https://github.com/KPBTec) · Knowledge, Protection & Business Technology**
 
+<br>
+
+<a href="#-por-qué-voxikam">Por qué</a> ·
+<a href="#-así-se-ve">Así se ve</a> ·
+<a href="https://voxikam.kpbtec.com/manual/"><b>Manual (wiki)</b></a> ·
+<a href="#-vista-operador--panel-de-administración">Operador</a> ·
+<a href="#-vista-cliente--portal-personal">Cliente</a> ·
+<a href="#-instalación">Instalar</a>
+
 </div>
 
 ---
 
-### 📖 [Manual de uso completo →](docs/manual/README.md)
+<div align="center">
 
-Guía paso a paso con capturas reales de los 13 módulos del panel — desde el primer login hasta
+<a href="https://voxikam.kpbtec.com/manual/">
+<img src="docs/assets/hero-live.png" alt="VoxiKam — panel Live, llamadas en curso" width="720"/>
+</a>
+
+<sub>Panel <code>/live</code> — llamadas en curso, con datos de un ambiente de demostración. Click para el manual completo →</sub>
+
+</div>
+
+---
+
+### 📖 [Manual de uso completo →](https://voxikam.kpbtec.com/manual/)
+
+Wiki paso a paso con capturas reales de los 13 módulos del panel — desde el primer login hasta
 el portal de reseller. Si es tu primera vez con VoxiKam, empieza ahí, no acá abajo.
+También disponible como markdown plano en [`docs/manual/`](docs/manual/README.md), por si preferís leerlo sin salir de GitHub.
 
 ---
 
