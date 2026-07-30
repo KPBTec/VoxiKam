@@ -191,8 +191,8 @@ La mayoría de plataformas SIP exponen su panel en el puerto 80 sin rate limitin
 ## 🚀 Instalación
 
 ```bash
-git clone <repo> /opt/voxikam
-cd /opt/voxikam
+git clone https://github.com/KPBTec/VoxiKam.git
+cd /voxikam
 sudo ./deploy.sh
 ```
 
