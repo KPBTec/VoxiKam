@@ -31,9 +31,25 @@ export const metadata: Metadata = {
   description: "Plataforma de Billing SIP Class 4 — Carriers, Clientes y CDRs",
 };
 
+// Setea data-theme ANTES de que React hidrate — sin esto, cada carga
+// mostraría un flash del tema Bronce (default) antes de aplicar la
+// preferencia guardada del usuario. Script inline bloqueante a propósito,
+// mismo patrón que cualquier dark-mode-antes-de-hidratar.
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var t = localStorage.getItem('voxikam_theme');
+    if (t && t !== 'bronce') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${publicSans.variable} ${martianMono.variable} ${bigShoulders.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

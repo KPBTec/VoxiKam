@@ -29,7 +29,7 @@ def _get_real_ip(request: Request) -> str:
 @router.post("/login")
 async def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        text("SELECT id, name, email, password_hash, role, customer_id, is_active FROM users WHERE email = :email"),
+        text("SELECT id, name, email, password_hash, role, customer_id, is_active, ui_theme FROM users WHERE email = :email"),
         {"email": form.username}
     )
     user = result.mappings().first()
@@ -66,9 +66,27 @@ async def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), d
         "customer_id": user["customer_id"],
         "is_reseller": is_reseller,
         "permissions": permissions,
+        "ui_theme": user["ui_theme"],
     }
 
 
 @router.get("/me")
 async def me(user=Depends(get_current_user)):
     return user
+
+
+@router.put("/me/theme")
+async def update_my_theme(body: dict, user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Guarda la preferencia visual del usuario logueado (admin o cliente) —
+    solo estética, cualquier rol puede cambiar la suya propia sin permisos
+    especiales. Valor libre validado contra una lista fija en vez de un ENUM
+    de DB, para no necesitar una migración cada vez que se agregue un tema."""
+    theme = (body or {}).get("theme")
+    if theme not in ("bronce", "papel", "fosforo", "vidrio"):
+        raise HTTPException(400, "Tema inválido")
+    await db.execute(
+        text("UPDATE users SET ui_theme = :theme WHERE id = :id"),
+        {"theme": theme, "id": user["id"]}
+    )
+    await db.commit()
+    return {"ui_theme": theme}

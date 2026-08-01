@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
     is_superadmin TINYINT(1)    NOT NULL DEFAULT 0, -- solo el admin primario; otros admins no pueden desactivarlo ni resetear su contraseña
     customer_id   INT UNSIGNED  NULL,          -- NULL si role=admin
     is_active     TINYINT(1)    NOT NULL DEFAULT 1,
+    -- Preferencia visual del panel — 'bronce' (default), 'papel', 'fosforo'
+    -- o 'vidrio'. Por cuenta (admin o cliente), solo estética.
+    ui_theme      VARCHAR(20)   NOT NULL DEFAULT 'bronce',
     created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_role (role),

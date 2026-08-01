@@ -83,7 +83,86 @@ body {
   font-size: 14px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  transition: background-color .15s, color .15s;
 }
+
+/* ── Temas alternativos ──────────────────────────────────────────────────
+   El usuario elige uno en Apariencia (sidebar) y se guarda por cuenta
+   (customers.ui_theme / users.ui_theme). Se aplica seteando
+   document.documentElement.dataset.theme — ver components/ThemeProvider.tsx.
+   "Bronce" (default, sin atributo) vive en el @theme de arriba, no se repite
+   acá. Los otros 3 SOLO redefinen los tokens de color — la tipografía
+   (Public Sans/Martian Mono/Big Shoulders) es la firma de marca y NO cambia
+   entre temas, es lo que hace que sigan siendo "la misma familia" al cambiar.
+   Regla dura de PATTERN_VOXI_DESIGN.md ("nunca azul/cian saturado como
+   acento") se mantiene en los 3: ninguno usa azul como color de acción. */
+
+/* Papel — claro, cálido, como una hoja de manual técnico impreso. */
+:root[data-theme='papel'] {
+  --color-surface:  #f3f0e8;
+  --color-card:     #fbf9f4;
+  --color-card-2:   #ece7da;
+  --color-border:   #ddd5bf;
+  --color-border-2: #c7bc9d;
+  --color-muted:    #7d715a;
+  --color-text:     #2a2318;
+  --color-text-2:   #564d3b;
+  --color-info-100: #dbe4ee;
+  --color-info-900: #dbe4ee;
+}
+
+/* Fósforo — terminal de diagnóstico, verde sobre negro. El acento de marca
+   (brand-*) SÍ cambia acá, a propósito: es un tema "modo instrumento",
+   monocromo por diseño — no es la identidad pública de marca (esa sigue
+   siendo ámbar en Bronce/Papel/Vidrio y en todo el marketing). */
+:root[data-theme='fosforo'] {
+  --color-surface:  #050a06;
+  --color-card:     #0a130b;
+  --color-card-2:   #101d12;
+  --color-border:   #1c3320;
+  --color-border-2: #2a4a2f;
+  --color-muted:    #5b9a68;
+  --color-text:     #c8f5cf;
+  --color-text-2:   #8fd39c;
+  --color-brand-50:  #eafff0;
+  --color-brand-100: #c2f5cf;
+  --color-brand-300: #7be396;
+  --color-brand-400: #4ade80;
+  --color-brand-500: #33cc66;
+  --color-brand-600: #22a352;
+  --color-brand-700: #17803f;
+  --color-brand-900: #0a3d1c;
+  --color-info-100: #163325;
+  --color-info-300: #5fae8a;
+  --color-info-400: #4a9973;
+  --color-info-900: #0e2419;
+}
+
+/* Vidrio — claro, frío, minimalista. Gris neutro real (no cálido, a
+   diferencia de Papel) + superficies traslúcidas, en vez del look "SaaS
+   genérico" de blanco puro + azul. Tipografía del sistema en vez de
+   webfont descargada — la fuente real que ya usa el propio dispositivo. */
+:root[data-theme='vidrio'] {
+  --color-surface:  #f5f5f7;
+  --color-card:     rgba(255,255,255,0.72);
+  --color-card-2:   rgba(255,255,255,0.55);
+  --color-border:   rgba(0,0,0,0.08);
+  --color-border-2: rgba(0,0,0,0.14);
+  --color-muted:    #6e6e73;
+  --color-text:     #1d1d1f;
+  --color-text-2:   #48484a;
+  --color-info-100: #e4e7ee;
+  --color-info-900: #e4e7ee;
+}
+:root[data-theme='vidrio'] body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif; }
+:root[data-theme='vidrio'] .nameplate { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif; letter-spacing: -0.01em; }
+:root[data-theme='vidrio'] .riveted,
+:root[data-theme='vidrio'] [class*="bg-card"] {
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+:root[data-theme='vidrio'] .riveted::before,
+:root[data-theme='vidrio'] .riveted::after { display: none; } /* los remaches no van con vidrio esmerilado */
 
 /* Scrollbar */
 ::-webkit-scrollbar       { width: 5px; height: 5px; }

@@ -28,6 +28,7 @@ export default function LoginPage() {
         name: data.name, role: data.role, customer_id: data.customer_id,
         is_reseller: data.is_reseller,
         permissions: data.permissions,
+        ui_theme: data.ui_theme,
       });
       router.push(data.role === "admin" ? "/dashboard" : "/my/overview");
     } catch {

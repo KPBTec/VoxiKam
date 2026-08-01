@@ -534,6 +534,13 @@ if [[ "$MODE" == "update" ]]; then
     hdr "Migraciones DB"
     $_UMC "$_UDB_NAME" < "$INSTALL_DIR/db/schema.sql" >>"$LOG_FILE" 2>&1
 
+    # users.ui_theme — instalaciones existentes no tienen la columna nueva
+    # (schema.sql de arriba ya la define para instalaciones frescas, pero
+    # CREATE TABLE IF NOT EXISTS no altera una tabla que ya existe).
+    $_UMC "$_UDB_NAME" -e "
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS ui_theme VARCHAR(20) NOT NULL DEFAULT 'bronce';
+    " >>"$LOG_FILE" 2>&1 && ok "users.ui_theme verificado" || warn "No se pudo verificar users.ui_theme — revisar $LOG_FILE"
+
     # Backfill único de prefix_matched para TODO el histórico anterior al
     # trigger (recién agregado en schema.sql arriba) — el trigger solo cubre
     # inserts nuevos desde que existe; esto completa lo viejo una sola vez.
@@ -1470,6 +1477,11 @@ if [[ "$MODE" == "upgrade" ]]; then
     # con éxito — depende de una columna que otra migración de este mismo
     # bloque ya borró). Si algún día hace falta reconstruir qué hacía cada
     # ALTER retirado acá, está en el historial de git de este archivo.
+    # users.ui_theme — instalaciones existentes no tienen la columna nueva.
+    $MC "$DB_NAME" -e "
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS ui_theme VARCHAR(20) NOT NULL DEFAULT 'bronce';
+    " >>"$LOG_FILE" 2>&1 && ok "users.ui_theme verificado" || warn "No se pudo verificar users.ui_theme — revisar $LOG_FILE"
+
     $MC "$DB_NAME" -e "
     INSERT IGNORE INTO profile_permissions (profile_id, resource_key, can_view)
       SELECT id, 'calls',             show_calls             FROM customer_profiles

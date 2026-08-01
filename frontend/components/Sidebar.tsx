@@ -11,6 +11,7 @@ import {
   Network, Ban, ScrollText, RefreshCcw, ShieldCheck, Trash2,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { ThemePicker } from "@/components/ThemePicker";
 
 type NavItem = { href: string; label: string; icon: React.ElementType };
 
@@ -266,6 +267,10 @@ function SidebarContent({ role, onNavigate }: { role: "admin" | "client"; onNavi
           </>
         )}
       </nav>
+
+      <div className="border-t border-[var(--color-border)] pt-2.5 flex-shrink-0">
+        <ThemePicker />
+      </div>
 
       {/* Footer */}
       <div className="px-5 py-4 border-t border-[var(--color-border)] flex-shrink-0">

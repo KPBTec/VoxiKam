@@ -9,6 +9,15 @@
 <meta property="og:type" content="website">
 <title>VoxiKam — SIP Class 4 Platform</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='14' fill='%2316110c'/><path d='M55 8 L22 56 L44 56 L38 92 L78 40 L54 40 Z' fill='%23dd8b3d'/></svg>">
+<script>
+// Anti-flash: aplica el tema guardado ANTES del primer paint.
+(function () {
+  try {
+    var t = localStorage.getItem('voxikam_theme');
+    if (t && t !== 'bronce') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders:wght@600;700;800;900&family=Public+Sans:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;600&display=swap');
 
@@ -35,6 +44,36 @@
   --body-font: 'Public Sans', -apple-system, sans-serif;
   --mono: 'Martian Mono', ui-monospace, monospace;
 }
+
+/* Temas alternativos — mismos 4 que el panel real (ver frontend/app/globals.css
+   y PATTERN_VOXI_DESIGN.md), acá con localStorage en vez de cuenta (esta
+   página no tiene login). "Bronce" = default, sin atributo. */
+:root[data-theme='papel'] {
+  --ink: #f3f0e8; --surface: #fbf9f4; --surface-2: #ece7da; --surface-3: #e2dcc8;
+  --line: #ddd5bf; --line-2: #c7bc9d; --text: #2a2318; --muted: #7d715a;
+}
+:root[data-theme='fosforo'] {
+  --ink: #050a06; --surface: #0a130b; --surface-2: #101d12; --surface-3: #16281a;
+  --line: #1c3320; --line-2: #2a4a2f; --text: #c8f5cf; --muted: #5b9a68;
+  --signal: #33cc66; --signal-dim: #22a352; --signal-100: #c2f5cf; --signal-glow: #4ade80;
+}
+:root[data-theme='vidrio'] {
+  --ink: #f5f5f7; --surface: rgba(255,255,255,0.72); --surface-2: rgba(255,255,255,0.55); --surface-3: rgba(255,255,255,0.4);
+  --line: rgba(0,0,0,0.08); --line-2: rgba(0,0,0,0.14); --text: #1d1d1f; --muted: #6e6e73;
+  --body-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+}
+:root[data-theme='vidrio'] .riveted { backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); }
+:root[data-theme='vidrio'] .riveted .rivet-tl, :root[data-theme='vidrio'] .riveted .rivet-tr,
+:root[data-theme='vidrio'] .riveted .rivet-bl, :root[data-theme='vidrio'] .riveted .rivet-br { display: none; }
+
+/* Selector de tema — 4 swatches en el nav */
+.theme-picker { display: flex; gap: 6px; align-items: center; margin-left: 4px; }
+.theme-picker button {
+  width: 16px; height: 16px; border-radius: 50%; cursor: pointer; padding: 0;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.theme-picker button[data-active="true"] { box-shadow: 0 0 0 2px var(--text); }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -447,6 +486,7 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
     <a href="#releases">Releases</a>
     <a href="#install">Instalar</a>
     <a href="manual/">Manual</a>
+    <div class="theme-picker" id="theme-picker"></div>
     <a href="https://t.me/KPBTec" class="nav-cta" target="_blank">
       <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
       Soporte
@@ -1883,5 +1923,38 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
   <div class="footer-copy">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · Todos los derechos reservados.</div>
 </footer>
 
+<script>
+(function () {
+  var THEMES = [
+    { id: 'bronce',  label: 'Bronce',  swatch: '#dd8b3d' },
+    { id: 'papel',   label: 'Papel',   swatch: '#c7bc9d' },
+    { id: 'fosforo', label: 'Fósforo', swatch: '#33cc66' },
+    { id: 'vidrio',  label: 'Vidrio',  swatch: '#a8a8ad' },
+  ];
+  var picker = document.getElementById('theme-picker');
+  if (!picker) return;
+  var current = localStorage.getItem('voxikam_theme') || 'bronce';
+  function render() {
+    picker.innerHTML = '';
+    THEMES.forEach(function (t) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.title = t.label;
+      b.setAttribute('aria-label', 'Tema ' + t.label);
+      b.style.background = t.swatch;
+      b.dataset.active = String(t.id === current);
+      b.addEventListener('click', function () {
+        current = t.id;
+        localStorage.setItem('voxikam_theme', current);
+        if (current === 'bronce') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', current);
+        render();
+      });
+      picker.appendChild(b);
+    });
+  }
+  render();
+})();
+</script>
 </body>
 </html>

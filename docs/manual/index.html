@@ -6,7 +6,15 @@
 <meta name="description" content="Manual de uso de VoxiKam — guía paso a paso con capturas reales del panel admin, portal cliente y portal reseller.">
 <title>Manual de uso — VoxiKam</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2316110c'/><text y='.72em' x='.14em' font-size='60'>⚡</text></svg>">
-<link rel="stylesheet" href="custom.css?v=3">
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('voxikam_theme');
+    if (t && t !== 'bronce') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="custom.css?v=4">
 </head>
 <body>
 <div id="app">Cargando el manual…</div>
@@ -61,6 +69,44 @@ window.$docsify = {
         // Reafirmar varias veces durante ~3s hasta que todo se estabilice.
         var ticks = [50, 200, 500, 900, 1400, 2000, 2700, 3500];
         ticks.forEach(function (ms) { setTimeout(fixActiveLink, ms); });
+      });
+    },
+    // Selector de tema — 4 swatches arriba del buscador de la sidebar.
+    // mounted corre una sola vez (no en cada navegación), por eso el picker
+    // no se re-crea/duplica al cambiar de página.
+    function (hook) {
+      hook.mounted(function () {
+        var THEMES = [
+          { id: 'bronce',  label: 'Bronce',  swatch: '#dd8b3d' },
+          { id: 'papel',   label: 'Papel',   swatch: '#c7bc9d' },
+          { id: 'fosforo', label: 'Fósforo', swatch: '#33cc66' },
+          { id: 'vidrio',  label: 'Vidrio',  swatch: '#a8a8ad' },
+        ];
+        var search = document.querySelector('.sidebar .search');
+        if (!search) return;
+        var picker = document.createElement('div');
+        picker.className = 'theme-picker';
+        var current = localStorage.getItem('voxikam_theme') || 'bronce';
+        function render() {
+          picker.innerHTML = '';
+          THEMES.forEach(function (t) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.title = t.label;
+            b.style.background = t.swatch;
+            b.dataset.active = String(t.id === current);
+            b.addEventListener('click', function () {
+              current = t.id;
+              localStorage.setItem('voxikam_theme', current);
+              if (current === 'bronce') document.documentElement.removeAttribute('data-theme');
+              else document.documentElement.setAttribute('data-theme', current);
+              render();
+            });
+            picker.appendChild(b);
+          });
+        }
+        render();
+        search.parentNode.insertBefore(picker, search);
       });
     },
   ],

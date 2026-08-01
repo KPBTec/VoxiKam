@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.53.0 — 2026-07-30
+
+- Nuevo: 4 temas visuales elegibles desde el panel — Bronce (oscuro, default), Papel (claro), Fósforo (terminal verde) y Vidrio (claro, minimalista). Se elige desde el selector en la barra lateral y se guarda por cuenta, no por navegador — se mantiene igual en cualquier dispositivo donde inicies sesión.
+
+---
+
 ## v2.52.5 — 2026-07-30
 
 - Corregido: al crear un cliente nuevo con tipo de facturación "postpago", quedaba guardado como "prepago" hasta que se editaba manualmente. Ahora se guarda correctamente desde la creación.
