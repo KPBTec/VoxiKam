@@ -946,6 +946,24 @@ CREATE TABLE IF NOT EXISTS settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------------------------------
+-- MIGRACIONES DE SCHEMA — desde v2.53.0 (ver deploy.sh::run_pending_migrations())
+-- -----------------------------------------------------------------------------
+-- Reemplaza el patrón viejo de "ALTER TABLE ... ADD COLUMN IF NOT EXISTS"
+-- repetido a mano en las ramas --update y --upgrade de deploy.sh (llevaba a
+-- podas manuales periódicas del propio deploy.sh contra dumps reales, ver
+-- CHANGELOG v2.52.4 y v2.52.3). Cada versión con cambios de schema se
+-- registra una sola vez acá — un deploy futuro consulta esta tabla y corre
+-- SOLO lo que falte, sin volver a chequear columna por columna cada vez.
+-- Bootstrap: en cualquier instalación existente que llega a v2.53.0 (todo el
+-- parque real a la fecha de este cambio), se asume el schema ya al día hasta
+-- acá — se siembra la fila '2.53.0' sin correr SQL, ya que todos los ALTER
+-- necesarios para llegar hasta acá ya corrieron con el patrón viejo.
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version     VARCHAR(20) NOT NULL PRIMARY KEY,
+    applied_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------------------------------
 -- AUDITORÍA DE CONFIG — selectiva, no un log de todo (ver backend/audit.py)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS settings_history (

@@ -160,6 +160,67 @@ _drop_db() {
             FLUSH PRIVILEGES;" 2>/dev/null
 }
 
+# =============================================================================
+# MIGRACIONES DE SCHEMA VERSIONADAS — desde v2.53.0
+# =============================================================================
+# Reemplaza el patrón viejo de agregar un ALTER TABLE ... ADD COLUMN IF NOT
+# EXISTS suelto en las ramas --update Y --upgrade cada vez que se agrega una
+# columna — eso llevó a podar deploy.sh a mano contra dumps reales cada tanto
+# (ver CHANGELOG v2.52.3/v2.52.4). La tabla schema_migrations (db/schema.sql)
+# trackea qué versión ya corrió — un deploy futuro solo ejecuta lo pendiente,
+# nunca vuelve a chequear algo ya aplicado.
+#
+# CÓMO AGREGAR UNA MIGRACIÓN NUEVA (a partir de v2.53.0):
+#   1. Agregar la versión al array MIGRATIONS de abajo, AL FINAL, en orden.
+#   2. Agregar un case a migration_sql() con el ALTER/CREATE correspondiente.
+#   3. NO tocar código viejo de --update/--upgrade — ese ya corrió en todo el
+#      parque real, se deja intacto (ver "Bootstrap" abajo).
+#
+# Las migraciones VIEJAS (show_*, connect_charge, ui_theme, etc. — todo lo
+# que ya existía en deploy.sh antes de este mecanismo) NO se migran a este
+# sistema — ya están aplicadas y son idempotentes, tocarlas no da ningún
+# beneficio y sí agrega riesgo. Este mecanismo es solo para lo nuevo.
+MIGRATIONS=(
+    # "2.54.0"
+)
+
+migration_sql() {
+    case "$1" in
+        # "2.54.0") echo "ALTER TABLE ... ;" ;;
+        *) return 1 ;;
+    esac
+}
+
+# run_pending_migrations <mysql_cmd> <db_name>
+# <mysql_cmd> es el comando mysql completo con credenciales ya resueltas
+# (ej. "$_UMC"/"$MC" según la rama que llame) — la función no asume ninguna
+# variable global de conexión específica, así sirve desde --update y
+# --upgrade por igual sin duplicar lógica de conexión.
+run_pending_migrations() {
+    local mc="$1" db="$2"
+    # Bootstrap — primera vez que este mecanismo corre en una instalación
+    # existente: siembra '2.53.0' sin ejecutar SQL (todo lo necesario para
+    # llegar hasta acá ya corrió con el patrón ALTER...IF NOT EXISTS viejo,
+    # que sigue intacto más arriba en este mismo archivo).
+    local baseline
+    baseline=$($mc "$db" -N -e "SELECT COUNT(*) FROM schema_migrations WHERE version='2.53.0'" 2>/dev/null || echo 0)
+    if [[ "$baseline" == "0" ]]; then
+        $mc "$db" -e "INSERT IGNORE INTO schema_migrations (version) VALUES ('2.53.0')" 2>/dev/null || true
+    fi
+    local v sql applied
+    for v in "${MIGRATIONS[@]}"; do
+        applied=$($mc "$db" -N -e "SELECT COUNT(*) FROM schema_migrations WHERE version='$v'" 2>/dev/null || echo 0)
+        [[ "$applied" != "0" ]] && continue
+        sql=$(migration_sql "$v") || continue
+        if $mc "$db" -e "$sql" >>"$LOG_FILE" 2>&1; then
+            $mc "$db" -e "INSERT INTO schema_migrations (version) VALUES ('$v')" 2>/dev/null
+            ok "Migración de schema $v aplicada"
+        else
+            warn "Migración de schema $v falló — revisar $LOG_FILE (no se marcó como aplicada, se reintentará en el próximo deploy)"
+        fi
+    done
+}
+
 # ── Migración automática desde una instalación previa de KaplaBilling ───────
 # VoxiKam es la evolución de KaplaBilling (mismo proyecto, nombre nuevo) — si
 # se detecta una instalación vieja y todavía no hay marcador de VoxiKam, se
@@ -540,6 +601,10 @@ if [[ "$MODE" == "update" ]]; then
     $_UMC "$_UDB_NAME" -e "
     ALTER TABLE users ADD COLUMN IF NOT EXISTS ui_theme VARCHAR(20) NOT NULL DEFAULT 'bronce';
     " >>"$LOG_FILE" 2>&1 && ok "users.ui_theme verificado" || warn "No se pudo verificar users.ui_theme — revisar $LOG_FILE"
+
+    # Migraciones versionadas (desde v2.53.0) — ver run_pending_migrations()
+    # más arriba en este archivo. Nada que agregar acá a mano nunca más.
+    run_pending_migrations "$_UMC" "$_UDB_NAME"
 
     # Backfill único de prefix_matched para TODO el histórico anterior al
     # trigger (recién agregado en schema.sql arriba) — el trigger solo cubre
@@ -1481,6 +1546,10 @@ if [[ "$MODE" == "upgrade" ]]; then
     $MC "$DB_NAME" -e "
     ALTER TABLE users ADD COLUMN IF NOT EXISTS ui_theme VARCHAR(20) NOT NULL DEFAULT 'bronce';
     " >>"$LOG_FILE" 2>&1 && ok "users.ui_theme verificado" || warn "No se pudo verificar users.ui_theme — revisar $LOG_FILE"
+
+    # Migraciones versionadas (desde v2.53.0) — ver run_pending_migrations()
+    # cerca del inicio de este archivo. Nada que agregar acá a mano nunca más.
+    run_pending_migrations "$MC" "$DB_NAME"
 
     $MC "$DB_NAME" -e "
     INSERT IGNORE INTO profile_permissions (profile_id, resource_key, can_view)
