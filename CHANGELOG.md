@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.53.2 — 2026-08-01
+
+- Mejoras internas al proceso de actualización (`deploy.sh` más liviano), sin cambios visibles para el usuario.
+
+---
+
 ## v2.53.1 — 2026-07-30
 
 - Mejoras internas al proceso de actualización (`deploy.sh`), sin cambios visibles para el usuario.

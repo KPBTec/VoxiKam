@@ -595,13 +595,6 @@ if [[ "$MODE" == "update" ]]; then
     hdr "Migraciones DB"
     $_UMC "$_UDB_NAME" < "$INSTALL_DIR/db/schema.sql" >>"$LOG_FILE" 2>&1
 
-    # users.ui_theme — instalaciones existentes no tienen la columna nueva
-    # (schema.sql de arriba ya la define para instalaciones frescas, pero
-    # CREATE TABLE IF NOT EXISTS no altera una tabla que ya existe).
-    $_UMC "$_UDB_NAME" -e "
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS ui_theme VARCHAR(20) NOT NULL DEFAULT 'bronce';
-    " >>"$LOG_FILE" 2>&1 && ok "users.ui_theme verificado" || warn "No se pudo verificar users.ui_theme — revisar $LOG_FILE"
-
     # Migraciones versionadas (desde v2.53.0) — ver run_pending_migrations()
     # más arriba en este archivo. Nada que agregar acá a mano nunca más.
     run_pending_migrations "$_UMC" "$_UDB_NAME"
@@ -626,62 +619,14 @@ if [[ "$MODE" == "update" ]]; then
     fi
 
     # ── Migraciones DB (rama --update) ──────────────────────────────────────
-    # Podado 2026-07-27: mismo squash que la rama --upgrade (ver comentario
-    # ahí para la metodología completa — verificado contra un dump real de
-    # producción con 500k CDRs reales, 0 diferencia estructural en todo lo
-    # que se sacó de acá). Se mantiene la única migración que sigue haciendo
-    # algo real (show_*) y todo lo que es mecanismo permanente, no migración
-    # vieja (backfill de resumen, bloqueo de saldo, rename de connect_charge).
-    $_UMC "$_UDB_NAME" -e "
-    INSERT IGNORE INTO profile_permissions (profile_id, resource_key, can_view)
-      SELECT id, 'calls',             show_calls             FROM customer_profiles
-      UNION ALL SELECT id, 'quality',            show_quality            FROM customer_profiles
-      UNION ALL SELECT id, 'reports',            show_reports            FROM customer_profiles
-      UNION ALL SELECT id, 'invoices',           show_invoices           FROM customer_profiles
-      UNION ALL SELECT id, 'trunk_guide',        show_trunk_guide        FROM customer_profiles
-      UNION ALL SELECT id, 'api_access',         show_api_access         FROM customer_profiles
-      UNION ALL SELECT id, 'reseller_customers', show_reseller_customers FROM customer_profiles
-      UNION ALL SELECT id, 'reseller_rates',     show_reseller_rates     FROM customer_profiles
-      UNION ALL SELECT id, 'reseller_carriers',  show_reseller_carriers  FROM customer_profiles
-      UNION ALL SELECT id, 'reseller_dashboard', show_reseller_dashboard FROM customer_profiles;
-    " 2>/dev/null || true
-    $_UMC "$_UDB_NAME" -e "
-    INSERT IGNORE INTO profile_permissions (customer_id, resource_key, can_view)
-      SELECT id, 'calls',             show_calls             FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'quality',            show_quality            FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reports',            show_reports            FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'invoices',           show_invoices           FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'trunk_guide',        show_trunk_guide        FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'api_access',         show_api_access         FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reseller_customers', show_reseller_customers FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reseller_rates',     show_reseller_rates     FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reseller_carriers',  show_reseller_carriers  FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reseller_dashboard', show_reseller_dashboard FROM customers WHERE profile_id IS NULL;
-    " 2>/dev/null || true
-    $_UMC "$_UDB_NAME" -e "
-    ALTER TABLE customer_profiles
-      DROP COLUMN IF EXISTS show_calls,
-      DROP COLUMN IF EXISTS show_quality,
-      DROP COLUMN IF EXISTS show_reports,
-      DROP COLUMN IF EXISTS show_invoices,
-      DROP COLUMN IF EXISTS show_trunk_guide,
-      DROP COLUMN IF EXISTS show_api_access,
-      DROP COLUMN IF EXISTS show_reseller_customers,
-      DROP COLUMN IF EXISTS show_reseller_rates,
-      DROP COLUMN IF EXISTS show_reseller_carriers,
-      DROP COLUMN IF EXISTS show_reseller_dashboard;
-    ALTER TABLE customers
-      DROP COLUMN IF EXISTS show_calls,
-      DROP COLUMN IF EXISTS show_quality,
-      DROP COLUMN IF EXISTS show_reports,
-      DROP COLUMN IF EXISTS show_invoices,
-      DROP COLUMN IF EXISTS show_trunk_guide,
-      DROP COLUMN IF EXISTS show_api_access,
-      DROP COLUMN IF EXISTS show_reseller_customers,
-      DROP COLUMN IF EXISTS show_reseller_rates,
-      DROP COLUMN IF EXISTS show_reseller_carriers,
-      DROP COLUMN IF EXISTS show_reseller_dashboard;
-    " 2>/dev/null || true
+    # Podado 2026-08-01: con schema_migrations (run_pending_migrations, más
+    # arriba) se estableció v2.53.0 como línea base — todo el parque real ya
+    # está confirmado en esa versión o posterior. Lo que vivía acá (migración
+    # show_* → profile_permissions, y el rename connect_charge→connectcharge
+    # más abajo) ya corrió para siempre en cualquier instalación que llegó
+    # hasta 2.53.0 — de acá en más son operaciones sobre columnas que
+    # schema.sql ya no define, así que quedaron sin destino. Si algún día
+    # hace falta reconstruirlas, están en el historial de git de este archivo.
     ok "Migraciones aplicadas"
 
     # Backfill de cdr_summary_day_area — acotado a partir del último día ya
@@ -715,16 +660,6 @@ if [[ "$MODE" == "update" ]]; then
     hdr "Bloqueo de saldo (prepago)"
     "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/scripts/sync_balance_block.py" --apply >>"$LOG_FILE" 2>&1 || true
     ok "sync_balance_block.py --apply corrido — ver $LOG_FILE para el detalle de a quién afectó"
-
-    # carrier_rates.connect_charge → connectcharge (unifica con rates.connectcharge).
-    # RENAME COLUMN no es idempotente — por eso se chequea antes en vez de
-    # meterlo en el bloque de arriba junto con los ADD COLUMN IF NOT EXISTS.
-    _cc_exists=$($_UMC "$_UDB_NAME" -N -e "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='carrier_rates' AND COLUMN_NAME='connect_charge'" 2>/dev/null)
-    if [[ "$_cc_exists" == "1" ]]; then
-        $_UMC "$_UDB_NAME" -e "ALTER TABLE carrier_rates RENAME COLUMN connect_charge TO connectcharge;" >>"$LOG_FILE" 2>&1 \
-            && ok "carrier_rates.connect_charge renombrado → connectcharge" \
-            || warn "No se pudo renombrar carrier_rates.connect_charge — revisar $LOG_FILE"
-    fi
 
     # ── ClickHouse (sip_traces) — solo si ya se aprovisionó en un --upgrade
     # previo (instala el motor, crea el usuario/DB). Claves con prefijo ch_
@@ -1528,79 +1463,18 @@ ON DUPLICATE KEY UPDATE value = VALUES(value), description = VALUES(description)
 # Migraciones de schema para upgrade (columnas nuevas que IF NOT EXISTS no cubre)
 if [[ "$MODE" == "upgrade" ]]; then
     # ── Migraciones DB (rama --upgrade) ─────────────────────────────────────
-    # Podado 2026-07-27: de ~570 líneas de ALTER/CREATE TABLE/scripts
-    # acumulados desde el origen del proyecto, solo queda lo que sigue
-    # haciendo algo real. Verificado empíricamente, no por inspección: se
-    # cargó un dump real de producción (schema completo + 500k CDRs reales,
-    # ver CHANGELOG v2.52.4) en MariaDB, se corrió TODO el bloque viejo, y se
-    # comparó la estructura antes/después con mysqldump --no-data. Único
-    # cambio real: las columnas show_* (ver abajo). Todo lo demás —45+
-    # ALTER/CREATE TABLE IF NOT EXISTS y 4 scripts migrate_*.py— dio 0
-    # diferencia estructural: ya está cubierto por schema.sql (que se aplica
-    # ANTES, más arriba) o ya se aplicó para siempre en el pasado
-    # (migrate_carrier_groups.py incluso quedó IMPOSIBLE de volver a correr
-    # con éxito — depende de una columna que otra migración de este mismo
-    # bloque ya borró). Si algún día hace falta reconstruir qué hacía cada
-    # ALTER retirado acá, está en el historial de git de este archivo.
-    # users.ui_theme — instalaciones existentes no tienen la columna nueva.
-    $MC "$DB_NAME" -e "
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS ui_theme VARCHAR(20) NOT NULL DEFAULT 'bronce';
-    " >>"$LOG_FILE" 2>&1 && ok "users.ui_theme verificado" || warn "No se pudo verificar users.ui_theme — revisar $LOG_FILE"
-
-    # Migraciones versionadas (desde v2.53.0) — ver run_pending_migrations()
-    # cerca del inicio de este archivo. Nada que agregar acá a mano nunca más.
+    # Podado 2026-08-01: con schema_migrations (run_pending_migrations, más
+    # arriba en este archivo) se estableció v2.53.0 como línea base — todo el
+    # parque real ya está confirmado en esa versión o posterior. Lo que vivía
+    # acá (migración show_* → profile_permissions, ui_theme, y el rename
+    # connect_charge→connectcharge) ya corrió para siempre en cualquier
+    # instalación que llegó hasta 2.53.0 — son operaciones sobre columnas que
+    # schema.sql ya no define, quedaron sin destino. Antes de esto ya se
+    # había podado una vez (2026-07-27, ver historial de git) verificando
+    # contra un dump real de producción — este es el mismo criterio, un paso
+    # más adelante ahora que existe un mecanismo de versión real en vez de
+    # tener que re-verificar a mano cada vez.
     run_pending_migrations "$MC" "$DB_NAME"
-
-    $MC "$DB_NAME" -e "
-    INSERT IGNORE INTO profile_permissions (profile_id, resource_key, can_view)
-      SELECT id, 'calls',             show_calls             FROM customer_profiles
-      UNION ALL SELECT id, 'quality',            show_quality            FROM customer_profiles
-      UNION ALL SELECT id, 'reports',            show_reports            FROM customer_profiles
-      UNION ALL SELECT id, 'invoices',           show_invoices           FROM customer_profiles
-      UNION ALL SELECT id, 'trunk_guide',        show_trunk_guide        FROM customer_profiles
-      UNION ALL SELECT id, 'api_access',         show_api_access         FROM customer_profiles
-      UNION ALL SELECT id, 'reseller_customers', show_reseller_customers FROM customer_profiles
-      UNION ALL SELECT id, 'reseller_rates',     show_reseller_rates     FROM customer_profiles
-      UNION ALL SELECT id, 'reseller_carriers',  show_reseller_carriers  FROM customer_profiles
-      UNION ALL SELECT id, 'reseller_dashboard', show_reseller_dashboard FROM customer_profiles;
-    " 2>/dev/null || true
-    $MC "$DB_NAME" -e "
-    INSERT IGNORE INTO profile_permissions (customer_id, resource_key, can_view)
-      SELECT id, 'calls',             show_calls             FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'quality',            show_quality            FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reports',            show_reports            FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'invoices',           show_invoices           FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'trunk_guide',        show_trunk_guide        FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'api_access',         show_api_access         FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reseller_customers', show_reseller_customers FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reseller_rates',     show_reseller_rates     FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reseller_carriers',  show_reseller_carriers  FROM customers WHERE profile_id IS NULL
-      UNION ALL SELECT id, 'reseller_dashboard', show_reseller_dashboard FROM customers WHERE profile_id IS NULL;
-    " 2>/dev/null || true
-    $MC "$DB_NAME" -e "
-    ALTER TABLE customer_profiles
-      DROP COLUMN IF EXISTS show_calls,
-      DROP COLUMN IF EXISTS show_quality,
-      DROP COLUMN IF EXISTS show_reports,
-      DROP COLUMN IF EXISTS show_invoices,
-      DROP COLUMN IF EXISTS show_trunk_guide,
-      DROP COLUMN IF EXISTS show_api_access,
-      DROP COLUMN IF EXISTS show_reseller_customers,
-      DROP COLUMN IF EXISTS show_reseller_rates,
-      DROP COLUMN IF EXISTS show_reseller_carriers,
-      DROP COLUMN IF EXISTS show_reseller_dashboard;
-    ALTER TABLE customers
-      DROP COLUMN IF EXISTS show_calls,
-      DROP COLUMN IF EXISTS show_quality,
-      DROP COLUMN IF EXISTS show_reports,
-      DROP COLUMN IF EXISTS show_invoices,
-      DROP COLUMN IF EXISTS show_trunk_guide,
-      DROP COLUMN IF EXISTS show_api_access,
-      DROP COLUMN IF EXISTS show_reseller_customers,
-      DROP COLUMN IF EXISTS show_reseller_rates,
-      DROP COLUMN IF EXISTS show_reseller_carriers,
-      DROP COLUMN IF EXISTS show_reseller_dashboard;
-    " 2>/dev/null || true
 
     # Backfill de cdr_summary_day_area — acotado a partir del último día ya
     # cubierto en la DB, con tope de 31 días. Mecanismo permanente (no
@@ -1628,14 +1502,6 @@ if [[ "$MODE" == "upgrade" ]]; then
     # Bloqueo de saldo (prepago) — mecanismo permanente, prime inmediato en
     # deploy (el cron de cada minuto lo toma de todos modos).
     "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/scripts/sync_balance_block.py" --apply 2>/dev/null || true
-
-    # carrier_rates.connect_charge → connectcharge (unifica con rates.connectcharge)
-    _cc_exists=$($MC "$DB_NAME" -N -e "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='carrier_rates' AND COLUMN_NAME='connect_charge'" 2>/dev/null)
-    if [[ "$_cc_exists" == "1" ]]; then
-        $MC "$DB_NAME" -e "ALTER TABLE carrier_rates RENAME COLUMN connect_charge TO connectcharge;" 2>/dev/null \
-            && ok "carrier_rates.connect_charge renombrado → connectcharge" \
-            || warn "No se pudo renombrar carrier_rates.connect_charge"
-    fi
 
     ok "Schema aplicado — migraciones de columnas aplicadas"
     ok "platform_version → v${INSTALLER_VERSION}"
