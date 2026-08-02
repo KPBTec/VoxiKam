@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.54.2 — 2026-08-02
+
+- Mejora en la web pública (voxikam.kpbtec.com): el selector de tema del menú ahora es un desplegable con los 4 temas listados, no círculos de color sueltos.
+
+---
+
 ## v2.54.1 — 2026-08-02
 
 - Simplificado: Reportes → Consumos ya no repite las vistas por país/grupo/prefijo — esas viven en Reportes → Por destino, con más detalle (calidad de llamada y país incluidos).
