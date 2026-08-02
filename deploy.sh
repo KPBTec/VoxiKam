@@ -221,6 +221,303 @@ run_pending_migrations() {
     done
 }
 
+# =============================================================================
+# PASOS COMPARTIDOS entre --update y --upgrade
+# =============================================================================
+# Podado 2026-08-02: hasta acá, cada uno de estos pasos vivía escrito DOS
+# veces (uno en la rama rápida --update, otro en el pipeline completo que usa
+# --upgrade/fresh) — mismo resultado, texto copiado y evolucionado por
+# separado. Costo real, no solo estético: el fix del módulo xt_RTPENGINE
+# (modprobe antes de arrancar, ver setup_rtpengine_systemd_override) se
+# agregó en algún momento a la copia de --upgrade y NUNCA se backporteó a la
+# de --update — cualquiera que solo usara --update se perdía ese fix sin
+# enterarse. Con una sola función por paso, eso ya no puede pasar.
+
+# setup_rtpengine_systemd_override — corrige el drop-in que apuntaba a la
+# unidad systemd equivocada (rtpengine.service.d en vez de
+# rtpengine-daemon.service.d, real desde v2.0), quita -E del ExecStart
+# (si no, nunca loguea a syslog pase lo que pase en rtpengine.conf), y
+# precarga el módulo kernel xt_RTPENGINE (si no, en un boot en frío
+# RTPEngine cae a modo userspace-only sin avisar más que un error suelto).
+setup_rtpengine_systemd_override() {
+    if [[ -f /lib/systemd/system/rtpengine-daemon.service ]]; then
+        mkdir -p /etc/systemd/system/rtpengine-daemon.service.d
+        cat > /etc/systemd/system/rtpengine-daemon.service.d/voxikam-limits.conf << 'EOF'
+[Service]
+# LimitNOFILE: NO se fija acá — el paquete ya trae 150000 (más alto que
+# nuestro estándar de 65536 para otros servicios); fijarlo más bajo sería
+# una regresión real, no una mejora.
+LimitMEMLOCK=infinity
+LimitCORE=infinity
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_NICE
+# "FAILED TO DELETE KERNEL TABLE 0 (Permission denied), KERNEL FORWARDING
+# DISABLED" en cada reboot en frío (visto en vd1sbc2) — el módulo kernel
+# xt_RTPENGINE está compilado vía DKMS (confirmado en v2.24.14) pero nada lo
+# cargaba automáticamente al arrancar, así que en un boot recién hecho no
+# está listo cuando RTPEngine intenta usarlo (cae a modo userspace-only sin
+# avisar más que ese error). El ExecStartPre empaquetado
+# (rtpengine-iptables-setup) queda igual, se agrega el modprobe ANTES —
+# `-` al inicio: si el módulo no existiera por algún motivo, no debe romper
+# el arranque de RTPEngine, solo se queda en modo userspace como hasta ahora.
+ExecStartPre=
+ExecStartPre=-/sbin/modprobe -q xt_RTPENGINE
+ExecStartPre=/usr/sbin/rtpengine-iptables-setup start
+# Mismos argumentos que trae el paquete rtpengine-daemon, sin -E — si una
+# versión futura del paquete cambia esos flags, hay que revisar este override.
+ExecStart=
+ExecStart=/usr/bin/rtpengine -f --no-log-timestamps --pidfile /run/rtpengine/rtpengine-daemon.pid --config-file /etc/rtpengine/rtpengine.conf
+EOF
+        ok "RTPEngine systemd override → limits (antes nunca se aplicaban) + quitado -E (ahora sí loguea a syslog/local1) + modprobe xt_RTPENGINE antes de arrancar"
+        warn "RTPEngine: log-facility=local1 + override sin -E — hace falta 'systemctl restart rtpengine' a mano (ventana de mantenimiento, corta audio en curso) para que todo esto tome efecto"
+    fi
+    systemctl daemon-reload 2>/dev/null || true
+}
+
+# setup_kamailio_rtpengine_syslog — rsyslog + logrotate para separar los logs
+# de Kamailio (facility LOCAL0) y RTPEngine (facility LOCAL1) del syslog
+# general, más el tope de tamaño/retención de journald (único canal donde
+# sobreviven los WARNING/ERROR reales del backend — ver logging.basicConfig
+# en main.py).
+setup_kamailio_rtpengine_syslog() {
+    mkdir -p /etc/rsyslog.d /etc/logrotate.d
+    cat > /etc/rsyslog.d/40-kamailio.conf << 'EOF'
+# VoxiKam — captura logs de Kamailio (facility LOCAL0)
+# kamailio.cfg: log_facility=LOG_LOCAL0 log_stderror=no
+if $syslogfacility-text == 'local0' then /var/log/kamailio.log
+& stop
+EOF
+    touch /var/log/kamailio.log
+    chown root:adm /var/log/kamailio.log 2>/dev/null || chown root:root /var/log/kamailio.log
+    chmod 640 /var/log/kamailio.log
+
+    # logrotate: solo el día actual, sin compresión (fácil de leer en vivo)
+    cat > /etc/logrotate.d/kamailio << 'EOF'
+/var/log/kamailio.log {
+    daily
+    rotate 1
+    missingok
+    notifempty
+    nocreate
+    postrotate
+        /usr/bin/systemctl -s HUP kill rsyslog.service 2>/dev/null || true
+    endscript
+}
+EOF
+
+    # ── RTPEngine logging — mismo esquema, facility LOCAL1 (rtpengine.conf:
+    # log-facility=local1) para no mezclarse con Kamailio (LOCAL0) en el mismo
+    # archivo ─────────────────────────────────────────────────────────────────
+    cat > /etc/rsyslog.d/41-rtpengine.conf << 'EOF'
+# VoxiKam — captura logs de RTPEngine (facility LOCAL1)
+# rtpengine.conf: log-facility=local1
+if $syslogfacility-text == 'local1' then /var/log/rtpengine.log
+& stop
+EOF
+    touch /var/log/rtpengine.log
+    chown root:adm /var/log/rtpengine.log 2>/dev/null || chown root:root /var/log/rtpengine.log
+    chmod 640 /var/log/rtpengine.log
+
+    # logrotate: solo el día actual, igual que kamailio.log
+    cat > /etc/logrotate.d/rtpengine << 'EOF'
+/var/log/rtpengine.log {
+    daily
+    rotate 1
+    missingok
+    notifempty
+    nocreate
+    postrotate
+        /usr/bin/systemctl -s HUP kill rsyslog.service 2>/dev/null || true
+    endscript
+}
+EOF
+
+    # logrotate para los logs de cron (logs/*.log en INSTALL_DIR + los root-only
+    # en LOG_DIR) — antes crecían sin límite, nada los rotaba nunca. 14 días
+    # comprimido: no son logs de tráfico por-llamada como kamailio/rtpengine
+    # (una línea por corrida de cron, no por llamada), no hace falta el esquema
+    # agresivo de esos. dlg_stats.log es la excepción (una línea por minuto,
+    # forever) — mismo esquema corto que kamailio/rtpengine.
+    cat > /etc/logrotate.d/voxikam-cron << EOF
+$INSTALL_DIR/logs/*.log {
+    daily
+    rotate 14
+    compress
+    missingok
+    notifempty
+    nocreate
+}
+$LOG_DIR/dlg_stats.log $LOG_DIR/infra_alert.log {
+    daily
+    rotate 3
+    compress
+    missingok
+    notifempty
+    nocreate
+}
+EOF
+    ok "logrotate configurado para logs de cron (14 días) y dlg_stats/infra_alert (3 días)"
+
+    # journald sin límite gestionado — es el único canal donde sobreviven los
+    # WARNING/ERROR reales del backend, y sin tope de retención dependía 100%
+    # del default de la distro, no auditado.
+    mkdir -p /etc/systemd/journald.conf.d
+    cat > /etc/systemd/journald.conf.d/voxikam.conf << 'EOF'
+[Journal]
+SystemMaxUse=1G
+MaxRetentionSec=30day
+EOF
+    systemctl restart systemd-journald 2>/dev/null && ok "journald: tope 1GB / retención 30 días" || warn "No se pudo reiniciar systemd-journald — el límite quedó escrito pero no aplicado hasta el próximo reinicio"
+
+    systemctl enable rsyslog 2>/dev/null || true
+    systemctl restart rsyslog \
+        && ok "rsyslog instalado: Kamailio → /var/log/kamailio.log, RTPEngine → /var/log/rtpengine.log (rotate diario, 1 día)" \
+        || warn "rsyslog no pudo iniciarse — revisar: journalctl -u rsyslog"
+    warn "rtpengine.conf cambió log-facility a local1 — hace falta 'systemctl restart rtpengine' a mano (en ventana de mantenimiento, corta audio en curso) para que empiece a loguear a /var/log/rtpengine.log"
+}
+
+# _run_spinner <label> <comando...> — corre un comando en background con un
+# spinner en pantalla; si falla, muestra las últimas líneas del log para
+# diagnóstico inmediato. Antes existía duplicada como _spinner (pipeline
+# principal) y _uspinner (rama --update) — mismo cuerpo, dos nombres.
+_run_spinner() {
+    local label="$1"; shift
+    info "${label}..."
+    "$@" >>"$LOG_FILE" 2>&1 &
+    local _PID=$! _T=0
+    while kill -0 $_PID 2>/dev/null; do
+        printf "\r  → %s ... %ds" "$label" "$_T"
+        sleep 3; _T=$((_T + 3))
+    done
+    printf "\r%-60s\r" " "
+    if wait $_PID; then
+        ok "${label} (${_T}s)"
+    else
+        err "${label} falló (${_T}s) — últimas líneas del log:"
+        echo ""; tail -25 "$LOG_FILE"; echo ""
+        exit 1
+    fi
+}
+
+# setup_backend_venv [fresh] — instala/actualiza dependencias del backend.
+# "fresh" crea el virtualenv desde cero (fresh install / --upgrade); sin
+# argumento asume que ya existe (rama --update, más rápida). Redirigir la
+# salida al log queda a cargo del que llama (--update lo hace quieto,
+# igual que siempre; el resto lo deja visible en pantalla).
+setup_backend_venv() {
+    [[ "${1:-}" == "fresh" ]] && python3 -m venv "$INSTALL_DIR/venv"
+    "$INSTALL_DIR/venv/bin/pip" install -q --upgrade pip
+    "$INSTALL_DIR/venv/bin/pip" install -q -r "$INSTALL_DIR/backend/requirements.txt"
+}
+
+# build_frontend — npm install (con fallback del binding nativo de
+# @tailwindcss/oxide) + build de Next.js, con backup/restore automático del
+# build anterior si el nuevo falla (para no dejar el frontend caído). Antes
+# vivía escrito dos veces (rama --update y pipeline principal), idéntico
+# salvo el nombre del spinner — unificado acá.
+build_frontend() {
+    hdr "Frontend Next.js"
+    cd "$INSTALL_DIR/frontend"
+    # Limpiar node_modules previo — evita bug de npm con optional deps
+    # (github.com/npm/cli/issues/4828)
+    rm -rf node_modules package-lock.json
+    _run_spinner "Instalando paquetes npm" npm install --include=optional
+
+    # npm en entorno no-interactivo omite optional deps aunque se pida
+    # --include=optional — si el binding nativo de @tailwindcss/oxide no
+    # quedó instalado, instalar el paquete específico de la plataforma actual.
+    local _OXIDE_ARCH=""
+    case "$(uname -m)" in
+        x86_64)  _OXIDE_ARCH="linux-x64-gnu"   ;;
+        aarch64) _OXIDE_ARCH="linux-arm64-gnu"  ;;
+    esac
+    if [[ -n "$_OXIDE_ARCH" && ! -d "node_modules/@tailwindcss/oxide-${_OXIDE_ARCH}" ]]; then
+        npm install --no-save "@tailwindcss/oxide-${_OXIDE_ARCH}" >>"$LOG_FILE" 2>&1 \
+            && ok "Binding @tailwindcss/oxide-${_OXIDE_ARCH} instalado" \
+            || { err "No se pudo instalar @tailwindcss/oxide-${_OXIDE_ARCH}"; exit 1; }
+    fi
+
+    # Backup del build anterior — si el build nuevo falla (ej. un error de
+    # TypeScript), sin esto el frontend quedaba roto hasta el próximo deploy
+    # exitoso. Con esto, un build fallido restaura el que sí funcionaba y el
+    # resto del deploy (backend/DB) igual queda aplicado.
+    local _BUILD_BACKUP=""
+    if [[ -d ".next/standalone" && -d ".next/static" ]]; then
+        _BUILD_BACKUP="$(mktemp -d)"
+        cp -r .next/standalone "$_BUILD_BACKUP/standalone"
+        cp -r .next/static     "$_BUILD_BACKUP/static"
+    fi
+
+    # rm -rf .next — el rsync excluye .next/ del --delete a propósito (evita
+    # borrar el build corriendo mientras se despliega el nuevo), pero eso deja
+    # el cache incremental de TypeScript (tsconfig "incremental": true) pegado
+    # entre deploys — puede servir errores de tipos ya resueltos en el código
+    # fuente actual. Limpiar acá, justo antes del build, es obligatorio.
+    rm -rf .next
+    info "Compilando frontend Next.js..."
+    if ! npm run build >>"$LOG_FILE" 2>&1; then
+        err "Compilando frontend Next.js falló — últimas líneas del log:"
+        echo ""; tail -25 "$LOG_FILE"; echo ""
+        if [[ -n "$_BUILD_BACKUP" ]]; then
+            warn "Restaurando el build anterior que funcionaba — este deploy del frontend NO se aplicó (backend/DB sí quedaron actualizados)."
+            mkdir -p .next
+            cp -r "$_BUILD_BACKUP/standalone" .next/standalone
+            cp -r "$_BUILD_BACKUP/static"     .next/static
+            rm -rf "$_BUILD_BACKUP"
+            ok "Build anterior restaurado — corregir el error de arriba y reintentar cuando quieras"
+        else
+            err "No había un build anterior para restaurar (primera compilación) — el frontend queda caído hasta corregir el error y reintentar."
+        fi
+        exit 1
+    fi
+    [[ -n "$_BUILD_BACKUP" ]] && rm -rf "$_BUILD_BACKUP"
+    ok "Compilando frontend Next.js"
+
+    # Next.js standalone no incluye los estáticos — copiarlos manualmente
+    cp -r .next/static  .next/standalone/.next/static
+    cp -r public        .next/standalone/public 2>/dev/null || true
+    cd "$INSTALL_DIR"
+    ok "Frontend construido"
+}
+
+# setup_voxikam_crontab — genera /etc/cron.d/voxikam desde la plantilla del
+# repo, sustituyendo INSTALL_DIR/LOG_DIR. Antes vivía escrito dos veces
+# (rama --update y pipeline principal), idéntico salvo el título del hdr.
+setup_voxikam_crontab() {
+    hdr "Tareas programadas"
+    mkdir -p "$INSTALL_DIR/logs"
+    chown voxikam:voxikam "$INSTALL_DIR/logs"
+    chmod 755 "$INSTALL_DIR/logs"
+    rm -f /etc/cron.d/sip-platform   # limpiar nombre anterior
+    sed \
+        -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
+        -e "s|__LOG_DIR__|$LOG_DIR|g"         \
+        "$INSTALL_DIR/cron/voxikam" > /etc/cron.d/voxikam
+    chmod 644 /etc/cron.d/voxikam
+    ok "Crontab configurado — logs voxikam en $INSTALL_DIR/logs/"
+}
+
+# sync_systemd_service_files — escribe los .service de voxikam-{backend,
+# frontend,hep} desde la plantilla del repo (sustituyendo INSTALL_DIR/WORKERS)
+# y limpia los .service de nombres viejos (sip-*, kaplabilling-*) si vienen de
+# una instalación v1. NO hace daemon-reload ni (re)inicia nada — eso queda a
+# cargo de quien llama, porque --update y el pipeline principal difieren en
+# cómo y cuándo reinician los servicios.
+sync_systemd_service_files() {
+    hdr "Servicios systemd"
+    for svc in voxikam-backend voxikam-frontend voxikam-hep; do
+        sed -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" -e "s|__WORKERS__|$WORKERS|g" \
+            "$INSTALL_DIR/systemd/${svc}.service" \
+            > "/etc/systemd/system/${svc}.service"
+        ok "/etc/systemd/system/${svc}.service"
+    done
+    # Limpiar servicios viejos silenciosamente si existen
+    for old in sip-backend sip-frontend sip-hep kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
+        systemctl stop    "$old" 2>/dev/null || true
+        systemctl disable "$old" 2>/dev/null || true
+        rm -f "/etc/systemd/system/${old}.service"
+    done
+}
+
 # ── Migración automática desde una instalación previa de KaplaBilling ───────
 # VoxiKam es la evolución de KaplaBilling (mismo proyecto, nombre nuevo) — si
 # se detecta una instalación vieja y todavía no hay marcador de VoxiKam, se
@@ -571,24 +868,13 @@ if [[ "$MODE" == "update" ]]; then
     _UMC="mysql --user=root --password=$_UDB_ROOT --host=127.0.0.1 --port=$_UDB_PORT"
     ok "Credenciales cargadas"
 
-    # ── Spinner ligero ─────────────────────────────────────────────────────────
-    _uspinner() {
-        local label="$1"; shift
-        info "${label}..."
-        "$@" >>"$LOG_FILE" 2>&1 &
-        local _PID=$! _T=0
-        while kill -0 $_PID 2>/dev/null; do
-            printf "\r  → %s ... %ds" "$label" "$_T"
-            sleep 3; _T=$((_T + 3))
-        done
-        printf "\r%-60s\r" " "
-        wait $_PID && ok "${label} (${_T}s)" || { err "${label} falló — ver $LOG_FILE"; exit 1; }
-    }
-
     # ── Python: actualizar dependencias ────────────────────────────────────────
+    # setup_backend_venv/build_frontend/_run_spinner — funciones compartidas
+    # con el pipeline principal, ver definición cerca del inicio de este
+    # archivo. Acá van con salida redirigida al log (quieto), igual que
+    # siempre en esta rama rápida.
     hdr "Dependencias Python"
-    "$INSTALL_DIR/venv/bin/pip" install -q --upgrade pip >>"$LOG_FILE" 2>&1
-    "$INSTALL_DIR/venv/bin/pip" install -q -r "$INSTALL_DIR/backend/requirements.txt" >>"$LOG_FILE" 2>&1
+    setup_backend_venv >>"$LOG_FILE" 2>&1
     ok "Dependencias actualizadas"
 
     # ── Migraciones DB ─────────────────────────────────────────────────────────
@@ -681,77 +967,10 @@ if [[ "$MODE" == "update" ]]; then
     fi
 
     # ── Frontend Next.js ───────────────────────────────────────────────────────
-    hdr "Frontend Next.js"
-    cd "$INSTALL_DIR/frontend"
-    rm -rf node_modules package-lock.json
-    _uspinner "Instalando paquetes npm" npm install --include=optional
-
-    # Binding nativo @tailwindcss/oxide (mismo check que el instalador completo)
-    _OXIDE_ARCH=""
-    case "$(uname -m)" in
-        x86_64)  _OXIDE_ARCH="linux-x64-gnu"   ;;
-        aarch64) _OXIDE_ARCH="linux-arm64-gnu"  ;;
-    esac
-    if [[ -n "$_OXIDE_ARCH" && ! -d "node_modules/@tailwindcss/oxide-${_OXIDE_ARCH}" ]]; then
-        npm install --no-save "@tailwindcss/oxide-${_OXIDE_ARCH}" >>"$LOG_FILE" 2>&1 \
-            && ok "Binding @tailwindcss/oxide-${_OXIDE_ARCH} instalado" \
-            || { err "No se pudo instalar @tailwindcss/oxide-${_OXIDE_ARCH}"; exit 1; }
-    fi
-
-    # Backup del build anterior — si el build nuevo falla (como pasó con el
-    # error de TypeScript de show_invoices), sin esto el frontend quedaba
-    # roto hasta el próximo deploy exitoso. Con esto, un build fallido
-    # restaura el build que sí funcionaba y el resto del deploy (backend/DB)
-    # igual queda aplicado.
-    _BUILD_BACKUP=""
-    if [[ -d ".next/standalone" && -d ".next/static" ]]; then
-        _BUILD_BACKUP="$(mktemp -d)"
-        cp -r .next/standalone "$_BUILD_BACKUP/standalone"
-        cp -r .next/static     "$_BUILD_BACKUP/static"
-    fi
-
-    # rm -rf .next — el rsync de arriba excluye .next/ del --delete a propósito
-    # (evita borrar el build corriendo mientras se despliega el nuevo), pero eso
-    # deja el cache incremental de TypeScript (tsconfig "incremental": true)
-    # pegado entre deploys: puede servir errores de tipos ya resueltos en el
-    # código fuente actual. Limpiar acá, justo antes del build, es obligatorio.
-    rm -rf .next
-    info "Compilando Next.js..."
-    if ! npm run build >>"$LOG_FILE" 2>&1; then
-        err "Compilando Next.js falló — últimas líneas del log:"
-        echo ""; tail -25 "$LOG_FILE"; echo ""
-        if [[ -n "$_BUILD_BACKUP" ]]; then
-            warn "Restaurando el build anterior que funcionaba — este deploy del frontend NO se aplicó (backend/DB sí quedaron actualizados)."
-            mkdir -p .next
-            cp -r "$_BUILD_BACKUP/standalone" .next/standalone
-            cp -r "$_BUILD_BACKUP/static"     .next/static
-            rm -rf "$_BUILD_BACKUP"
-            ok "Build anterior restaurado — corregir el error de arriba y reintentar cuando quieras"
-        else
-            err "No había un build anterior para restaurar (primera compilación) — el frontend queda caído hasta corregir el error y reintentar."
-        fi
-        exit 1
-    fi
-    [[ -n "$_BUILD_BACKUP" ]] && rm -rf "$_BUILD_BACKUP"
-    ok "Compilando Next.js"
-    cp -r .next/static  .next/standalone/.next/static
-    cp -r public        .next/standalone/public 2>/dev/null || true
-    cd "$INSTALL_DIR"
-    ok "Frontend construido"
+    build_frontend
 
     # ── Crontab ────────────────────────────────────────────────────────────────
-    hdr "Crontab"
-    # Directorio de logs para crons de usuario voxikam (LOG_DIR es root-only)
-    mkdir -p "$INSTALL_DIR/logs"
-    chown voxikam:voxikam "$INSTALL_DIR/logs"
-    chmod 755 "$INSTALL_DIR/logs"
-    rm -f /etc/cron.d/sip-platform   # limpiar nombre anterior
-    sed \
-        -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
-        -e "s|__LOG_DIR__|$LOG_DIR|g"         \
-        "$INSTALL_DIR/cron/voxikam" > /etc/cron.d/voxikam
-    chmod 644 /etc/cron.d/voxikam
-    ok "Crontab configurado — logs voxikam en $INSTALL_DIR/logs/"
+    setup_voxikam_crontab
 
     # ── Directorio de datos runtime ────────────────────────────────────────────
     # voxikam:voxikam (no root:root) — hep_listener.py corre como voxikam y
@@ -762,102 +981,13 @@ if [[ "$MODE" == "update" ]]; then
     # Generar snapshot inicial de dlg.stats_active para que la API live no arranque en blanco
     "$INSTALL_DIR/venv/bin/python3" "$INSTALL_DIR/scripts/cron_dlg_stats.py" 2>/dev/null || true
 
-    # ── Kamailio logging — rsyslog + logrotate ─────────────────────────────────
-    mkdir -p /etc/rsyslog.d /etc/logrotate.d
-    cat > /etc/rsyslog.d/40-kamailio.conf << 'EOF'
-if $syslogfacility-text == 'local0' then /var/log/kamailio.log
-& stop
-EOF
-    touch /var/log/kamailio.log
-    chown root:adm /var/log/kamailio.log 2>/dev/null || chown root:root /var/log/kamailio.log
-    chmod 640 /var/log/kamailio.log
-    cat > /etc/logrotate.d/kamailio << 'EOF'
-/var/log/kamailio.log {
-    daily
-    rotate 1
-    missingok
-    notifempty
-    nocreate
-    postrotate
-        /usr/bin/systemctl -s HUP kill rsyslog.service 2>/dev/null || true
-    endscript
-}
-EOF
-
-    # ── RTPEngine logging — mismo esquema, facility LOCAL1 (rtpengine.conf:
-    # log-facility=local1) para no mezclarse con Kamailio (LOCAL0) en el mismo
-    # archivo ─────────────────────────────────────────────────────────────────
-    cat > /etc/rsyslog.d/41-rtpengine.conf << 'EOF'
-if $syslogfacility-text == 'local1' then /var/log/rtpengine.log
-& stop
-EOF
-    touch /var/log/rtpengine.log
-    chown root:adm /var/log/rtpengine.log 2>/dev/null || chown root:root /var/log/rtpengine.log
-    chmod 640 /var/log/rtpengine.log
-    cat > /etc/logrotate.d/rtpengine << 'EOF'
-/var/log/rtpengine.log {
-    daily
-    rotate 1
-    missingok
-    notifempty
-    nocreate
-    postrotate
-        /usr/bin/systemctl -s HUP kill rsyslog.service 2>/dev/null || true
-    endscript
-}
-EOF
-
-    # logrotate para logs/*.log de cron — ver el comentario equivalente en el
-    # bloque --upgrade para el motivo (antes no rotaban nunca).
-    cat > /etc/logrotate.d/voxikam-cron << EOF
-$INSTALL_DIR/logs/*.log {
-    daily
-    rotate 14
-    compress
-    missingok
-    notifempty
-    nocreate
-}
-$LOG_DIR/dlg_stats.log $LOG_DIR/infra_alert.log {
-    daily
-    rotate 3
-    compress
-    missingok
-    notifempty
-    nocreate
-}
-EOF
-
-    systemctl enable rsyslog 2>/dev/null || true
-    systemctl restart rsyslog \
-        && ok "rsyslog instalado: Kamailio → /var/log/kamailio.log, RTPEngine → /var/log/rtpengine.log (rotate diario, 1 día)" \
-        || warn "rsyslog no pudo iniciarse — revisar: journalctl -u rsyslog"
-
-    # ── Systemd override RTPEngine — el ExecStart del paquete trae -E
-    # (--log-stderr), que hace que NUNCA mande nada a syslog sin importar
-    # log-facility en rtpengine.conf. De paso, arregla un override de limits
-    # que existía desde v2.0 pero apuntaba a "rtpengine.service.d" — la unidad
-    # real que instala el paquete es "rtpengine-daemon.service", así que ese
-    # directorio nunca se estaba leyendo (ver CLAUDE.md).
-    if [[ -f /lib/systemd/system/rtpengine-daemon.service ]]; then
-        mkdir -p /etc/systemd/system/rtpengine-daemon.service.d
-        cat > /etc/systemd/system/rtpengine-daemon.service.d/voxikam-limits.conf << 'EOF'
-[Service]
-# LimitNOFILE: NO se fija acá — el paquete ya trae 150000 (más alto que
-# nuestro estándar de 65536 para otros servicios); fijarlo más bajo sería
-# una regresión real, no una mejora.
-LimitMEMLOCK=infinity
-LimitCORE=infinity
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_NICE
-# Mismos argumentos que trae el paquete rtpengine-daemon, sin -E — si una
-# versión futura del paquete cambia esos flags, hay que revisar este override.
-ExecStart=
-ExecStart=/usr/bin/rtpengine -f --no-log-timestamps --pidfile /run/rtpengine/rtpengine-daemon.pid --config-file /etc/rtpengine/rtpengine.conf
-EOF
-        systemctl daemon-reload 2>/dev/null || true
-        ok "RTPEngine systemd override → limits (antes nunca se aplicaban) + quitado -E (ahora sí loguea a syslog/local1)"
-    fi
-    warn "RTPEngine: log-facility=local1 + override sin -E — hace falta 'systemctl restart rtpengine' a mano (ventana de mantenimiento, corta audio en curso) para que todo esto tome efecto"
+    # Kamailio/RTPEngine: logging (rsyslog+logrotate+journald) y el override de
+    # systemd de RTPEngine — antes escrito acá a mano, ahora funciones
+    # compartidas con el pipeline --upgrade (ver definición cerca del inicio
+    # de este archivo). Corregido de paso: esta rama nunca tenía el tope de
+    # journald ni el fix de modprobe xt_RTPENGINE que sí tenía --upgrade.
+    setup_kamailio_rtpengine_syslog
+    setup_rtpengine_systemd_override
 
     # ── Permisos scripts ───────────────────────────────────────────────────────
     chown -R voxikam:voxikam "$INSTALL_DIR"
@@ -868,19 +998,7 @@ EOF
     ok "Permisos aplicados"
 
     # ── Actualizar service files (rename sip- → voxikam-) ───────────────
-    hdr "Actualizando servicios systemd"
-    for svc in voxikam-backend voxikam-frontend voxikam-hep; do
-        sed -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" -e "s|__WORKERS__|$WORKERS|g" \
-            "$INSTALL_DIR/systemd/${svc}.service" \
-            > "/etc/systemd/system/${svc}.service"
-        ok "/etc/systemd/system/${svc}.service"
-    done
-    # Limpiar servicios viejos silenciosamente si existen
-    for old in sip-backend sip-frontend sip-hep kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
-        systemctl stop    "$old" 2>/dev/null || true
-        systemctl disable "$old" 2>/dev/null || true
-        rm -f "/etc/systemd/system/${old}.service"
-    done
+    sync_systemd_service_files
 
     # ── Reiniciar servicios de aplicación (Kamailio NO se toca) ───────────────
     hdr "Reiniciando servicios"
@@ -1698,144 +1816,11 @@ EOF
     # template, para no duplicar la fórmula en dos lugares.
 fi
 
-# ── Systemd override para RTPEngine ──────────────────────────────────────────
-# Bug corregido en v2.24.13: apuntaba a "rtpengine.service.d", pero la unidad
-# real que instala el paquete es "rtpengine-daemon.service" — este override
-# nunca se estaba aplicando desde que se agregó en v2.0 (systemd ignora
-# drop-ins en un directorio que no coincide con el nombre real de la unidad).
-# De paso se quita -E (--log-stderr) del ExecStart: ese flag hace que
-# rtpengine nunca mande nada a syslog, sin importar log-facility en
-# rtpengine.conf — por eso /var/log/rtpengine.log quedaba siempre vacío.
-if [[ -f /lib/systemd/system/rtpengine-daemon.service ]]; then
-    mkdir -p /etc/systemd/system/rtpengine-daemon.service.d
-    cat > /etc/systemd/system/rtpengine-daemon.service.d/voxikam-limits.conf << 'EOF'
-[Service]
-# LimitNOFILE: NO se fija acá — el paquete ya trae 150000 (más alto que
-# nuestro estándar de 65536 para otros servicios); fijarlo más bajo sería
-# una regresión real, no una mejora.
-LimitMEMLOCK=infinity
-LimitCORE=infinity
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_NICE
-# "FAILED TO DELETE KERNEL TABLE 0 (Permission denied), KERNEL FORWARDING
-# DISABLED" en cada reboot en frío (visto en vd1sbc2) — el módulo kernel
-# xt_RTPENGINE está compilado vía DKMS (confirmado en v2.24.14) pero nada lo
-# cargaba automáticamente al arrancar, así que en un boot recién hecho no
-# está listo cuando RTPEngine intenta usarlo (cae a modo userspace-only sin
-# avisar más que ese error). El ExecStartPre empaquetado
-# (rtpengine-iptables-setup) queda igual, se agrega el modprobe ANTES —
-# `-` al inicio: si el módulo no existiera por algún motivo, no debe romper
-# el arranque de RTPEngine, solo se queda en modo userspace como hasta ahora.
-ExecStartPre=
-ExecStartPre=-/sbin/modprobe -q xt_RTPENGINE
-ExecStartPre=/usr/sbin/rtpengine-iptables-setup start
-# Mismos argumentos que trae el paquete rtpengine-daemon, sin -E — si una
-# versión futura del paquete cambia esos flags, hay que revisar este override.
-ExecStart=
-ExecStart=/usr/bin/rtpengine -f --no-log-timestamps --pidfile /run/rtpengine/rtpengine-daemon.pid --config-file /etc/rtpengine/rtpengine.conf
-EOF
-    ok "RTPEngine systemd override → limits (antes nunca se aplicaban) + quitado -E (ahora sí loguea a syslog/local1) + modprobe xt_RTPENGINE antes de arrancar"
-    warn "RTPEngine: log-facility=local1 + override sin -E — hace falta 'systemctl restart rtpengine' a mano (ventana de mantenimiento, corta audio en curso) para que todo esto tome efecto"
-fi
-
-systemctl daemon-reload 2>/dev/null || true
-
-# ── Kamailio logging — rsyslog LOCAL0 → /var/log/kamailio.log ────────────────
-mkdir -p /etc/rsyslog.d /etc/logrotate.d
-cat > /etc/rsyslog.d/40-kamailio.conf << 'EOF'
-# VoxiKam — captura logs de Kamailio (facility LOCAL0)
-# kamailio.cfg: log_facility=LOG_LOCAL0 log_stderror=no
-if $syslogfacility-text == 'local0' then /var/log/kamailio.log
-& stop
-EOF
-
-touch /var/log/kamailio.log
-chown root:adm /var/log/kamailio.log 2>/dev/null || chown root:root /var/log/kamailio.log
-chmod 640 /var/log/kamailio.log
-
-# logrotate: solo el día actual, sin compresión (fácil de leer en vivo)
-cat > /etc/logrotate.d/kamailio << 'EOF'
-/var/log/kamailio.log {
-    daily
-    rotate 1
-    missingok
-    notifempty
-    nocreate
-    postrotate
-        /usr/bin/systemctl -s HUP kill rsyslog.service 2>/dev/null || true
-    endscript
-}
-EOF
-
-# ── RTPEngine logging — mismo esquema, facility LOCAL1 (rtpengine.conf:
-# log-facility=local1) para no mezclarse con Kamailio (LOCAL0) en el mismo
-# archivo ─────────────────────────────────────────────────────────────────────
-cat > /etc/rsyslog.d/41-rtpengine.conf << 'EOF'
-# VoxiKam — captura logs de RTPEngine (facility LOCAL1)
-# rtpengine.conf: log-facility=local1
-if $syslogfacility-text == 'local1' then /var/log/rtpengine.log
-& stop
-EOF
-
-touch /var/log/rtpengine.log
-chown root:adm /var/log/rtpengine.log 2>/dev/null || chown root:root /var/log/rtpengine.log
-chmod 640 /var/log/rtpengine.log
-
-# logrotate: solo el día actual, igual que kamailio.log
-cat > /etc/logrotate.d/rtpengine << 'EOF'
-/var/log/rtpengine.log {
-    daily
-    rotate 1
-    missingok
-    notifempty
-    nocreate
-    postrotate
-        /usr/bin/systemctl -s HUP kill rsyslog.service 2>/dev/null || true
-    endscript
-}
-EOF
-
-# logrotate para los logs de cron (logs/*.log en INSTALL_DIR + los root-only
-# en LOG_DIR) — antes crecían sin límite, nada los rotaba nunca. 14 días
-# comprimido: no son logs de tráfico por-llamada como kamailio/rtpengine
-# (una línea por corrida de cron, no por llamada), no hace falta el esquema
-# agresivo de esos. dlg_stats.log es la excepción (una línea por minuto,
-# forever) — mismo esquema corto que kamailio/rtpengine.
-cat > /etc/logrotate.d/voxikam-cron << EOF
-$INSTALL_DIR/logs/*.log {
-    daily
-    rotate 14
-    compress
-    missingok
-    notifempty
-    nocreate
-}
-$LOG_DIR/dlg_stats.log $LOG_DIR/infra_alert.log {
-    daily
-    rotate 3
-    compress
-    missingok
-    notifempty
-    nocreate
-}
-EOF
-ok "logrotate configurado para logs de cron (14 días) y dlg_stats/infra_alert (3 días)"
-
-# journald sin límite gestionado — es el único canal donde sobreviven los
-# WARNING/ERROR reales del backend (ver logging.basicConfig en main.py), y
-# sin tope de retención dependía 100% del default de la distro, no auditado.
-mkdir -p /etc/systemd/journald.conf.d
-cat > /etc/systemd/journald.conf.d/voxikam.conf << 'EOF'
-[Journal]
-SystemMaxUse=1G
-MaxRetentionSec=30day
-EOF
-systemctl restart systemd-journald 2>/dev/null && ok "journald: tope 1GB / retención 30 días" || warn "No se pudo reiniciar systemd-journald — el límite quedó escrito pero no aplicado hasta el próximo reinicio"
-
-systemctl enable rsyslog 2>/dev/null || true
-systemctl restart rsyslog \
-    && ok "rsyslog instalado: Kamailio → /var/log/kamailio.log, RTPEngine → /var/log/rtpengine.log (rotate diario, 1 día)" \
-    || warn "rsyslog no pudo iniciarse — revisar: journalctl -u rsyslog"
-warn "rtpengine.conf cambió log-facility a local1 — hace falta 'systemctl restart rtpengine' a mano (en ventana de mantenimiento, corta audio en curso) para que empiece a loguear a /var/log/rtpengine.log"
+# Kamailio/RTPEngine: override de systemd de RTPEngine + logging
+# (rsyslog+logrotate+journald) — funciones compartidas con la rama --update,
+# ver definición cerca del inicio de este archivo.
+setup_rtpengine_systemd_override
+setup_kamailio_rtpengine_syslog
 
 # NOTA: la memoria compartida de Kamailio (SHM_MEMORY/PKG_MEMORY) se calcula y
 # escribe más abajo por scripts/autotune.sh, en /etc/default/kamailio.d/
@@ -1947,92 +1932,7 @@ fi
 # =============================================================================
 # PASO 10 — Next.js build
 # =============================================================================
-hdr "Frontend Next.js"
-
-cd "$INSTALL_DIR/frontend"
-
-# Función: corre comando en background, spinner en pantalla, output completo al log
-# Si falla, muestra las últimas líneas del log para diagnóstico inmediato
-_spinner() {
-    local label="$1"; shift
-    info "${label}..."
-    # Output del comando va directo al log (no al terminal) — así se captura TODO sin silenciar
-    "$@" >>"$LOG_FILE" 2>&1 &
-    local _PID=$! _T=0
-    while kill -0 $_PID 2>/dev/null; do
-        printf "\r  → %s ... %ds" "$label" "$_T"
-        sleep 3
-        _T=$((_T + 3))
-    done
-    printf "\r%-60s\r" " "
-    if wait $_PID; then
-        ok "${label} (${_T}s)"
-    else
-        err "${label} falló (${_T}s) — últimas líneas del log:"
-        echo ""
-        tail -25 "$LOG_FILE"
-        echo ""
-        exit 1
-    fi
-}
-
-# Limpiar node_modules previo — evita bug de npm con optional deps (github.com/npm/cli/issues/4828)
-rm -rf node_modules package-lock.json
-_spinner "Instalando paquetes npm" npm install --include=optional
-
-# Verificar que el binding nativo de @tailwindcss/oxide quedó instalado.
-# npm en entorno no-interactivo omite optional deps aunque se pida --include=optional.
-# Si falta, instalar el paquete específico de la plataforma actual.
-_OXIDE_ARCH=""
-case "$(uname -m)" in
-    x86_64)  _OXIDE_ARCH="linux-x64-gnu"   ;;
-    aarch64) _OXIDE_ARCH="linux-arm64-gnu"  ;;
-esac
-if [[ -n "$_OXIDE_ARCH" && ! -d "node_modules/@tailwindcss/oxide-${_OXIDE_ARCH}" ]]; then
-    info "Binding nativo de @tailwindcss/oxide no instalado — instalando manualmente..."
-    npm install --no-save "@tailwindcss/oxide-${_OXIDE_ARCH}" >>"$LOG_FILE" 2>&1 \
-        && ok "Binding nativo instalado (@tailwindcss/oxide-${_OXIDE_ARCH})" \
-        || { err "No se pudo instalar @tailwindcss/oxide-${_OXIDE_ARCH}"; exit 1; }
-fi
-
-# Backup del build anterior — mismo motivo que en el bloque de --update: si
-# el build nuevo falla, restaura el que sí funcionaba en vez de dejar el
-# frontend caído hasta el próximo deploy exitoso.
-_BUILD_BACKUP=""
-if [[ -d ".next/standalone" && -d ".next/static" ]]; then
-    _BUILD_BACKUP="$(mktemp -d)"
-    cp -r .next/standalone "$_BUILD_BACKUP/standalone"
-    cp -r .next/static     "$_BUILD_BACKUP/static"
-fi
-
-# rm -rf .next — mismo motivo que en el bloque de --update: el rsync excluye
-# .next/ del --delete y el cache incremental de TypeScript queda pegado entre
-# deploys, pudiendo servir errores de tipos ya resueltos en el código actual.
-rm -rf .next
-info "Compilando frontend Next.js..."
-if ! npm run build >>"$LOG_FILE" 2>&1; then
-    err "Compilando frontend Next.js falló — últimas líneas del log:"
-    echo ""; tail -25 "$LOG_FILE"; echo ""
-    if [[ -n "$_BUILD_BACKUP" ]]; then
-        warn "Restaurando el build anterior que funcionaba — este deploy del frontend NO se aplicó (backend/DB sí quedaron actualizados)."
-        mkdir -p .next
-        cp -r "$_BUILD_BACKUP/standalone" .next/standalone
-        cp -r "$_BUILD_BACKUP/static"     .next/static
-        rm -rf "$_BUILD_BACKUP"
-        ok "Build anterior restaurado — corregir el error de arriba y reintentar cuando quieras"
-    else
-        err "No había un build anterior para restaurar (primera compilación) — el frontend queda caído hasta corregir el error y reintentar."
-    fi
-    exit 1
-fi
-[[ -n "$_BUILD_BACKUP" ]] && rm -rf "$_BUILD_BACKUP"
-ok "Compilando frontend Next.js"
-
-# Next.js standalone no incluye los estáticos — copiarlos manualmente
-cp -r .next/static   .next/standalone/.next/static
-cp -r public         .next/standalone/public 2>/dev/null || true
-cd "$INSTALL_DIR"
-ok "Frontend construido"
+build_frontend
 
 # =============================================================================
 # PASO 11 — Firewall nftables
@@ -2152,22 +2052,7 @@ fi
 
 # sudoers ya se sincronizó arriba, en la sección compartida a todos los modos.
 
-hdr "Servicios systemd"
-
-# Limpiar servicios viejos (sip-*) silenciosamente si vienen de v1
-for old in sip-backend sip-frontend sip-hep kaplabilling-backend kaplabilling-frontend kaplabilling-hep; do
-    systemctl stop    "$old" 2>/dev/null || true
-    systemctl disable "$old" 2>/dev/null || true
-    rm -f "/etc/systemd/system/${old}.service"
-done
-
-# Aplicar INSTALL_DIR/WORKERS a los service files
-for svc in voxikam-backend voxikam-frontend voxikam-hep; do
-    sed -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" -e "s|__WORKERS__|$WORKERS|g" \
-        "$INSTALL_DIR/systemd/${svc}.service" \
-        > "/etc/systemd/system/${svc}.service"
-    ok "/etc/systemd/system/${svc}.service"
-done
+sync_systemd_service_files
 
 systemctl daemon-reload
 systemctl enable --now voxikam-backend voxikam-frontend voxikam-hep
@@ -2258,18 +2143,7 @@ ok "Nginx en puerto $WEB_PORT"
 # =============================================================================
 # PASO 14 — Crontab
 # =============================================================================
-hdr "Tareas programadas"
-
-mkdir -p "$INSTALL_DIR/logs"
-chown voxikam:voxikam "$INSTALL_DIR/logs"
-chmod 755 "$INSTALL_DIR/logs"
-rm -f /etc/cron.d/sip-platform
-sed \
-    -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
-    -e "s|__LOG_DIR__|$LOG_DIR|g"         \
-    "$INSTALL_DIR/cron/voxikam" > /etc/cron.d/voxikam
-chmod 644 /etc/cron.d/voxikam
-ok "Crontab configurado — logs voxikam en $INSTALL_DIR/logs/"
+setup_voxikam_crontab
 
 # =============================================================================
 # PASO 15 — Health checks
