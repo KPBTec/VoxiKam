@@ -18,7 +18,7 @@ interface AuditRow {
 const ENTITY_LABELS: Record<string, string> = {
   customer: 'Clientes', customer_profile: 'Perfiles', admin_user: 'Usuarios admin',
   carrier: 'Carriers', carrier_group: 'Grupos de ruteo', disconnect_policy: 'Disconnect policies',
-  rate_plan: 'Tarifas', prefix: 'Prefijos', rate_plan_draft: 'Pricelists', area: 'Áreas',
+  rate_plan: 'Tarifas', prefix: 'Prefijos', rate_plan_draft: 'Pricelists', area: 'Grupos de prefijos',
   firewall_rule: 'Firewall',
   invoice: 'Facturas', invoice_settings: 'Config. facturas', alert_rule: 'Reglas de alerta',
   system_service: 'Servicios', mail_config: 'Correo', external_sync_config: 'Sync externa',

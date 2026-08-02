@@ -8,7 +8,7 @@ import {
   FileText, BarChart2, PhoneCall, LogOut, Radio, TrendingUp,
   Layers, BellRing, UserCog, History, MapPin, DatabaseZap, Webhook, PhoneOff, Route, Gauge, FileStack,
   ChevronRight, Mail, Menu, X, Building2, Activity, Palette, KeyRound, ArrowLeftRight, Shuffle, PhoneIncoming, Hash,
-  Network, Ban, ScrollText, RefreshCcw, ShieldCheck, Trash2,
+  Network, Ban, ScrollText, RefreshCcw, ShieldCheck, Trash2, Factory,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemePicker } from "@/components/ThemePicker";
@@ -44,6 +44,7 @@ const adminNavGroups: { label: string; items: NavItem[] }[] = [
   {
     label: "Ruteo",
     items: [
+      { href: "/providers",            label: "Proveedores",           icon: Factory },
       { href: "/carriers",             label: "Carriers",              icon: Server },
       { href: "/inbound",              label: "Entrante",              icon: PhoneIncoming },
       { href: "/carrier-groups",       label: "Grupos de ruteo",       icon: Shuffle },
@@ -56,7 +57,7 @@ const adminNavGroups: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/rates",        label: "Tarifas",     icon: DollarSign },
       { href: "/prefixes",     label: "Prefijos",    icon: Hash },
-      { href: "/area-groups",  label: "Áreas",       icon: MapPin },
+      { href: "/area-groups",  label: "Grupos de prefijos", icon: MapPin },
       { href: "/pricelists",   label: "Pricelists",  icon: FileStack },
     ],
   },
@@ -158,13 +159,14 @@ function NavLink({ href, label, icon: Icon, active, onNavigate }: NavItem & { ac
  * activa adentro, AUNQUE esté colapsado porque el usuario abrió otro grupo a
  * propósito — nunca perdés de vista dónde estás parado realmente.
  */
-function NavGroup({ group, isOpen, hasActive, path, onToggle, onNavigate }: {
+function NavGroup({ group, isOpen, hasActive, path, onToggle, onNavigate, children }: {
   group: { label: string; items: NavItem[] };
   isOpen: boolean;
   hasActive: boolean;
   path: string;
   onToggle: () => void;
   onNavigate?: () => void;
+  children?: React.ReactNode;
 }) {
   return (
     <div
@@ -199,7 +201,7 @@ function NavGroup({ group, isOpen, hasActive, path, onToggle, onNavigate }: {
       >
         <div className="overflow-hidden">
           <div className="space-y-0.5 pb-0.5">
-            {group.items.map(item => (
+            {children ?? group.items.map(item => (
               <NavLink key={item.href} {...item} active={isNavActive(path, item.href)} onNavigate={onNavigate} />
             ))}
           </div>
@@ -227,19 +229,18 @@ function SidebarContent({ role, onNavigate }: { role: "admin" | "client"; onNavi
 
   return (
     <>
-      {/* Logo */}
-      <div className="riveted px-4 py-3.5 border-b border-[var(--color-border)] flex items-center gap-3 flex-shrink-0">
+      {/* Logo — clickeable, manda al inicio (dashboard admin / resumen cliente) */}
+      <Link
+        href={role === "client" ? "/my/overview" : "/dashboard"}
+        onClick={onNavigate}
+        className="riveted px-4 py-3.5 border-b border-[var(--color-border)] flex items-center gap-3 flex-shrink-0 transition-colors hover:bg-white/5"
+      >
         <Logo size="sm" variant="icon" />
-        <div>
-          <div className="nameplate text-[16px] leading-tight">
-            <span style={{ color: "var(--color-brand-400)" }}>Voxi</span>
-            <span style={{ color: "var(--color-text-2)" }}>Kam</span>
-          </div>
-          <div className="text-[10px] font-mono tracking-widest uppercase" style={{ color: "var(--color-muted)" }}>
-            SIP Class 4
-          </div>
+        <div className="nameplate text-[16px] leading-tight">
+          <span style={{ color: "var(--color-brand-400)" }}>Voxi</span>
+          <span style={{ color: "var(--color-text-2)" }}>Kam</span>
         </div>
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav className="flex-1 py-3 overflow-y-auto space-y-0.5 px-2">
@@ -266,11 +267,19 @@ function SidebarContent({ role, onNavigate }: { role: "admin" | "client"; onNavi
             ))}
           </>
         )}
-      </nav>
 
-      <div className="border-t border-[var(--color-border)] pt-2.5 flex-shrink-0">
-        <ThemePicker />
-      </div>
+        {/* Apariencia — mismo grupo colapsable que el resto, pero elige un
+            tema en vez de navegar; disponible para admin y cliente por igual. */}
+        <NavGroup
+          group={{ label: "Apariencia", items: [] }}
+          path={path}
+          isOpen={openGroup === "Apariencia"}
+          hasActive={false}
+          onToggle={() => toggleGroup("Apariencia")}
+        >
+          <ThemePicker />
+        </NavGroup>
+      </nav>
 
       {/* Footer */}
       <div className="px-5 py-4 border-t border-[var(--color-border)] flex-shrink-0">

@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api'
 import { Plus, Pencil, Trash2, Save, X, Users } from 'lucide-react'
-import { StatusBadge } from '@/components/StatusBadge'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { PermissionTree, PermissionResource } from '@/components/PermissionTree'
 
@@ -67,23 +66,6 @@ export default function ProfilesPage() {
   const inp   = 'w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus-ring'
   const label = 'block text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1'
 
-  const clientResources   = resources.filter(r => !r.resource_key.startsWith('reseller_'))
-  const resellerResources = resources.filter(r => r.resource_key.startsWith('reseller_'))
-
-  // Resumen compacto para las tarjetas — solo los recursos "hoja" (sin hijos),
-  // ver PermissionTree para el criterio completo del árbol.
-  function summaryBadges(p: Profile, list: PermissionResource[], variant: 'success' | 'brand') {
-    const leaves = list.filter(r => !list.some(x => x.parent_key === r.resource_key))
-    return leaves.map(r => {
-      const on = p.permissions?.[r.resource_key] ?? r.default_visible
-      return (
-        <StatusBadge key={r.resource_key} variant={on ? variant : 'muted'} className={on ? '' : 'line-through'}>
-          {r.label}
-        </StatusBadge>
-      )
-    })
-  }
-
   return (
     <div className="space-y-6">
       {error && <ErrorBanner>{error}</ErrorBanner>}
@@ -105,39 +87,27 @@ export default function ProfilesPage() {
           Sin perfiles. Crea uno para empezar.
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4 items-start">
+        <div className={`${card} overflow-hidden divide-y divide-[var(--color-border)]`}>
           {profiles.map(p => (
-            <div key={p.id} className={`${card} p-5 space-y-3`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="font-semibold text-[var(--color-text)] truncate">{p.name}</h2>
-                  <span className="flex items-center gap-1 text-xs text-[var(--color-muted)] mt-0.5">
-                    <Users size={12} /> {p.customers_count} cliente{p.customers_count !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => openEdit(p)}
-                    className="focus-ring p-2 rounded-lg text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-white/5 transition-colors">
-                    <Pencil size={15} />
-                  </button>
-                  <button onClick={() => del(p)}
-                    className="focus-ring p-2 rounded-lg text-[var(--color-muted)] hover:text-danger hover:bg-danger/10 transition-colors">
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+            <div key={p.id} className="flex items-center justify-between gap-3 px-5 py-4">
+              <div className="min-w-0">
+                <h2 className="font-semibold text-[var(--color-text)] truncate">{p.name}</h2>
+                {p.description && (
+                  <p className="text-sm text-[var(--color-text-2)] truncate mt-0.5">{p.description}</p>
+                )}
+                <span className="flex items-center gap-1 text-xs text-[var(--color-muted)] mt-1">
+                  <Users size={12} /> {p.customers_count} cliente{p.customers_count !== 1 ? 's' : ''}
+                </span>
               </div>
-
-              {p.description && (
-                <p className="text-sm text-[var(--color-text-2)]">{p.description}</p>
-              )}
-
-              <div>
-                <p className="text-[10px] text-[var(--color-muted)] uppercase tracking-wider mb-1">Cliente</p>
-                <div className="flex flex-wrap gap-1.5">{summaryBadges(p, clientResources, 'success')}</div>
-              </div>
-              <div>
-                <p className="text-[10px] text-[var(--color-muted)] uppercase tracking-wider mb-1">Reseller</p>
-                <div className="flex flex-wrap gap-1.5">{summaryBadges(p, resellerResources, 'brand')}</div>
+              <div className="flex gap-1 shrink-0">
+                <button onClick={() => openEdit(p)}
+                  className="focus-ring flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-brand-400 hover:bg-white/5 transition-colors">
+                  <Pencil size={14} /> Editar
+                </button>
+                <button onClick={() => del(p)}
+                  className="focus-ring p-2 rounded-lg text-[var(--color-muted)] hover:text-danger hover:bg-danger/10 transition-colors">
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
           ))}

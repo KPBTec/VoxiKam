@@ -54,7 +54,7 @@ async def create_area(body: AreaIn, db: AsyncSession = Depends(get_db), admin=De
     exists = await db.execute(text("SELECT id FROM areas WHERE name = :name AND country_code = :country_code"),
                                {"name": body.name, "country_code": body.country_code})
     if exists.first():
-        raise HTTPException(409, "Ya existe un área con ese nombre en ese país")
+        raise HTTPException(409, "Ya existe un grupo de prefijos con ese nombre en ese país")
     await db.execute(text(
         "INSERT INTO areas (name, description, country_code) VALUES (:name, :description, :country_code)"
     ), body.model_dump())
@@ -71,14 +71,14 @@ async def update_area(aid: int, body: AreaIn, db: AsyncSession = Depends(get_db)
     r = await db.execute(text("SELECT * FROM areas WHERE id = :id"), {"id": aid})
     before = r.mappings().first()
     if not before:
-        raise HTTPException(404, "Área no encontrada")
+        raise HTTPException(404, "Grupo de prefijos no encontrado")
 
     if body.name != before["name"] or body.country_code != before["country_code"]:
         dup = await db.execute(text(
             "SELECT id FROM areas WHERE name = :name AND country_code = :country_code AND id != :id"
         ), {"name": body.name, "country_code": body.country_code, "id": aid})
         if dup.first():
-            raise HTTPException(409, "Ya existe un área con ese nombre en ese país")
+            raise HTTPException(409, "Ya existe un grupo de prefijos con ese nombre en ese país")
 
     await db.execute(text(
         "UPDATE areas SET name=:name, description=:description, country_code=:country_code WHERE id=:id"
@@ -102,11 +102,11 @@ async def delete_area(aid: int, db: AsyncSession = Depends(get_db), admin=Depend
     r = await db.execute(text("SELECT * FROM areas WHERE id = :id"), {"id": aid})
     area = r.mappings().first()
     if not area:
-        raise HTTPException(404, "Área no encontrada")
+        raise HTTPException(404, "Grupo de prefijos no encontrado")
 
     cnt = await db.execute(text("SELECT COUNT(*) FROM prefixes WHERE group_name = :name"), {"name": area["name"]})
     if cnt.scalar() > 0:
-        raise HTTPException(409, "El área tiene prefijos asignados — reasígnalos antes de eliminarla")
+        raise HTTPException(409, "El grupo de prefijos tiene prefijos asignados — reasígnalos antes de eliminarla")
 
     await db.execute(text("DELETE FROM areas WHERE id = :id"), {"id": aid})
     await record_event(db, "area", aid, "deleted", admin.get("name") or admin.get("email"), area["name"])
@@ -149,7 +149,7 @@ async def _area_report_rows(
     elif by == "prefix":
         group_expr = "COALESCE(NULLIF(t.prefix_matched, ''), 'Sin prefijo')"
     else:
-        group_expr = "COALESCE(NULLIF(p.group_name, ''), 'Sin área')"
+        group_expr = "COALESCE(NULLIF(p.group_name, ''), 'Sin grupo')"
     day_filters = ["sd.summary_date < CURDATE()"]
     live_filters = ["c.disposition != 'RESTART_ORPHANED'", "c.customer_id IS NOT NULL",
                      "c.start_ts >= CURDATE()", "c.start_ts < CURDATE() + INTERVAL 1 DAY"]

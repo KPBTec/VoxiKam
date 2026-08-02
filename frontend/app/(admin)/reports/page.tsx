@@ -52,7 +52,7 @@ export default function ReportsPage() {
   const [tab, setTab]           = useState<'day' | 'month'>('month')
   const [date, setDate]         = useState(today)
   const [monthSel, setMonthSel] = useState(month)
-  const [view, setView]         = useState<'customer' | 'carrier' | 'area' | 'prefix'>('customer')
+  const [view, setView]         = useState<'customer' | 'carrier' | 'provider' | 'area' | 'prefix'>('customer')
   const [rows, setRows]         = useState<any[] | null>(null)
   const [areaRows, setAreaRows] = useState<any[] | null>(null)
   const [loading, setLoading]   = useState(true) // arranca en true: el useEffect dispara el primer fetch al montar
@@ -126,6 +126,7 @@ export default function ReportsPage() {
 
   const byCustomer = rows ? groupBy(rows, 'customer_name') : null
   const byCarrier  = rows ? groupBy(rows, 'carrier_name')  : null
+  const byProvider = rows ? groupBy(rows, 'provider_name') : null
   const totals     = rows ? sumRows(rows) : null
 
   const card  = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
@@ -133,9 +134,11 @@ export default function ReportsPage() {
   const td    = 'px-4 py-3 text-sm'
   const tfoot = 'px-4 py-2.5 text-sm font-semibold'
 
+  const NAME_LABELS: Record<string, string> = { customer_name: 'Cliente', carrier_name: 'Carrier', provider_name: 'Proveedor' }
+
   function renderSummary(
     grouped: Map<string, any[]>,
-    nameKey: 'customer_name' | 'carrier_name',
+    nameKey: 'customer_name' | 'carrier_name' | 'provider_name',
     subKey: 'carrier_name' | 'customer_name',
     prefix: string,
     subLabel: string,
@@ -146,7 +149,7 @@ export default function ReportsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-              <th className={`${th} text-left`}>{nameKey === 'customer_name' ? 'Cliente' : 'Carrier'}</th>
+              <th className={`${th} text-left`}>{NAME_LABELS[nameKey]}</th>
               <th className={`${th} text-right`}>Llamadas</th>
               <th className={`${th} text-right`}>Minutos</th>
               <th className={`${th} text-right`}>Compra</th>
@@ -209,7 +212,7 @@ export default function ReportsPage() {
             <tfoot>
               <tr className="border-t-2 border-[var(--color-border)] bg-[var(--color-surface)]">
                 <td className={tfoot}>
-                  Total — {grouped.size} {nameKey === 'customer_name' ? 'cliente' : 'carrier'}{grouped.size > 1 ? 's' : ''}
+                  Total — {grouped.size} {NAME_LABELS[nameKey].toLowerCase()}{grouped.size > 1 ? 's' : ''}
                 </td>
                 <td className={`${tfoot} text-right font-mono`}>{totals.nbcall}</td>
                 <td className={`${tfoot} text-right font-mono`}>{mins(totals.sessiontime / 60)}</td>
@@ -246,7 +249,7 @@ export default function ReportsPage() {
             {areaRows!.map((r, i) => (
               <tr key={i}>
                 <td className={`${td} font-medium`}>
-                  {(r.area === 'Sin área' || r.area === 'Sin prefijo') ? <span className="text-[var(--color-muted)]">{r.area}</span> : r.area}
+                  {(r.area === 'Sin grupo' || r.area === 'Sin prefijo') ? <span className="text-[var(--color-muted)]">{r.area}</span> : r.area}
                 </td>
                 <td className={`${td} text-right font-mono`}>{r.nbcall}</td>
                 <td className={`${td} text-right font-mono text-[var(--color-text-2)]`}>{mins(r.sessiontime / 60)}</td>
@@ -317,7 +320,8 @@ export default function ReportsPage() {
           {([
             ['customer', 'Por cliente'],
             ['carrier',  'Por carrier'],
-            ['area',     'Por área'],
+            ['provider', 'Por proveedor'],
+            ['area',     'Por grupo'],
             ['prefix',   'Por prefijo'],
           ] as const).map(([v, label]) => (
             <button key={v} onClick={() => { setView(v); setExpanded(null) }}
@@ -338,7 +342,7 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {!loading && (view === 'customer' || view === 'carrier') && rows !== null && rows.length === 0 && (
+      {!loading && (view === 'customer' || view === 'carrier' || view === 'provider') && rows !== null && rows.length === 0 && (
         <div className={`${card} p-14 text-center`}>
           <p className="text-[var(--color-muted)] text-sm">Sin datos para el período seleccionado.</p>
         </div>
@@ -359,7 +363,11 @@ export default function ReportsPage() {
         renderSummary(byCarrier, 'carrier_name', 'customer_name', 'carr', 'cliente')
       )}
 
-      {!loading && areaRows !== null && areaRows.length > 0 && view === 'area' && renderAreaTable('Área')}
+      {!loading && rows !== null && rows.length > 0 && view === 'provider' && byProvider && (
+        renderSummary(byProvider, 'provider_name', 'carrier_name', 'prov', 'carrier')
+      )}
+
+      {!loading && areaRows !== null && areaRows.length > 0 && view === 'area' && renderAreaTable('Grupo de prefijos')}
       {!loading && areaRows !== null && areaRows.length > 0 && view === 'prefix' && renderAreaTable('Prefijo')}
     </div>
   )

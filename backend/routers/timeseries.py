@@ -60,10 +60,12 @@ async def _query_live(db, hours: int, customer_id: Optional[int] = None):
             DATE_FORMAT(ct.ts, '%H:%i') AS lbl,
             cu.name                      AS customer_name,
             ca.name                      AS carrier_name,
+            pr.name                      AS provider_name,
             SUM(ct.answered_count)       AS calls
         FROM calls_timeseries ct
         LEFT JOIN customers cu ON ct.customer_id = cu.id
         LEFT JOIN carriers  ca ON ct.carrier_id  = ca.id
+        LEFT JOIN providers pr ON ca.provider_id = pr.id
         WHERE ct.ts >= NOW() - INTERVAL :hours HOUR {cond}
         GROUP BY ct.ts, ct.customer_id, ct.carrier_id
         ORDER BY ct.ts ASC
@@ -83,10 +85,12 @@ async def _query_day(db, day: date_type, customer_id: Optional[int] = None):
             DATE_FORMAT(c.start_ts, '%H:00') AS lbl,
             cu.name                           AS customer_name,
             ca.name                           AS carrier_name,
+            pr.name                           AS provider_name,
             COUNT(*)                          AS calls
         FROM cdrs c
         LEFT JOIN customers cu ON c.customer_id = cu.id
         LEFT JOIN carriers  ca ON c.carrier_id  = ca.id
+        LEFT JOIN providers pr ON ca.provider_id = pr.id
         WHERE c.start_ts >= :day AND c.start_ts < DATE_ADD(:day, INTERVAL 1 DAY) {cond}
         GROUP BY HOUR(c.start_ts), c.customer_id, c.carrier_id
         ORDER BY HOUR(c.start_ts) ASC
@@ -117,6 +121,7 @@ async def admin_timeseries(
         "labels":      labels,
         "by_customer": _build_series(rows, "lbl", "customer_name", "calls", labels),
         "by_carrier":  _build_series(rows, "lbl", "carrier_name",  "calls", labels),
+        "by_provider": _build_series(rows, "lbl", "provider_name", "calls", labels),
     }
 
 

@@ -247,11 +247,29 @@ CREATE TABLE IF NOT EXISTS customer_prefixes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------------------------------
+-- PROVEEDORES — agrupa carriers/troncales que en la vida real son el mismo
+-- proveedor SIP con varias rutas (ej. Itelvox1/2/3 son 3 troncales de un
+-- mismo proveedor "Itelvox"). Cada troncal sigue teniendo su propio host y
+-- sus propias tarifas en `carriers`/`carrier_rates` — providers es solo
+-- agrupación para organización y reportes, no cambia ruteo ni rating.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS providers (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(120) NOT NULL,
+    notes       TEXT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------------------------------
 -- CARRIERS (providers SIP salientes)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS carriers (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name            VARCHAR(120)  NOT NULL,
+    -- NULL = sin proveedor asignado todavía (ver providers arriba) — puramente
+    -- organizacional, no participa del ruteo ni del rating por prefijo.
+    provider_id     INT UNSIGNED  NULL,
     host            VARCHAR(100)  NOT NULL,
     port            SMALLINT UNSIGNED NOT NULL DEFAULT 5060,
     priority        TINYINT UNSIGNED  NOT NULL DEFAULT 10,   -- mayor = primero en dispatcher
@@ -276,9 +294,11 @@ CREATE TABLE IF NOT EXISTS carriers (
     owner_customer_id INT UNSIGNED NULL,
     created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_status (status),
-    INDEX idx_owner  (owner_customer_id),
-    FOREIGN KEY (owner_customer_id) REFERENCES customers(id) ON DELETE CASCADE
+    INDEX idx_status   (status),
+    INDEX idx_owner    (owner_customer_id),
+    INDEX idx_provider (provider_id),
+    FOREIGN KEY (owner_customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------------------------------

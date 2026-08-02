@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Check } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { getUser, applyTheme, THEMES, ThemeId } from "@/lib/auth";
 
-/** Selector de tema — 4 swatches compactos en el footer de la sidebar.
- * Cambia al instante (applyTheme) y guarda en users.ui_theme vía API; si la
- * llamada falla, el tema visual ya cambió igual (se reintentará en el
- * próximo cambio o login — no vale la pena bloquear la UI por esto). */
+/** Lista de temas — vive dentro del grupo colapsable "Apariencia" de la
+ * sidebar (ver Sidebar.tsx). Cambia al instante (applyTheme) y guarda en
+ * users.ui_theme vía API; si la llamada falla, el tema visual ya cambió
+ * igual (se reintentará en el próximo cambio o login — no vale la pena
+ * bloquear la UI por esto). */
 export function ThemePicker() {
   const [current, setCurrent] = useState<string>("bronce");
 
@@ -37,30 +39,29 @@ export function ThemePicker() {
   }
 
   return (
-    <div className="px-3 pb-2.5">
-      <div
-        className="text-[10px] font-mono uppercase tracking-widest mb-2"
-        style={{ color: "var(--color-muted)" }}
-      >
-        Apariencia
-      </div>
-      <div className="flex gap-2">
-        {THEMES.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            title={t.label}
-            aria-label={`Tema ${t.label}`}
-            onClick={() => choose(t.id)}
-            className="w-6 h-6 rounded-full transition-transform hover:scale-110 cursor-pointer"
-            style={{
-              background: t.swatch,
-              border: `2px solid ${current === t.id ? "var(--color-text)" : "transparent"}`,
-              boxShadow: "0 0 0 1px var(--color-border)",
-            }}
+    <>
+      {THEMES.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={() => choose(t.id)}
+          className={`w-full flex items-center gap-2.5 px-4 py-2 text-[13px] rounded-lg transition-all cursor-pointer
+            ${current === t.id ? "font-semibold" : "font-medium hover:bg-white/5"}`}
+          style={current === t.id ? {
+            background: "rgba(221,139,61,.12)",
+            color: "var(--color-brand-400)",
+          } : {
+            color: "var(--color-text-2)",
+          }}
+        >
+          <span
+            className="w-3 h-3 rounded-full flex-shrink-0"
+            style={{ background: t.swatch, boxShadow: "0 0 0 1px var(--color-border)" }}
           />
-        ))}
-      </div>
-    </div>
+          {t.label}
+          {current === t.id && <Check size={13} style={{ marginLeft: "auto", flexShrink: 0 }} />}
+        </button>
+      ))}
+    </>
   );
 }

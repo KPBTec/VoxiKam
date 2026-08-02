@@ -438,6 +438,16 @@ async def add_ip(cid: int, body: CustomerIPIn, db: AsyncSession = Depends(get_db
     return {"ok": True}
 
 
+@router.put("/{cid}/ips/{ip_id}")
+async def update_ip(cid: int, ip_id: int, body: CustomerIPIn, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
+    await db.execute(text(
+        "UPDATE customer_ips SET ip=:ip, description=:desc WHERE id=:id AND customer_id=:cid"
+    ), {"ip": body.ip, "desc": body.description, "id": ip_id, "cid": cid})
+    await db.commit()
+    _sync_nftables()
+    return {"ok": True}
+
+
 @router.delete("/{cid}/ips/{ip_id}", status_code=204)
 async def delete_ip(cid: int, ip_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
     await db.execute(text(

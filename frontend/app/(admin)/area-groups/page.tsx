@@ -35,7 +35,7 @@ export default function AreaGroupsPage() {
   async function loadAreas() {
     setLoading(true)
     try { setAreas(await apiGet('/admin/areas')); setError('') }
-    catch (err) { setError(err instanceof Error ? err.message : 'Error cargando áreas') }
+    catch (err) { setError(err instanceof Error ? err.message : 'Error cargando grupos de prefijos') }
     finally { setLoading(false) }
   }
 
@@ -52,7 +52,7 @@ export default function AreaGroupsPage() {
       setNewName(''); setNewDesc(''); setNewCountry('PE')
       await loadAreas()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear el área')
+      setError(err instanceof Error ? err.message : 'Error al crear el grupo de prefijos')
     } finally { setCreating(false) }
   }
 
@@ -73,7 +73,7 @@ export default function AreaGroupsPage() {
 
   async function removeArea(a: Area) {
     if (a.prefix_count > 0) return
-    if (!confirm(`¿Eliminar el área "${a.name}"?`)) return
+    if (!confirm(`¿Eliminar el grupo de prefijos "${a.name}"?`)) return
     await apiDelete(`/admin/areas/${a.id}`)
     await loadAreas()
   }
@@ -81,19 +81,20 @@ export default function AreaGroupsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Áreas</h1>
+        <h1 className="text-2xl font-bold">Grupos de prefijos</h1>
         <p className="text-sm text-[var(--color-text-2)] mt-1">
-          Las áreas agrupan prefijos de destino para tarifar y reportar en bloque. Renombrar un
-          área acá actualiza el grupo en todos sus prefijos. Los prefijos en sí se asignan a un
-          área desde <a href="/prefixes" className="underline">Tarifas → Prefijos</a>. El reporte
-          de consumo por área/país/prefijo está en <a href="/areas" className="underline">Reportes → Áreas</a>.
+          Los grupos de prefijos agrupan prefijos de destino para tarifar y reportar en bloque.
+          Renombrar un grupo acá actualiza el grupo en todos sus prefijos. Los prefijos en sí se
+          asignan a un grupo desde <a href="/prefixes" className="underline">Tarifas → Prefijos</a>.
+          El reporte de consumo por grupo/país/prefijo está en{' '}
+          <a href="/areas" className="underline">Reportes → Por destino</a>.
         </p>
       </div>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <div className={`${card} p-5`}>
-        <h2 className="font-semibold text-sm mb-4 flex items-center gap-2"><MapPin size={15} /> Nueva área</h2>
+        <h2 className="font-semibold text-sm mb-4 flex items-center gap-2"><MapPin size={15} /> Nuevo grupo</h2>
         <form onSubmit={createArea} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_2fr_auto] gap-3 items-end">
           <div>
             <label className="block text-xs text-[var(--color-text-2)] mb-1">País</label>
@@ -123,12 +124,12 @@ export default function AreaGroupsPage() {
 
       <div className={`${card} overflow-x-auto`}>
         <div className="px-5 py-3 border-b border-[var(--color-border)]">
-          <h2 className="font-semibold text-sm">Áreas registradas</h2>
+          <h2 className="font-semibold text-sm">Grupos de prefijos registrados</h2>
         </div>
         {loading ? (
           <div className="text-[var(--color-muted)] p-8 text-center text-sm">Cargando...</div>
         ) : areas.length === 0 ? (
-          <div className="text-[var(--color-muted)] p-8 text-center text-sm">Sin áreas todavía</div>
+          <div className="text-[var(--color-muted)] p-8 text-center text-sm">Sin grupos de prefijos todavía</div>
         ) : (
           <table className="w-full text-sm">
             <thead>

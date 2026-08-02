@@ -35,6 +35,7 @@ interface TsData {
   labels:      string[];
   by_customer: ChartSeries[];
   by_carrier:  ChartSeries[];
+  by_provider: ChartSeries[];
 }
 
 export default function Dashboard() {
@@ -166,8 +167,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Dos charts lado a lado */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {/* Tres charts lado a lado */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div>
+            <p className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Por Proveedor</p>
+            <CallsChart
+              labels={ts?.labels ?? []}
+              series={ts?.by_provider ?? []}
+              height={200}
+            />
+          </div>
           <div>
             <p className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Por Carrier</p>
             <CallsChart

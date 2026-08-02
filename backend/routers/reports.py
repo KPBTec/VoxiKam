@@ -62,6 +62,7 @@ async def report_day(
         r = await db.execute(text(f"""
             SELECT c.id AS customer_id, c.name AS customer_name,
                    ca.id AS carrier_id, ca.name AS carrier_name,
+                   pr.name AS provider_name,
                    SUM(cd.disposition = 'ANSWERED')                          AS nbcall,
                    SUM(cd.disposition != 'ANSWERED')                         AS nbcall_fail,
                    SUM(CASE WHEN cd.disposition='ANSWERED' THEN cd.billsec ELSE 0 END) AS sessiontime,
@@ -75,6 +76,7 @@ async def report_day(
             FROM cdrs cd
             JOIN customers c  ON cd.customer_id = c.id
             LEFT JOIN carriers ca ON cd.carrier_id = ca.id
+            LEFT JOIN providers pr ON ca.provider_id = pr.id
             WHERE cd.customer_id IS NOT NULL
               AND cd.disposition != 'RESTART_ORPHANED'
               AND cd.start_ts >= :date AND cd.start_ts < DATE_ADD(:date, INTERVAL 1 DAY) {cid_live}
@@ -85,6 +87,7 @@ async def report_day(
         r = await db.execute(text(f"""
             SELECT c.id AS customer_id, c.name AS customer_name,
                    ca.id AS carrier_id, ca.name AS carrier_name,
+                   pr.name AS provider_name,
                    SUM(sd.nbcall)                                             AS nbcall,
                    SUM(sd.nbcall_fail)                                        AS nbcall_fail,
                    SUM(sd.sessiontime)                                        AS sessiontime,
@@ -98,6 +101,7 @@ async def report_day(
             FROM cdr_summary_day sd
             JOIN customers c  ON sd.customer_id = c.id
             LEFT JOIN carriers ca ON sd.carrier_id = ca.id
+            LEFT JOIN providers pr ON ca.provider_id = pr.id
             WHERE sd.summary_date = :date {cid_filter}
             GROUP BY c.id, c.name, ca.id, ca.name
             ORDER BY sessionbill DESC
@@ -128,6 +132,7 @@ async def report_month(
     r = await db.execute(text(f"""
         SELECT c.id AS customer_id, c.name AS customer_name,
                ca.id AS carrier_id, ca.name AS carrier_name,
+               pr.name AS provider_name,
                SUM(t.nbcall)       AS nbcall,
                SUM(t.nbcall_fail)  AS nbcall_fail,
                SUM(t.sessiontime)  AS sessiontime,
@@ -168,6 +173,7 @@ async def report_month(
         ) t
         JOIN customers c  ON t.customer_id = c.id
         LEFT JOIN carriers ca ON t.carrier_id = ca.id
+        LEFT JOIN providers pr ON ca.provider_id = pr.id
         GROUP BY c.id, c.name, ca.id, ca.name
         ORDER BY sessionbill DESC
     """), params)

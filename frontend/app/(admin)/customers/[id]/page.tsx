@@ -391,16 +391,22 @@ export default function CustomerDetailPage() {
                     <span className="ml-2 text-brand-400 normal-case font-normal">— perfil: {customer.profile_name}</span>
                   )}
                 </dt>
-                <div className="flex flex-wrap gap-1.5">
-                  {leafResources(resources, false).map(r => (
-                    <StatusBadge key={r.resource_key} variant={customer.permissions?.[r.resource_key] ? 'success' : 'muted'}
-                      className={customer.permissions?.[r.resource_key] ? '' : 'line-through'}>
-                      {r.label}
-                    </StatusBadge>
-                  ))}
-                </div>
+                {/* Con perfil asignado, los módulos los define el perfil (ver
+                    /profiles) — listar cada badge acá era redundante con esa
+                    pantalla. Sin perfil (permisos manuales), sí hace falta
+                    mostrarlos acá porque este cliente es la única fuente de verdad. */}
+                {!customer.profile_name && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {leafResources(resources, false).map(r => (
+                      <StatusBadge key={r.resource_key} variant={customer.permissions?.[r.resource_key] ? 'success' : 'muted'}
+                        className={customer.permissions?.[r.resource_key] ? '' : 'line-through'}>
+                        {r.label}
+                      </StatusBadge>
+                    ))}
+                  </div>
+                )}
               </div>
-              {customer.is_reseller && (
+              {customer.is_reseller && !customer.profile_name && (
                 <div className="pt-1">
                   <dt className="text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-2">
                     Módulos del portal reseller

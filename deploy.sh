@@ -181,12 +181,25 @@ _drop_db() {
 # sistema — ya están aplicadas y son idempotentes, tocarlas no da ningún
 # beneficio y sí agrega riesgo. Este mecanismo es solo para lo nuevo.
 MIGRATIONS=(
-    # "2.54.0"
+    "2.54.0"
 )
 
 migration_sql() {
     case "$1" in
-        # "2.54.0") echo "ALTER TABLE ... ;" ;;
+        "2.54.0") cat <<'SQL'
+CREATE TABLE IF NOT EXISTS providers (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(120) NOT NULL,
+    notes       TEXT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE carriers
+    ADD COLUMN provider_id INT UNSIGNED NULL AFTER name,
+    ADD INDEX idx_provider (provider_id),
+    ADD CONSTRAINT fk_carriers_provider FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE SET NULL;
+SQL
+            ;;
         *) return 1 ;;
     esac
 }

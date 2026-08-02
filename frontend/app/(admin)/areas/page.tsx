@@ -82,7 +82,7 @@ export default function AreasReportPage() {
   }
 
   async function runBackfill() {
-    if (!confirm('Esto recalcula el área de todo el histórico de CDRs contestados en background — puede tardar unos minutos según cuántas llamadas tengas. ¿Continuar?')) return
+    if (!confirm('Esto recalcula el grupo de prefijos de todo el histórico de CDRs contestados en background — puede tardar unos minutos según cuántas llamadas tengas. ¿Continuar?')) return
     setBackfillRunning(true); setError('')
     try { await apiPost('/admin/areas/backfill-prefix-matched', {}) }
     catch (err) { setError(err instanceof Error ? err.message : 'Error al recalcular') }
@@ -116,9 +116,9 @@ export default function AreasReportPage() {
       <div>
         <h1 className="text-2xl font-bold">Por destino</h1>
         <p className="text-sm text-[var(--color-text-2)] mt-1">
-          Rentabilidad agrupada por país, área o prefijo de destino, según el área que cada CDR
-          resolvió al momento de la llamada. Las áreas se crean y editan en{' '}
-          <a href="/area-groups" className="underline">Tarifas → Áreas</a>.
+          Rentabilidad agrupada por país, grupo de prefijos o prefijo de destino, según el grupo
+          que cada CDR resolvió al momento de la llamada. Los grupos de prefijos se crean y editan
+          en <a href="/area-groups" className="underline">Tarifas → Grupos de prefijos</a>.
         </p>
       </div>
 
@@ -128,7 +128,7 @@ export default function AreasReportPage() {
         <ErrorBanner>
           <span className="flex items-start gap-2.5">
             <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
-            No se pudo consultar si hay CDRs sin área asignada ({backfillError}). El reporte de abajo puede estar incompleto.
+            No se pudo consultar si hay CDRs sin grupo de prefijos asignado ({backfillError}). El reporte de abajo puede estar incompleto.
           </span>
         </ErrorBanner>
       )}
@@ -137,7 +137,7 @@ export default function AreasReportPage() {
         <div className="bg-sky-950/20 border border-sky-800/40 rounded-xl p-4 flex items-start gap-2.5">
           <Clock size={16} className="text-sky-400 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-sky-200">
-            Todavía no hay un cálculo reciente de CDRs sin área asignada (se genera cada hora) — puede
+            Todavía no hay un cálculo reciente de CDRs sin grupo de prefijos asignado (se genera cada hora) — puede
             ser que el sistema se instaló hace poco o que el cálculo aún no corrió.
             <strong className="block mt-1">Esto no confirma que todo esté bien, solo que todavía no lo sabemos.</strong>
             Recargá esta página en un rato para ver el primer resultado.
@@ -150,9 +150,9 @@ export default function AreasReportPage() {
           <div className="flex items-start gap-2.5">
             <AlertTriangle size={16} className="text-yellow-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-yellow-200">
-              <strong>{backfill.sin_match.toLocaleString('es-PE')}</strong> de {backfill.total.toLocaleString('es-PE')} CDRs contestados no tienen área asignada todavía
-              (llamadas de antes de que este cálculo existiera) — por eso el reporte de abajo las agrupa en "Sin área".
-              Recalcular una sola vez las clasifica según las áreas configuradas hoy.
+              <strong>{backfill.sin_match.toLocaleString('es-PE')}</strong> de {backfill.total.toLocaleString('es-PE')} CDRs contestados no tienen grupo de prefijos asignado todavía
+              (llamadas de antes de que este cálculo existiera) — por eso el reporte de abajo las agrupa en "Sin grupo".
+              Recalcular una sola vez las clasifica según los grupos de prefijos configurados hoy.
               <span className="block text-yellow-200/60 mt-1">Calculado {new Date(backfill.computed_at!).toLocaleString('es-PE')} · se actualiza cada hora</span>
             </p>
           </div>
@@ -170,7 +170,7 @@ export default function AreasReportPage() {
           <p className="text-sm text-[var(--color-text-2)]">
             Los prefijos (los códigos que arman este directorio de destinos) se crean y editan en{' '}
             <a href="/rates" className="underline text-[var(--color-text)]">Tarifas → Prefijos de destino</a>.
-            Ahí también podés asignarle un área a cada uno.
+            Ahí también podés asignarle un grupo de prefijos a cada uno.
           </p>
         </div>
         <a href="/rates" className="flex-shrink-0 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium rounded-lg">
@@ -233,7 +233,7 @@ export default function AreasReportPage() {
             <div className="flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">Agrupar por</span>
               <div className="flex rounded-lg overflow-hidden border border-[var(--color-border)]">
-                {([['country', 'Por país'], ['area', 'Por área'], ['prefix', 'Por prefijo']] as const).map(([v, label]) => (
+                {([['country', 'Por país'], ['area', 'Por grupo'], ['prefix', 'Por prefijo']] as const).map(([v, label]) => (
                   <button key={v} onClick={() => setReportBy(v)}
                     className={`px-3 py-1.5 text-xs transition-colors ${
                       reportBy === v
@@ -255,7 +255,7 @@ export default function AreasReportPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-[var(--color-text-2)] text-xs uppercase border-b border-[var(--color-border)]">
-                <th className="px-5 py-3 text-left">{reportBy === 'country' ? 'País' : reportBy === 'area' ? 'Área' : 'Prefijo'}</th>
+                <th className="px-5 py-3 text-left">{reportBy === 'country' ? 'País' : reportBy === 'area' ? 'Grupo de prefijos' : 'Prefijo'}</th>
                 <th className="px-5 py-3 text-right">Llamadas</th>
                 <th className="px-5 py-3 text-right">Minutos</th>
                 <th className="px-5 py-3 text-right">Compra</th>
@@ -269,7 +269,7 @@ export default function AreasReportPage() {
             <tbody>
               {report.map(row => (
                 <tr key={row.area} className="border-b border-[var(--color-border)]/50">
-                  <td className="px-5 py-2.5">{(row.area === 'Sin área' || row.area === 'Sin prefijo' || row.area === 'Sin país') ? <span className="text-[var(--color-muted)]">{row.area}</span> : row.area}</td>
+                  <td className="px-5 py-2.5">{(row.area === 'Sin grupo' || row.area === 'Sin prefijo' || row.area === 'Sin país') ? <span className="text-[var(--color-muted)]">{row.area}</span> : row.area}</td>
                   <td className="px-5 py-2.5 text-right">{row.nbcall.toLocaleString('es-PE')}</td>
                   <td className="px-5 py-2.5 text-right">{(row.sessiontime / 60).toFixed(1)}</td>
                   <td className="px-5 py-2.5 text-right font-mono">{fmt(row.buycost)}</td>

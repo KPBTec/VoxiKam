@@ -21,6 +21,7 @@ SCRIPTS = Path(__file__).parent.parent.parent / "scripts"
 
 class CarrierIn(BaseModel):
     name: str
+    provider_id: Optional[int] = None
     host: str
     port: int = 5060
     priority: int = 10
@@ -68,16 +69,20 @@ async def list_carriers(include_reseller: bool = False,
     """
     if include_reseller:
         r = await db.execute(text("""
-            SELECT ca.*, cu.name AS owner_name,
+            SELECT ca.*, cu.name AS owner_name, pr.name AS provider_name,
                    (SELECT COUNT(*) FROM carrier_rates cr WHERE cr.carrier_id = ca.id) AS rate_count
-            FROM carriers ca LEFT JOIN customers cu ON ca.owner_customer_id = cu.id
+            FROM carriers ca
+            LEFT JOIN customers cu ON ca.owner_customer_id = cu.id
+            LEFT JOIN providers pr ON ca.provider_id = pr.id
             ORDER BY ca.priority DESC, ca.name
         """))
     else:
         r = await db.execute(text("""
-            SELECT ca.*,
+            SELECT ca.*, pr.name AS provider_name,
                    (SELECT COUNT(*) FROM carrier_rates cr WHERE cr.carrier_id = ca.id) AS rate_count
-            FROM carriers ca WHERE ca.owner_customer_id IS NULL ORDER BY ca.priority DESC, ca.name
+            FROM carriers ca
+            LEFT JOIN providers pr ON ca.provider_id = pr.id
+            WHERE ca.owner_customer_id IS NULL ORDER BY ca.priority DESC, ca.name
         """))
     return r.mappings().all()
 
@@ -95,9 +100,9 @@ async def get_carrier(cid: int, db: AsyncSession = Depends(get_db), _=Depends(re
 @router.post("", status_code=201)
 async def create_carrier(body: CarrierIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     result = await db.execute(text("""
-        INSERT INTO carriers (name, host, port, priority, outbound_prefix,
+        INSERT INTO carriers (name, provider_id, host, port, priority, outbound_prefix,
                               remove_prefix, failover_id, status, cps_limit, notes)
-        VALUES (:name, :host, :port, :priority, :outbound_prefix,
+        VALUES (:name, :provider_id, :host, :port, :priority, :outbound_prefix,
                 :remove_prefix, :failover_id, :status, :cps_limit, :notes)
     """), body.model_dump())
     new_id = result.lastrowid
@@ -114,7 +119,7 @@ async def update_carrier(cid: int, body: CarrierIn, db: AsyncSession = Depends(g
 
     data = body.model_dump(); data["id"] = cid
     await db.execute(text("""
-        UPDATE carriers SET name=:name, host=:host, port=:port, priority=:priority,
+        UPDATE carriers SET name=:name, provider_id=:provider_id, host=:host, port=:port, priority=:priority,
         outbound_prefix=:outbound_prefix, remove_prefix=:remove_prefix,
         failover_id=:failover_id, status=:status, cps_limit=:cps_limit, notes=:notes WHERE id=:id
     """), data)

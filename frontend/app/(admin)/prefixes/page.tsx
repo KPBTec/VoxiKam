@@ -129,14 +129,14 @@ export default function PrefixesPage() {
             </select>
           </div>
           <div className="w-48">
-            <label className={lbl}>Área</label>
+            <label className={lbl}>Grupo de prefijos</label>
             {/* Sale de /admin/areas (el registro formal), no de /admin/rates/groups
                 — ese último solo lista grupos que YA tienen algún prefijo, así que
                 un área recién creada (0 prefijos) nunca aparecería como opción. */}
             <select value={pfxForm.group_name}
               onChange={e => setPfxForm(f => ({...f, group_name: e.target.value}))}
               className={`w-full ${input}`}>
-              <option value="">Sin área</option>
+              <option value="">Sin grupo</option>
               {areas.filter(a => a.country_code === pfxForm.country).map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
             </select>
           </div>
@@ -171,7 +171,7 @@ export default function PrefixesPage() {
                   <td className="px-4 py-2">
                     <select value={editPfxForm.group_name} onChange={e => setEditPfxForm(f => ({...f, group_name: e.target.value}))}
                       className={`w-full ${input}`}>
-                      <option value="">Sin área</option>
+                      <option value="">Sin grupo</option>
                       {areas.filter(a => a.country_code === editPfxForm.country).map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
                     </select>
                   </td>

@@ -9,6 +9,16 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.54.0 — 2026-08-02
+
+- Nuevo: **Proveedores** — agrupá varias troncales/carriers del mismo proveedor real (ej. varias rutas de un mismo vendor) y mirá tus reportes también agrupados por proveedor, no solo por carrier individual. Nueva pantalla en Ruteo → Proveedores.
+- Mejorado: **IPs de clientes** — ahora se ve una tabla de clientes y al hacer clic se abre el detalle de sus IPs autorizadas, donde también se pueden editar (antes solo se podían borrar y volver a crear).
+- Renombrado: "Área" pasa a llamarse **"Grupo de prefijos"** en reportes y tarifas, para no confundirse con región geográfica.
+- Mejorado: el selector de tema visual ahora vive dentro del menú lateral (sección "Apariencia"), y el logo de la barra lateral es un acceso directo al inicio.
+- Mejorado: la ficha de cliente y la pantalla de Perfiles muestran menos información redundante — más limpio de un vistazo.
+
+---
+
 ## v2.53.3 — 2026-08-02
 
 - Mejoras internas al proceso de actualización (`deploy.sh` más liviano y menos duplicado), sin cambios visibles para el usuario.

@@ -7,13 +7,17 @@ interface Carrier {
   id: number; name: string; host: string; port: number
   priority: number; status: string; outbound_prefix: string; notes: string
   owner_customer_id?: number | null; owner_name?: string | null
+  provider_id?: number | null; provider_name?: string | null
   rate_count: number; cps_limit: number | null
 }
 
-const EMPTY = { name: '', host: '', port: 5060, priority: 10, outbound_prefix: '', remove_prefix: '', status: 'active', cps_limit: null, notes: '' }
+interface Provider { id: number; name: string }
+
+const EMPTY = { name: '', provider_id: null, host: '', port: 5060, priority: 10, outbound_prefix: '', remove_prefix: '', status: 'active', cps_limit: null, notes: '' }
 
 export default function CarriersPage() {
   const [carriers, setCarriers] = useState<Carrier[]>([])
+  const [providers, setProviders] = useState<Provider[]>([])
   const [form, setForm] = useState<any>(EMPTY)
   const [editing, setEditing] = useState<number | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -24,6 +28,7 @@ export default function CarriersPage() {
   const load = (withReseller = showReseller) =>
     apiGet(`/admin/carriers?include_reseller=${withReseller}`).then(setCarriers).catch((e: any) => setError(e.message))
   useEffect(() => { load() }, [showReseller])
+  useEffect(() => { apiGet('/admin/providers').then(setProviders).catch(() => {}) }, [])
 
   function edit(c: Carrier) {
     setForm({ ...c }); setEditing(c.id); setShowForm(true); setError('')
@@ -81,6 +86,15 @@ export default function CarriersPage() {
               </div>
             ))}
             <div>
+              <label className="block text-xs text-[var(--color-text-2)] mb-1">Proveedor</label>
+              <select value={form.provider_id ?? ''}
+                onChange={e => setForm((f: any) => ({ ...f, provider_id: e.target.value ? +e.target.value : null }))}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]">
+                <option value="">Sin proveedor</option>
+                {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div>
               <label className="block text-xs text-[var(--color-text-2)] mb-1">Estado</label>
               <select value={form.status} onChange={e => setForm((f: any) => ({ ...f, status: e.target.value }))}
                 className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]">
@@ -118,6 +132,7 @@ export default function CarriersPage() {
           <thead>
             <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)]">
               <th className="px-6 py-3 text-left">Nombre</th>
+              <th className="px-6 py-3 text-left">Proveedor</th>
               <th className="px-6 py-3 text-left">Host</th>
               <th className="px-6 py-3 text-left">Puerto</th>
               <th className="px-6 py-3 text-left">Prefijo</th>
@@ -142,6 +157,7 @@ export default function CarriersPage() {
                     </span>
                   )}
                 </td>
+                <td className="px-6 py-3 text-[var(--color-text-2)]">{c.provider_name || '—'}</td>
                 <td className="px-6 py-3 font-mono text-xs text-[var(--color-text)]">{c.host}</td>
                 <td className="px-6 py-3 font-mono text-xs text-[var(--color-text-2)]">{c.port}</td>
                 <td className="px-6 py-3 font-mono text-xs text-[var(--color-text-2)]">{c.outbound_prefix || '—'}</td>
@@ -162,7 +178,7 @@ export default function CarriersPage() {
               </tr>
             ))}
             {carriers.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-10 text-center text-[var(--color-muted)] text-sm">Sin carriers configurados</td></tr>
+              <tr><td colSpan={8} className="px-6 py-10 text-center text-[var(--color-muted)] text-sm">Sin carriers configurados</td></tr>
             )}
           </tbody>
         </table>
