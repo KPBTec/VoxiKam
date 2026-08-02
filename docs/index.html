@@ -10,11 +10,13 @@
 <title>VoxiKam — SIP Class 4 Platform</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='14' fill='%2316110c'/><path d='M55 8 L22 56 L44 56 L38 92 L78 40 L54 40 Z' fill='%23dd8b3d'/></svg>">
 <script>
-// Anti-flash: aplica el tema guardado ANTES del primer paint.
+// Anti-flash: aplica el tema y el idioma guardados ANTES del primer paint.
 (function () {
   try {
     var t = localStorage.getItem('voxikam_theme');
     if (t && t !== 'bronce') document.documentElement.setAttribute('data-theme', t);
+    var l = localStorage.getItem('voxikam_lang');
+    if (l === 'en') { document.documentElement.setAttribute('data-lang', 'en'); document.documentElement.setAttribute('lang', 'en'); }
   } catch (e) {}
 })();
 </script>
@@ -67,12 +69,23 @@
 :root[data-theme='vidrio'] .riveted .rivet-tl, :root[data-theme='vidrio'] .riveted .rivet-tr,
 :root[data-theme='vidrio'] .riveted .rivet-bl, :root[data-theme='vidrio'] .riveted .rivet-br { display: none; }
 
+/* Selector de idioma — mismo mecanismo que el de tema (persistido,
+   aplicado antes del primer paint). El texto traducible vive duplicado en
+   pares .i18n-es/.i18n-en DENTRO del mismo elemento (no se duplica el
+   contenedor con sus clases/layout) — el toggle solo cambia qué span se ve. */
+html:not([data-lang="en"]) .i18n-en { display: none; }
+html[data-lang="en"] .i18n-es { display: none; }
+
 /* Selector de tema — dropdown "Tema ▾" en el nav, no swatches sueltos */
 .theme-dropdown { position: relative; }
 .theme-dropdown summary {
   display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
-  list-style: none; user-select: none; padding: 6px 4px;
+  list-style: none; user-select: none;
+  color: var(--muted); font-size: 13px; font-weight: 600;
+  padding: 7px 13px; border-radius: var(--radius-sm);
+  transition: color .15s, background .15s;
 }
+.theme-dropdown summary:hover, .theme-dropdown[open] summary { color: var(--text); background: var(--surface-2); }
 .theme-dropdown summary::-webkit-details-marker { display: none; }
 .theme-dropdown[open] summary .chev { transform: rotate(180deg); }
 .theme-dropdown-menu {
@@ -132,7 +145,6 @@ nav {
   height: 60px;
 }
 .nav-logo { display: flex; align-items: center; gap: 10px; }
-.nav-tag { font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
 .nav-links { display: flex; gap: 4px; align-items: center; }
 .nav-links a:not(.nav-cta) {
   color: var(--muted); font-size: 13px; font-weight: 600;
@@ -153,7 +165,7 @@ nav {
 /* ── SECTION COMMON ───────────────────────────────────────────────── */
 section { padding: 88px 32px; border-bottom: 1px solid var(--line); }
 section:last-of-type { border-bottom: none; }
-.section-inner { max-width: 1080px; margin: 0 auto; }
+.section-inner { max-width: 1200px; margin: 0 auto; }
 .section-tag {
   font-family: var(--mono);
   font-size: 12px; font-weight: 600; letter-spacing: 1.5px;
@@ -182,7 +194,7 @@ h2.section-title {
   border-bottom: 1px solid var(--line);
 }
 .hero .riveted {
-  max-width: 1080px; margin: 0 auto;
+  max-width: 1200px; margin: 0 auto;
   padding: 40px;
   background:
     repeating-linear-gradient(155deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px),
@@ -472,7 +484,6 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 @media(max-width: 768px) {
   nav { padding: 0 16px; }
   .nav-links a:not(.nav-cta) { display: none; }
-  .nav-tag { display: none; }
   .theme-dropdown { display: none; }
   section { padding: 60px 20px; }
   .hero { padding: 32px 16px 40px; }
@@ -498,22 +509,29 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
     <img src="assets/logo.svg" alt="VoxiKam" style="height:28px;width:auto;">
   </a>
   <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#admin">Operador</a>
-    <a href="#client">Cliente</a>
+    <a href="#features"><span class="i18n-es">Funciones</span><span class="i18n-en">Features</span></a>
+    <a href="#admin"><span class="i18n-es">Operador</span><span class="i18n-en">Operator</span></a>
+    <a href="#client"><span class="i18n-es">Cliente</span><span class="i18n-en">Client</span></a>
     <a href="#releases">Releases</a>
-    <a href="#install">Instalar</a>
+    <a href="#install"><span class="i18n-es">Instalar</span><span class="i18n-en">Install</span></a>
     <a href="manual/">Manual</a>
     <details class="theme-dropdown">
-      <summary class="nav-tag mono">
-        Tema
-        <svg class="chev ico" style="width:11px;height:11px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      <summary>
+        <span class="i18n-es">Tema</span><span class="i18n-en">Theme</span>
+        <svg class="chev ico" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </summary>
       <div class="theme-dropdown-menu" id="theme-picker"></div>
     </details>
+    <details class="theme-dropdown">
+      <summary>
+        <span class="i18n-es">Idioma</span><span class="i18n-en">Language</span>
+        <svg class="chev ico" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </summary>
+      <div class="theme-dropdown-menu" id="lang-picker"></div>
+    </details>
     <a href="https://t.me/KPBTec" class="nav-cta" target="_blank">
       <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
-      Soporte
+      <span class="i18n-es">Soporte</span><span class="i18n-en">Support</span>
     </a>
   </div>
 </nav>
@@ -524,36 +542,41 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
     <span class="rivet-tl"></span><span class="rivet-tr"></span><span class="rivet-bl"></span><span class="rivet-br"></span>
     <div class="hero-inner">
       <div>
-        <div class="nameplate"><span class="dot"></span>VoxiKam Plataforma · SIP Class 4</div>
-        <h1>Kamailio ya rutea tus llamadas.<br>VoxiKam te dice <em>qué pasó</em> con cada una.</h1>
+        <div class="nameplate"><span class="dot"></span><span class="i18n-es">VoxiKam Plataforma · SIP Class 4</span><span class="i18n-en">VoxiKam Platform · SIP Class 4</span></div>
+        <h1>
+          <span class="i18n-es">Kamailio ya rutea tus llamadas.<br>VoxiKam te dice <em>qué pasó</em> con cada una.</span>
+          <span class="i18n-en">Kamailio already routes your calls.<br>VoxiKam tells you <em>what happened</em> with each one.</span>
+        </h1>
         <p class="hero-desc">
-          Billing por minuto, trazas SIP capturadas vía HEP y firewall gestionado desde el panel —
-          sin abrir consola, sin perder de vista quién cortó cada llamada.
+          <span class="i18n-es">Billing por minuto, trazas SIP capturadas vía HEP y firewall gestionado desde el panel —
+          sin abrir consola, sin perder de vista quién cortó cada llamada.</span>
+          <span class="i18n-en">Per-minute billing, SIP traces captured via HEP, and a firewall managed right from the
+          panel — no console, never losing track of who dropped which call.</span>
         </p>
         <div class="hero-buttons">
           <a href="https://github.com/KPBTec/VoxiKam/archive/refs/heads/main.zip" class="btn btn-primary" target="_blank">
             <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            Descargar v2.54.2
+            <span class="i18n-es">Descargar v2.55.0</span><span class="i18n-en">Download v2.55.0</span>
           </a>
           <a href="https://github.com/KPBTec/VoxiKam" class="btn btn-outline" target="_blank">
             <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.016-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.469-2.38 1.235-3.22-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.233 1.91 1.233 3.22 0 4.61-2.807 5.624-5.48 5.92.43.372.823 1.102.823 2.222 0 1.604-.015 2.896-.015 3.286 0 .32.216.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
-            Ver en GitHub
+            <span class="i18n-es">Ver en GitHub</span><span class="i18n-en">View on GitHub</span>
           </a>
         </div>
         <div class="vu-row">
           <div class="vu">
-            <div class="lbl">Módulos</div>
+            <div class="lbl"><span class="i18n-es">Módulos</span><span class="i18n-en">Modules</span></div>
             <div class="rdg">12 <small>/ 6</small></div>
             <div class="bar"><i style="width:70%"></i></div>
           </div>
           <div class="vu">
-            <div class="lbl">Instalación</div>
+            <div class="lbl"><span class="i18n-es">Instalación</span><span class="i18n-en">Installation</span></div>
             <div class="rdg">~10 <small>min</small></div>
             <div class="bar"><i style="width:35%"></i></div>
           </div>
           <div class="vu">
-            <div class="lbl">Versión</div>
-            <div class="rdg">v2.54.2</div>
+            <div class="lbl"><span class="i18n-es">Versión</span><span class="i18n-en">Version</span></div>
+            <div class="rdg">v2.55.0</div>
             <div class="bar"><i style="width:100%"></i></div>
           </div>
         </div>
@@ -561,7 +584,7 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 
       <div class="screen-unit">
         <div class="screen-bezel">
-          <div class="screen-label"><span>PANEL · /LIVE</span><span class="live">EN VIVO</span></div>
+          <div class="screen-label"><span>PANEL · /LIVE</span><span class="live"><span class="i18n-es">EN VIVO</span><span class="i18n-en">LIVE</span></span></div>
           <div class="screen-crt">
             <img src="assets/hero-live.png" alt="Llamadas en curso — captura real del panel VoxiKam /live">
           </div>
@@ -574,39 +597,63 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 <!-- WHY -->
 <section id="features" class="on-ink">
   <div class="section-inner">
-    <div class="section-tag">¿Por qué VoxiKam?</div>
-    <h2 class="section-title">Todo lo que necesitas para operar tráfico SIP</h2>
-    <p class="section-lead">Sin consola, sin scripts sueltos. Un solo panel para billing, monitoreo, firewall y portal para tus clientes.</p>
+    <div class="section-tag"><span class="i18n-es">¿Por qué VoxiKam?</span><span class="i18n-en">Why VoxiKam?</span></div>
+    <h2 class="section-title">
+      <span class="i18n-es">Todo lo que necesitas para operar tráfico SIP</span>
+      <span class="i18n-en">Everything you need to run SIP traffic</span>
+    </h2>
+    <p class="section-lead">
+      <span class="i18n-es">Sin consola, sin scripts sueltos. Un solo panel para billing, monitoreo, firewall y portal para tus clientes.</span>
+      <span class="i18n-en">No console, no loose scripts. One panel for billing, monitoring, firewall and a portal for your clients.</span>
+    </p>
     <div class="why-grid">
       <div class="why-card">
         <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17V9a4 4 0 0 1 4-4h6"/></svg></div>
         <h3>SIP Class 4 — Kamailio + RTPEngine</h3>
-        <p>SBC de producción: LCR, failover automático, ACL por IP y captura de trazas HEP. VoxiKam no intercepta llamadas activas — actúa solo al finalizar para calcular costos.</p>
+        <p>
+          <span class="i18n-es">SBC de producción: LCR, failover automático, ACL por IP y captura de trazas HEP. VoxiKam no intercepta llamadas activas — actúa solo al finalizar para calcular costos.</span>
+          <span class="i18n-en">Production SBC: LCR, automatic failover, per-IP ACLs and HEP trace capture. VoxiKam never intercepts active calls — it only acts once a call ends, to calculate costs.</span>
+        </p>
       </div>
       <div class="why-card">
         <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-        <h3>Billing en tiempo real</h3>
-        <p>Longest-prefix match por prefijo E.164. Costo de compra (carrier) vs costo de venta (cliente) calculados por CDR. Balance prepago descontado automáticamente. Margen visible en cada registro.</p>
+        <h3><span class="i18n-es">Billing en tiempo real</span><span class="i18n-en">Real-time billing</span></h3>
+        <p>
+          <span class="i18n-es">Longest-prefix match por prefijo E.164. Costo de compra (carrier) vs costo de venta (cliente) calculados por CDR. Balance prepago descontado automáticamente. Margen visible en cada registro.</span>
+          <span class="i18n-en">Longest-prefix match on E.164 prefixes. Buy cost (carrier) vs. sell cost (customer) calculated per CDR. Prepaid balance deducted automatically. Margin visible on every record.</span>
+        </p>
       </div>
       <div class="why-card">
         <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"/></svg></div>
-        <h3>Firewall desde el panel web</h3>
-        <p>Reglas ALLOW / DENY / JAIL por IP o CIDR gestionadas desde la interfaz. Sin SSH, sin editar archivos. Los cambios aplican en segundos — nftables regenerado automáticamente.</p>
+        <h3><span class="i18n-es">Firewall desde el panel web</span><span class="i18n-en">Firewall from the web panel</span></h3>
+        <p>
+          <span class="i18n-es">Reglas ALLOW / DENY / JAIL por IP o CIDR gestionadas desde la interfaz. Sin SSH, sin editar archivos. Los cambios aplican en segundos — nftables regenerado automáticamente.</span>
+          <span class="i18n-en">ALLOW / DENY / JAIL rules by IP or CIDR, managed straight from the UI. No SSH, no editing files. Changes apply in seconds — nftables is regenerated automatically.</span>
+        </p>
       </div>
       <div class="why-card">
         <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-        <h3>Portal cliente modular</h3>
-        <p>Cada cliente ve solo lo que el operador habilita: llamadas, calidad ASR, reportes, facturas y trunk guide. Perfiles de módulos reutilizables asignables a múltiples clientes.</p>
+        <h3><span class="i18n-es">Portal cliente modular</span><span class="i18n-en">Modular client portal</span></h3>
+        <p>
+          <span class="i18n-es">Cada cliente ve solo lo que el operador habilita: llamadas, calidad ASR, reportes, facturas y trunk guide. Perfiles de módulos reutilizables asignables a múltiples clientes.</span>
+          <span class="i18n-en">Each customer sees only what the operator enables: calls, ASR quality, reports, invoices and trunk guide. Reusable module profiles assignable to multiple customers.</span>
+        </p>
       </div>
       <div class="why-card">
         <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
-        <h3>Trazas SIP sin Homer</h3>
-        <p>Mini-Homer embebido. Kamailio envía mensajes SIP vía HEP al backend. Ladder diagram visual desde el panel: INVITE, 180, 200 OK, BYE — diagnostica en segundos sin consola, con exportación a <code>.pcap</code> para Wireshark.</p>
+        <h3><span class="i18n-es">Trazas SIP sin Homer</span><span class="i18n-en">SIP traces without Homer</span></h3>
+        <p>
+          <span class="i18n-es">Mini-Homer embebido. Kamailio envía mensajes SIP vía HEP al backend. Ladder diagram visual desde el panel: INVITE, 180, 200 OK, BYE — diagnostica en segundos sin consola, con exportación a <code>.pcap</code> para Wireshark.</span>
+          <span class="i18n-en">Mini-Homer built in. Kamailio sends SIP messages to the backend via HEP. Visual ladder diagram right in the panel: INVITE, 180, 200 OK, BYE — diagnose in seconds without a console, with <code>.pcap</code> export for Wireshark.</span>
+        </p>
       </div>
       <div class="why-card">
         <div class="why-icon"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></div>
-        <h3>Un comando para instalar</h3>
-        <p>Debian 12+, ~10 minutos, sin dependencias previas. Detecta IPs, configura Kamailio, RTPEngine, MariaDB, Nginx y todos los servicios. Actualización sin cortar llamadas activas.</p>
+        <h3><span class="i18n-es">Un comando para instalar</span><span class="i18n-en">One command to install</span></h3>
+        <p>
+          <span class="i18n-es">Debian 12+, ~10 minutos, sin dependencias previas. Detecta IPs, configura Kamailio, RTPEngine, MariaDB, Nginx y todos los servicios. Actualización sin cortar llamadas activas.</span>
+          <span class="i18n-en">Debian 12+, ~10 minutes, no prior dependencies. Detects IPs, configures Kamailio, RTPEngine, MariaDB, Nginx and every service. Updates without dropping active calls.</span>
+        </p>
       </div>
     </div>
   </div>
@@ -615,34 +662,37 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 <!-- VISTA OPERADOR -->
 <section id="admin" class="on-surface">
   <div class="section-inner">
-    <div class="section-tag">Panel de Administración</div>
-    <h2 class="section-title">Vista Operador</h2>
-    <p class="section-lead">Control total del sistema desde una sola interfaz. Solo accesible para administradores — validado en cada endpoint del backend.</p>
+    <div class="section-tag"><span class="i18n-es">Panel de Administración</span><span class="i18n-en">Admin Panel</span></div>
+    <h2 class="section-title"><span class="i18n-es">Vista Operador</span><span class="i18n-en">Operator View</span></h2>
+    <p class="section-lead">
+      <span class="i18n-es">Control total del sistema desde una sola interfaz. Solo accesible para administradores — validado en cada endpoint del backend.</span>
+      <span class="i18n-en">Full control of the system from one interface. Admin-only — validated on every backend endpoint.</span>
+    </p>
 
     <div class="modules-grid">
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="mod-name">Dashboard</div><div class="mod-desc">KPIs del día en tiempo real: llamadas activas, completadas, minutos, ingresos y ASR global con gráfico por cliente.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="mod-name">Live</div><div class="mod-desc">Monitor de llamadas activas ahora mismo: cliente, carrier, origen, destino y duración en curso. Fuente: Kamailio dlg.briefing.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="mod-name">Clientes</div><div class="mod-desc">CRUD de trunks SIP: techprefix, tarifas, IPs autorizadas, carriers, balance prepago, límites y perfil de módulos del portal.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></div><div class="mod-name">Perfiles</div><div class="mod-desc">Conjuntos de módulos del portal asignables a múltiples clientes. Cambia un perfil y aplica a todos los clientes asignados.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div><div class="mod-name">Carriers</div><div class="mod-desc">Gateways SIP de salida con rates de compra por prefijo. Failover automático por prioridad si el carrier falla.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="mod-name">Tarifas</div><div class="mod-desc">Rate plans con precio por minuto, cargo de conexión y tiempo mínimo por prefijo E.164. Vinculados a clientes para billing automático.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg></div><div class="mod-name">CDRs</div><div class="mod-desc">Historial completo de llamadas: costo de compra, costo de venta y margen por registro. Tabs separados: contestadas y no establecidas.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><div class="mod-name">Trazas SIP</div><div class="mod-desc">Ladder diagram de mensajes SIP capturados vía HEP desde Kamailio. Diagnostica llamadas o exporta a <code>.pcap</code> sin abrir consola.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg></div><div class="mod-name">Calidad ASR</div><div class="mod-desc">Answer Seizure Ratio por cliente y hora. Desglose de códigos de fallo: 487, 486, 404, 503. Detecta carriers problemáticos antes de que impacten.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div><div class="mod-name">Reportes</div><div class="mod-desc">Rentabilidad consolidada por cliente y período: llamadas, minutos, costo de compra, venta y margen. Sin exportar datos.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div><div class="mod-name">Facturas</div><div class="mod-desc">Generación automática de PDF desde CDRs del período seleccionado. El cliente puede descargarlo desde su portal si el operador lo habilita.</div></div>
-      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"/></svg></div><div class="mod-name">Firewall</div><div class="mod-desc">Reglas ALLOW / DENY / JAIL por IP o CIDR por servicio (SIP, RTP, SSH). Cambios aplicados en segundos — nftables regenerado automáticamente.</div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="mod-name">Dashboard</div><div class="mod-desc"><span class="i18n-es">KPIs del día en tiempo real: llamadas activas, completadas, minutos, ingresos y ASR global con gráfico por cliente.</span><span class="i18n-en">Real-time daily KPIs: active calls, completed calls, minutes, revenue and overall ASR, with a per-customer chart.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="mod-name">Live</div><div class="mod-desc"><span class="i18n-es">Monitor de llamadas activas ahora mismo: cliente, carrier, origen, destino y duración en curso. Fuente: Kamailio dlg.briefing.</span><span class="i18n-en">Monitor of calls active right now: customer, carrier, origin, destination and running duration. Source: Kamailio dlg.briefing.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="mod-name"><span class="i18n-es">Clientes</span><span class="i18n-en">Customers</span></div><div class="mod-desc"><span class="i18n-es">CRUD de trunks SIP: techprefix, tarifas, IPs autorizadas, carriers, balance prepago, límites y perfil de módulos del portal.</span><span class="i18n-en">Full CRUD for SIP trunks: techprefix, rates, authorized IPs, carriers, prepaid balance, limits and portal module profile.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg></div><div class="mod-name"><span class="i18n-es">Perfiles</span><span class="i18n-en">Profiles</span></div><div class="mod-desc"><span class="i18n-es">Conjuntos de módulos del portal asignables a múltiples clientes. Cambia un perfil y aplica a todos los clientes asignados.</span><span class="i18n-en">Sets of portal modules assignable to multiple customers. Change one profile and it applies to every customer assigned to it.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div><div class="mod-name">Carriers</div><div class="mod-desc"><span class="i18n-es">Gateways SIP de salida con rates de compra por prefijo. Failover automático por prioridad si el carrier falla.</span><span class="i18n-en">Outbound SIP gateways with buy rates per prefix. Automatic priority-based failover if a carrier goes down.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="mod-name"><span class="i18n-es">Tarifas</span><span class="i18n-en">Rates</span></div><div class="mod-desc"><span class="i18n-es">Rate plans con precio por minuto, cargo de conexión y tiempo mínimo por prefijo E.164. Vinculados a clientes para billing automático.</span><span class="i18n-en">Rate plans with per-minute price, connect charge and minimum billing time per E.164 prefix. Linked to customers for automatic billing.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg></div><div class="mod-name">CDRs</div><div class="mod-desc"><span class="i18n-es">Historial completo de llamadas: costo de compra, costo de venta y margen por registro. Tabs separados: contestadas y no establecidas.</span><span class="i18n-en">Full call history: buy cost, sell cost and margin per record. Separate tabs for answered and unestablished calls.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div><div class="mod-name"><span class="i18n-es">Trazas SIP</span><span class="i18n-en">SIP Traces</span></div><div class="mod-desc"><span class="i18n-es">Ladder diagram de mensajes SIP capturados vía HEP desde Kamailio. Diagnostica llamadas o exporta a <code>.pcap</code> sin abrir consola.</span><span class="i18n-en">Ladder diagram of SIP messages captured via HEP from Kamailio. Diagnose calls or export to <code>.pcap</code> without opening a console.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg></div><div class="mod-name"><span class="i18n-es">Calidad ASR</span><span class="i18n-en">ASR Quality</span></div><div class="mod-desc"><span class="i18n-es">Answer Seizure Ratio por cliente y hora. Desglose de códigos de fallo: 487, 486, 404, 503. Detecta carriers problemáticos antes de que impacten.</span><span class="i18n-en">Answer Seizure Ratio per customer and hour. Breakdown of failure codes: 487, 486, 404, 503. Spot problem carriers before they cause impact.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div><div class="mod-name"><span class="i18n-es">Reportes</span><span class="i18n-en">Reports</span></div><div class="mod-desc"><span class="i18n-es">Rentabilidad consolidada por cliente y período: llamadas, minutos, costo de compra, venta y margen. Sin exportar datos.</span><span class="i18n-en">Consolidated profitability by customer and period: calls, minutes, buy cost, sell cost and margin. No data export needed.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div><div class="mod-name"><span class="i18n-es">Facturas</span><span class="i18n-en">Invoices</span></div><div class="mod-desc"><span class="i18n-es">Generación automática de PDF desde CDRs del período seleccionado. El cliente puede descargarlo desde su portal si el operador lo habilita.</span><span class="i18n-en">Automatic PDF generation from the CDRs of the selected period. Customers can download it from their portal if the operator enables it.</span></div></div>
+      <div class="mod"><div class="mod-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V5l8-3 8 3z"/></svg></div><div class="mod-name">Firewall</div><div class="mod-desc"><span class="i18n-es">Reglas ALLOW / DENY / JAIL por IP o CIDR por servicio (SIP, RTP, SSH). Cambios aplicados en segundos — nftables regenerado automáticamente.</span><span class="i18n-en">ALLOW / DENY / JAIL rules by IP or CIDR, per service (SIP, RTP, SSH). Changes apply in seconds — nftables is regenerated automatically.</span></div></div>
     </div>
 
     <details class="mod-detail">
-      <summary>Configuración por cliente <svg class="ico chev" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+      <summary><span class="i18n-es">Configuración por cliente</span><span class="i18n-en">Per-customer configuration</span> <svg class="ico chev" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
       <div class="mod-detail-grid">
-        <div class="mod-detail-item"><div class="k">Techprefix</div><div class="v">Identificador único — Kamailio lo usa para reconocer al cliente en cada INVITE</div></div>
-        <div class="mod-detail-item"><div class="k">Plan de tarifas</div><div class="v">Rate plan asignado — define cuánto se cobra por minuto según destino</div></div>
-        <div class="mod-detail-item"><div class="k">Calls máx / CPS</div><div class="v">Límite de llamadas simultáneas y calls-per-second, aplicados en tiempo real</div></div>
-        <div class="mod-detail-item"><div class="k">IPs autorizadas</div><div class="v">Lista blanca de IPs y CIDRs — INVITEs de IPs no autorizadas son descartados</div></div>
-        <div class="mod-detail-item"><div class="k">Carriers de salida</div><div class="v">Carriers con prioridad — failover automático si el primero falla</div></div>
-        <div class="mod-detail-item"><div class="k">Balance prepago</div><div class="v">Saldo descontado automáticamente por cada CDR contestado</div></div>
+        <div class="mod-detail-item"><div class="k">Techprefix</div><div class="v"><span class="i18n-es">Identificador único — Kamailio lo usa para reconocer al cliente en cada INVITE</span><span class="i18n-en">Unique identifier — Kamailio uses it to recognize the customer on every INVITE</span></div></div>
+        <div class="mod-detail-item"><div class="k"><span class="i18n-es">Plan de tarifas</span><span class="i18n-en">Rate plan</span></div><div class="v"><span class="i18n-es">Rate plan asignado — define cuánto se cobra por minuto según destino</span><span class="i18n-en">Assigned rate plan — defines how much is charged per minute by destination</span></div></div>
+        <div class="mod-detail-item"><div class="k"><span class="i18n-es">Calls máx / CPS</span><span class="i18n-en">Max calls / CPS</span></div><div class="v"><span class="i18n-es">Límite de llamadas simultáneas y calls-per-second, aplicados en tiempo real</span><span class="i18n-en">Limit on simultaneous calls and calls-per-second, enforced in real time</span></div></div>
+        <div class="mod-detail-item"><div class="k"><span class="i18n-es">IPs autorizadas</span><span class="i18n-en">Authorized IPs</span></div><div class="v"><span class="i18n-es">Lista blanca de IPs y CIDRs — INVITEs de IPs no autorizadas son descartados</span><span class="i18n-en">Whitelist of IPs and CIDRs — INVITEs from unauthorized IPs are dropped</span></div></div>
+        <div class="mod-detail-item"><div class="k"><span class="i18n-es">Carriers de salida</span><span class="i18n-en">Outbound carriers</span></div><div class="v"><span class="i18n-es">Carriers con prioridad — failover automático si el primero falla</span><span class="i18n-en">Priority-ordered carriers — automatic failover if the first one fails</span></div></div>
+        <div class="mod-detail-item"><div class="k"><span class="i18n-es">Balance prepago</span><span class="i18n-en">Prepaid balance</span></div><div class="v"><span class="i18n-es">Saldo descontado automáticamente por cada CDR contestado</span><span class="i18n-en">Balance deducted automatically for every answered CDR</span></div></div>
       </div>
     </details>
   </div>
@@ -651,39 +701,44 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 <!-- VISTA CLIENTE -->
 <section id="client" class="on-ink">
   <div class="section-inner">
-    <div class="section-tag">Portal Personal</div>
-    <h2 class="section-title">Vista Cliente</h2>
-    <p class="section-lead">Cada cliente accede a su propio portal con visibilidad exclusiva sobre su tráfico. Sin acceso a datos de otros clientes ni a funciones de administración.</p>
+    <div class="section-tag"><span class="i18n-es">Portal Personal</span><span class="i18n-en">Personal Portal</span></div>
+    <h2 class="section-title"><span class="i18n-es">Vista Cliente</span><span class="i18n-en">Customer View</span></h2>
+    <p class="section-lead">
+      <span class="i18n-es">Cada cliente accede a su propio portal con visibilidad exclusiva sobre su tráfico. Sin acceso a datos de otros clientes ni a funciones de administración.</span>
+      <span class="i18n-en">Each customer gets their own portal with visibility limited to their own traffic. No access to other customers' data or admin functions.</span>
+    </p>
 
     <div class="client-list">
       <div class="client-mod">
         <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg></div>
-        <div class="client-info"><div class="name">Resumen</div><div class="desc">Actividad del día: llamadas, minutos y costo. Gráfico de tráfico en tiempo real con rangos 1h / 3h / 6h / 12h.</div></div>
+        <div class="client-info"><div class="name"><span class="i18n-es">Resumen</span><span class="i18n-en">Overview</span></div><div class="desc"><span class="i18n-es">Actividad del día: llamadas, minutos y costo. Gráfico de tráfico en tiempo real con rangos 1h / 3h / 6h / 12h.</span><span class="i18n-en">Today's activity: calls, minutes and cost. Real-time traffic chart with 1h / 3h / 6h / 12h ranges.</span></div></div>
       </div>
       <div class="client-mod">
         <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384z"/></svg></div>
-        <div class="client-info"><div class="name">Mis llamadas</div><div class="desc">Historial paginado de CDRs propios con filtros de fecha: origen, destino, duración y costo de cada llamada.</div></div>
+        <div class="client-info"><div class="name"><span class="i18n-es">Mis llamadas</span><span class="i18n-en">My Calls</span></div><div class="desc"><span class="i18n-es">Historial paginado de CDRs propios con filtros de fecha: origen, destino, duración y costo de cada llamada.</span><span class="i18n-en">Paginated history of their own CDRs with date filters: origin, destination, duration and cost of each call.</span></div></div>
       </div>
       <div class="client-mod">
         <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg></div>
-        <div class="client-info"><div class="name">Calidad ASR</div><div class="desc">Dashboard de calidad del tráfico propio. Detecta problemas de terminación por destino sin llamar al soporte.</div></div>
+        <div class="client-info"><div class="name"><span class="i18n-es">Calidad ASR</span><span class="i18n-en">ASR Quality</span></div><div class="desc"><span class="i18n-es">Dashboard de calidad del tráfico propio. Detecta problemas de terminación por destino sin llamar al soporte.</span><span class="i18n-en">Quality dashboard for their own traffic. Spot per-destination termination issues without calling support.</span></div></div>
       </div>
       <div class="client-mod">
         <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div>
-        <div class="client-info"><div class="name">Reportes</div><div class="desc">Resumen mensual con desglose día a día: llamadas, minutos y costo total. Monitorea el consumo antes de recibir la factura.</div></div>
+        <div class="client-info"><div class="name"><span class="i18n-es">Reportes</span><span class="i18n-en">Reports</span></div><div class="desc"><span class="i18n-es">Resumen mensual con desglose día a día: llamadas, minutos y costo total. Monitorea el consumo antes de recibir la factura.</span><span class="i18n-en">Monthly summary with day-by-day breakdown: calls, minutes and total cost. Track usage before the invoice arrives.</span></div></div>
       </div>
       <div class="client-mod">
         <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></div>
-        <div class="client-info"><div class="name">Facturas</div><div class="desc">Facturas emitidas por el operador, descargables directamente desde el portal.</div></div>
+        <div class="client-info"><div class="name"><span class="i18n-es">Facturas</span><span class="i18n-en">Invoices</span></div><div class="desc"><span class="i18n-es">Facturas emitidas por el operador, descargables directamente desde el portal.</span><span class="i18n-en">Invoices issued by the operator, downloadable straight from the portal.</span></div></div>
       </div>
       <div class="client-mod">
         <div class="client-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg></div>
-        <div class="client-info"><div class="name">Trunk Guide</div><div class="desc">Guía de configuración personalizada con los datos propios del cliente: IP, puerto SIP, techprefix y ejemplos de dial plan.</div></div>
+        <div class="client-info"><div class="name">Trunk Guide</div><div class="desc"><span class="i18n-es">Guía de configuración personalizada con los datos propios del cliente: IP, puerto SIP, techprefix y ejemplos de dial plan.</span><span class="i18n-en">Personalized setup guide with the customer's own data: IP, SIP port, techprefix and dial plan examples.</span></div></div>
       </div>
     </div>
 
     <div class="profile-note">
-      <strong>Visibilidad controlada por el operador.</strong> El operador decide qué ve cada cliente mediante perfiles de módulos — desde acceso mínimo solo con resumen, hasta visibilidad completa con facturas incluidas.
+      <strong><span class="i18n-es">Visibilidad controlada por el operador.</span><span class="i18n-en">Visibility controlled by the operator.</span></strong>
+      <span class="i18n-es">El operador decide qué ve cada cliente mediante perfiles de módulos — desde acceso mínimo solo con resumen, hasta visibilidad completa con facturas incluidas.</span>
+      <span class="i18n-en">The operator decides what each customer sees through module profiles — from minimal access with just an overview, to full visibility including invoices.</span>
     </div>
   </div>
 </section>
@@ -691,44 +746,65 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 <!-- SECURITY -->
 <section id="security" class="on-surface">
   <div class="section-inner">
-    <div class="section-tag">Seguridad</div>
-    <h2 class="section-title">Defensa en profundidad desde el kernel</h2>
-    <p class="section-lead">Cinco capas activas por defecto desde el día uno — sin configuración adicional. Cada una asume que la anterior puede fallar.</p>
+    <div class="section-tag"><span class="i18n-es">Seguridad</span><span class="i18n-en">Security</span></div>
+    <h2 class="section-title">
+      <span class="i18n-es">Defensa en profundidad desde el kernel</span>
+      <span class="i18n-en">Defense in depth, starting at the kernel</span>
+    </h2>
+    <p class="section-lead">
+      <span class="i18n-es">Cinco capas activas por defecto desde el día uno — sin configuración adicional. Cada una asume que la anterior puede fallar.</span>
+      <span class="i18n-en">Five layers active by default from day one — no extra configuration. Each one assumes the previous one can fail.</span>
+    </p>
 
     <div class="sec-layers">
       <div class="sec-layer">
         <div class="sec-dot"><span>1</span></div>
         <div class="sec-content">
-          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>nftables (nivel kernel)</h4>
-          <p>Bloqueo por IP/CIDR antes de que el paquete llegue a ningún servicio. Reglas gestionadas desde el panel web — sin tocar consola. ALLOW / DENY / JAIL por servicio: SIP, RTP, SSH.</p>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg><span class="i18n-es">nftables (nivel kernel)</span><span class="i18n-en">nftables (kernel level)</span></h4>
+          <p>
+            <span class="i18n-es">Bloqueo por IP/CIDR antes de que el paquete llegue a ningún servicio. Reglas gestionadas desde el panel web — sin tocar consola. ALLOW / DENY / JAIL por servicio: SIP, RTP, SSH.</span>
+            <span class="i18n-en">IP/CIDR blocking before the packet reaches any service. Rules managed from the web panel — no console needed. ALLOW / DENY / JAIL per service: SIP, RTP, SSH.</span>
+          </p>
         </div>
       </div>
       <div class="sec-layer">
         <div class="sec-dot"><span>2</span></div>
         <div class="sec-content">
-          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>Nginx — rate limiting + bloqueo de scanners</h4>
-          <p>Rate limiting por endpoint. Bloqueo automático de user-agents maliciosos: sqlmap, nikto, masscan, nmap. Headers de seguridad HTTP activos por defecto.</p>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span class="i18n-es">Nginx — rate limiting + bloqueo de scanners</span><span class="i18n-en">Nginx — rate limiting + scanner blocking</span></h4>
+          <p>
+            <span class="i18n-es">Rate limiting por endpoint. Bloqueo automático de user-agents maliciosos: sqlmap, nikto, masscan, nmap. Headers de seguridad HTTP activos por defecto.</span>
+            <span class="i18n-en">Per-endpoint rate limiting. Automatic blocking of malicious user-agents: sqlmap, nikto, masscan, nmap. HTTP security headers on by default.</span>
+          </p>
         </div>
       </div>
       <div class="sec-layer">
         <div class="sec-dot"><span>3</span></div>
         <div class="sec-content">
-          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7 11 2-2-2-2"/><path d="M11 13h4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg>FastAPI — rate limiting de API</h4>
-          <p>10 req/60s en login, 300 req/60s en API. Headers: X-Frame-Options DENY, CSP estricto, Referrer-Policy. Cada endpoint protegido por dependencia de rol — no por convención de URL.</p>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m7 11 2-2-2-2"/><path d="M11 13h4"/><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></svg><span class="i18n-es">FastAPI — rate limiting de API</span><span class="i18n-en">FastAPI — API rate limiting</span></h4>
+          <p>
+            <span class="i18n-es">10 req/60s en login, 300 req/60s en API. Headers: X-Frame-Options DENY, CSP estricto, Referrer-Policy. Cada endpoint protegido por dependencia de rol — no por convención de URL.</span>
+            <span class="i18n-en">10 req/60s on login, 300 req/60s on the API. Headers: X-Frame-Options DENY, strict CSP, Referrer-Policy. Every endpoint protected by a role dependency — not by URL convention.</span>
+          </p>
         </div>
       </div>
       <div class="sec-layer">
         <div class="sec-dot"><span>4</span></div>
         <div class="sec-content">
           <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg>JWT HS256 + bcrypt</h4>
-          <p>Tokens con expiración de 8 horas. Passwords hasheados con bcrypt (cost 12). Sin sesiones en servidor — sin riesgo de session fixation.</p>
+          <p>
+            <span class="i18n-es">Tokens con expiración de 8 horas. Passwords hasheados con bcrypt (cost 12). Sin sesiones en servidor — sin riesgo de session fixation.</span>
+            <span class="i18n-en">Tokens expire after 8 hours. Passwords hashed with bcrypt (cost 12). No server-side sessions — no session-fixation risk.</span>
+          </p>
         </div>
       </div>
       <div class="sec-layer">
         <div class="sec-dot"><span>5</span></div>
         <div class="sec-content">
-          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>MariaDB — aislada por diseño</h4>
-          <p>Bind exclusivo en 127.0.0.1. Puerto no estándar (33100–33999). Usuario dedicado con permisos mínimos. Sin acceso remoto posible.</p>
+          <h4><svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg><span class="i18n-es">MariaDB — aislada por diseño</span><span class="i18n-en">MariaDB — isolated by design</span></h4>
+          <p>
+            <span class="i18n-es">Bind exclusivo en 127.0.0.1. Puerto no estándar (33100–33999). Usuario dedicado con permisos mínimos. Sin acceso remoto posible.</span>
+            <span class="i18n-en">Bound exclusively to 127.0.0.1. Non-standard port (33100–33999). Dedicated user with minimal permissions. No remote access possible.</span>
+          </p>
         </div>
       </div>
     </div>
@@ -736,18 +812,27 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
     <div class="sec-extras">
       <div class="sec-extra">
         <div class="ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <h4>ACL SIP en Kamailio</h4>
-        <p>Cada INVITE verificado contra la lista blanca del cliente. IPs no autorizadas descartadas silenciosamente — sin revelar que el servidor existe.</p>
+        <h4><span class="i18n-es">ACL SIP en Kamailio</span><span class="i18n-en">SIP ACL in Kamailio</span></h4>
+        <p>
+          <span class="i18n-es">Cada INVITE verificado contra la lista blanca del cliente. IPs no autorizadas descartadas silenciosamente — sin revelar que el servidor existe.</span>
+          <span class="i18n-en">Every INVITE checked against the customer's whitelist. Unauthorized IPs get silently dropped — without revealing the server even exists.</span>
+        </p>
       </div>
       <div class="sec-extra">
         <div class="ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg></div>
-        <h4>Aislamiento de datos</h4>
-        <p>Un cliente solo puede ver sus propios CDRs. La restricción está en la capa de base de datos, no en el frontend — un bug de UI no puede filtrar datos.</p>
+        <h4><span class="i18n-es">Aislamiento de datos</span><span class="i18n-en">Data isolation</span></h4>
+        <p>
+          <span class="i18n-es">Un cliente solo puede ver sus propios CDRs. La restricción está en la capa de base de datos, no en el frontend — un bug de UI no puede filtrar datos.</span>
+          <span class="i18n-en">A customer can only ever see their own CDRs. The restriction lives at the database layer, not the frontend — a UI bug can't leak data.</span>
+        </p>
       </div>
       <div class="sec-extra">
         <div class="ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <h4>Separación de roles</h4>
-        <p>Admin y cliente son roles incompatibles. Acceder a <code>/api/admin/*</code> sin rol admin devuelve 403 — independientemente de lo que muestre el frontend.</p>
+        <h4><span class="i18n-es">Separación de roles</span><span class="i18n-en">Role separation</span></h4>
+        <p>
+          <span class="i18n-es">Admin y cliente son roles incompatibles. Acceder a <code>/api/admin/*</code> sin rol admin devuelve 403 — independientemente de lo que muestre el frontend.</span>
+          <span class="i18n-en">Admin and customer are mutually exclusive roles. Hitting <code>/api/admin/*</code> without the admin role returns 403 — regardless of what the frontend shows.</span>
+        </p>
       </div>
     </div>
   </div>
@@ -756,15 +841,35 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 <!-- RELEASES -->
 <section id="releases" class="on-ink">
   <div class="section-inner">
-    <div class="section-tag">Historial de versiones</div>
+    <div class="section-tag"><span class="i18n-es">Historial de versiones</span><span class="i18n-en">Version History</span></div>
     <h2 class="section-title">Releases</h2>
-    <p class="section-lead">Historial completo en <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md">CHANGELOG.md</a> · versión activa definida en <a href="https://github.com/KPBTec/VoxiKam/blob/main/release.conf">release.conf</a></p>
+    <p class="section-lead">
+      <span class="i18n-es">Historial completo en <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md">CHANGELOG.md</a> · versión activa definida en <a href="https://github.com/KPBTec/VoxiKam/blob/main/release.conf">release.conf</a></span>
+      <span class="i18n-en">Full history in <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md">CHANGELOG.md</a> · active version defined in <a href="https://github.com/KPBTec/VoxiKam/blob/main/release.conf">release.conf</a> · entries below are kept in Spanish only</span>
+    </p>
 
     <div class="releases-grid">
 
       <details class="release-card" open>
         <summary class="release-header">
-          <span class="release-tag latest mono">v2.54.2 latest</span>
+          <span class="release-tag latest mono">v2.55.0 latest</span>
+          <span class="release-title">Selector de idioma ES/EN completo en la landing pública</span>
+          <span class="release-date mono">2026-08-02</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Nuevo dropdown "Idioma" en el nav — mismo patrón que "Tema" — traduce toda la página al inglés: nav, hero, módulos de operador y cliente, seguridad, instalación y footer</li>
+            <li>El historial de versiones (Releases) queda solo en español a propósito — es el registro técnico, no aporta traducirlo</li>
+            <li>El dropdown "Tema" ya muestra bien la tipografía/caja del resto del nav (el fix se había hecho pero no se había publicado)</li>
+            <li>Chevrons de los dropdowns más grandes (11px → 13px) y ancho máximo de página 1080px → 1200px, menos vacío en monitores grandes</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.54.2</span>
           <span class="release-title">Selector de tema del nav: de círculos sueltos a un dropdown de verdad</span>
           <span class="release-date mono">2026-08-02</span>
           <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -1979,33 +2084,36 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 <!-- INSTALL -->
 <section id="install" class="on-surface">
   <div class="section-inner">
-    <div class="section-tag">Instalación</div>
-    <h2 class="section-title">Un comando para empezar</h2>
-    <p class="section-lead">Debian 12+. Configura Kamailio, RTPEngine, MariaDB, Nginx, servicios systemd y crontabs automáticamente.</p>
+    <div class="section-tag"><span class="i18n-es">Instalación</span><span class="i18n-en">Installation</span></div>
+    <h2 class="section-title"><span class="i18n-es">Un comando para empezar</span><span class="i18n-en">One command to get started</span></h2>
+    <p class="section-lead">
+      <span class="i18n-es">Debian 12+. Configura Kamailio, RTPEngine, MariaDB, Nginx, servicios systemd y crontabs automáticamente.</span>
+      <span class="i18n-en">Debian 12+. Automatically configures Kamailio, RTPEngine, MariaDB, Nginx, systemd services and crontabs.</span>
+    </p>
 
     <div class="vu-row">
-      <div class="vu"><div class="lbl">Tiempo</div><div class="rdg">~10 <small>min</small></div><div class="bar"><i style="width:35%"></i></div></div>
-      <div class="vu"><div class="lbl">Comando</div><div class="rdg">1</div><div class="bar"><i style="width:100%"></i></div></div>
-      <div class="vu"><div class="lbl">Dependencias previas</div><div class="rdg">0</div><div class="bar"><i style="width:4%"></i></div></div>
+      <div class="vu"><div class="lbl"><span class="i18n-es">Tiempo</span><span class="i18n-en">Time</span></div><div class="rdg">~10 <small>min</small></div><div class="bar"><i style="width:35%"></i></div></div>
+      <div class="vu"><div class="lbl"><span class="i18n-es">Comando</span><span class="i18n-en">Command</span></div><div class="rdg">1</div><div class="bar"><i style="width:100%"></i></div></div>
+      <div class="vu"><div class="lbl"><span class="i18n-es">Dependencias previas</span><span class="i18n-en">Prior dependencies</span></div><div class="rdg">0</div><div class="bar"><i style="width:4%"></i></div></div>
     </div>
 
     <div class="riveted install-panel">
       <span class="rivet-tl"></span><span class="rivet-tr"></span><span class="rivet-bl"></span><span class="rivet-br"></span>
       <div class="install-grid">
         <div>
-          <div class="code-block"><span class="comment"># Instalación inicial</span>
+          <div class="code-block"><span class="comment i18n-es"># Instalación inicial</span><span class="comment i18n-en"># Initial install</span>
 <span class="cmd">git clone</span> &lt;repo&gt; /opt/voxikam
 <span class="cmd">cd</span> /opt/voxikam
 <span class="cmd">sudo ./deploy.sh</span></div>
         </div>
         <div>
-          <div class="code-block"><span class="comment"># Reiniciar servicios</span>
+          <div class="code-block"><span class="comment i18n-es"># Reiniciar servicios</span><span class="comment i18n-en"># Restart services</span>
 <span class="cmd">systemctl restart</span> \
   voxikam-backend \
   voxikam-frontend \
   voxikam-hep
 
-<span class="comment"># Ver logs</span>
+<span class="comment i18n-es"># Ver logs</span><span class="comment i18n-en"># View logs</span>
 <span class="cmd">journalctl</span> <span class="flag">-u</span> voxikam-backend <span class="flag">-f</span></div>
         </div>
       </div>
@@ -2013,13 +2121,13 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 
     <table class="install-table">
       <thead>
-        <tr><th>Comando</th><th>Descripción</th></tr>
+        <tr><th><span class="i18n-es">Comando</span><span class="i18n-en">Command</span></th><th><span class="i18n-es">Descripción</span><span class="i18n-en">Description</span></th></tr>
       </thead>
       <tbody>
-        <tr><td><code>./deploy.sh</code></td><td>Detecta el estado del sistema y ofrece el modo correcto — primera instalación o actualización</td></tr>
-        <tr><td><code>./deploy.sh</code> → Actualizar</td><td>Código + DB + frontend. Kamailio no se toca — sin corte de llamadas</td></tr>
-        <tr><td><code>./deploy.sh</code> → Upgrade</td><td>Como Actualizar, pero también reinicia Kamailio</td></tr>
-        <tr><td><code>./deploy.sh</code> → Reinstalar</td><td>Reinstalación completa desde cero — borra la base de datos</td></tr>
+        <tr><td><code>./deploy.sh</code></td><td><span class="i18n-es">Detecta el estado del sistema y ofrece el modo correcto — primera instalación o actualización</span><span class="i18n-en">Detects the system's state and offers the right mode — first install or update</span></td></tr>
+        <tr><td><code>./deploy.sh</code> → Actualizar</td><td><span class="i18n-es">Código + DB + frontend. Kamailio no se toca — sin corte de llamadas</span><span class="i18n-en">Code + DB + frontend. Kamailio isn't touched — no call interruption</span></td></tr>
+        <tr><td><code>./deploy.sh</code> → Upgrade</td><td><span class="i18n-es">Como Actualizar, pero también reinicia Kamailio</span><span class="i18n-en">Same as Actualizar, but also restarts Kamailio</span></td></tr>
+        <tr><td><code>./deploy.sh</code> → Reinstalar</td><td><span class="i18n-es">Reinstalación completa desde cero — borra la base de datos</span><span class="i18n-en">Full reinstall from scratch — wipes the database</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -2053,7 +2161,10 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
       AGPL v3
     </a>
   </div>
-  <div class="footer-copy">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · Todos los derechos reservados.</div>
+  <div class="footer-copy">
+    <span class="i18n-es">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · Todos los derechos reservados.</span>
+    <span class="i18n-en">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · All rights reserved.</span>
+  </div>
 </footer>
 
 <script>
@@ -2094,6 +2205,67 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 
   // <details> nativo no se cierra solo al hacer clic afuera — sin esto el
   // dropdown quedaba abierto tapando el resto del nav hasta un segundo clic.
+  document.addEventListener('click', function (e) {
+    if (dropdown && dropdown.open && !dropdown.contains(e.target)) dropdown.open = false;
+  });
+})();
+
+// Selector de idioma — mismo patrón que el de tema. El contenido visible se
+// resuelve por CSS (.i18n-es/.i18n-en, ver <style>) — este script solo
+// maneja el dropdown y lo que CSS no puede tocar: <title> y <meta>.
+(function () {
+  var LANGS = [
+    { id: 'es', label: 'Español' },
+    { id: 'en', label: 'English' },
+  ];
+  var picker = document.getElementById('lang-picker');
+  if (!picker) return;
+  var dropdown = picker.closest('details');
+  var current = localStorage.getItem('voxikam_lang') || 'es';
+
+  var titleEs = document.title;
+  var metaDesc = document.querySelector('meta[name="description"]');
+  var metaOgTitle = document.querySelector('meta[property="og:title"]');
+  var metaOgDesc = document.querySelector('meta[property="og:description"]');
+  var descEs = metaDesc ? metaDesc.getAttribute('content') : '';
+  var ogTitleEs = metaOgTitle ? metaOgTitle.getAttribute('content') : '';
+  var ogDescEs = metaOgDesc ? metaOgDesc.getAttribute('content') : '';
+
+  var titleEn = 'VoxiKam — SIP Class 4 Billing & Traffic Control Platform';
+  var descEn = 'VoxiKam — SIP Class 4 billing, monitoring and traffic control platform. By KPBTec.';
+  var ogTitleEn = 'VoxiKam — SIP Class 4 Platform';
+  var ogDescEn = 'SIP billing, monitoring and traffic control for voice carriers and resellers.';
+
+  function apply(lang) {
+    document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'es');
+    if (lang === 'en') document.documentElement.setAttribute('data-lang', 'en');
+    else document.documentElement.removeAttribute('data-lang');
+    document.title = lang === 'en' ? titleEn : titleEs;
+    if (metaDesc) metaDesc.setAttribute('content', lang === 'en' ? descEn : descEs);
+    if (metaOgTitle) metaOgTitle.setAttribute('content', lang === 'en' ? ogTitleEn : ogTitleEs);
+    if (metaOgDesc) metaOgDesc.setAttribute('content', lang === 'en' ? ogDescEn : ogDescEs);
+  }
+
+  function render() {
+    picker.innerHTML = '';
+    LANGS.forEach(function (l) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.active = String(l.id === current);
+      b.appendChild(document.createTextNode(l.label));
+      b.addEventListener('click', function () {
+        current = l.id;
+        localStorage.setItem('voxikam_lang', current);
+        apply(current);
+        render();
+        if (dropdown) dropdown.open = false;
+      });
+      picker.appendChild(b);
+    });
+  }
+  render();
+  apply(current);
+
   document.addEventListener('click', function (e) {
     if (dropdown && dropdown.open && !dropdown.contains(e.target)) dropdown.open = false;
   });

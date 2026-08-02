@@ -9,6 +9,19 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.0 — 2026-08-02
+
+- Nuevo en la web pública (voxikam.kpbtec.com): selector de idioma Español/English en el nav — toda la página (excepto el historial de versiones) ahora está disponible en inglés.
+
+---
+
+## v2.55.0 — 2026-08-02
+
+- Nuevo: la web pública (voxikam.kpbtec.com) ahora tiene selector de idioma Español/English.
+- Arreglos menores de diseño en esa misma web (dropdown de tema, íconos, ancho de página).
+
+---
+
 ## v2.54.2 — 2026-08-02
 
 - Mejora en la web pública (voxikam.kpbtec.com): el selector de tema del menú ahora es un desplegable con los 4 temas listados, no círculos de color sueltos.
