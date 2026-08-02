@@ -9,6 +9,13 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.54.1 — 2026-08-02
+
+- Simplificado: Reportes → Consumos ya no repite las vistas por país/grupo/prefijo — esas viven en Reportes → Por destino, con más detalle (calidad de llamada y país incluidos).
+- Mejoras menores en la web pública (voxikam.kpbtec.com): más claro qué hacen los círculos de color del selector de tema.
+
+---
+
 ## v2.54.0 — 2026-08-02
 
 - Nuevo: **Proveedores** — agrupá varias troncales/carriers del mismo proveedor real (ej. varias rutas de un mismo vendor) y mirá tus reportes también agrupados por proveedor, no solo por carrier individual. Nueva pantalla en Ruteo → Proveedores.

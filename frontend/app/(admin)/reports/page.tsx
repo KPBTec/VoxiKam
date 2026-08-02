@@ -37,14 +37,6 @@ function groupBy(rows: any[], key: string): Map<string, any[]> {
   return map
 }
 
-// Date.UTC evita el bug de timezone: new Date(y, m, 0) usa hora LOCAL y al
-// convertir a ISO con toISOString() puede retroceder un día en timezones
-// adelantados a UTC (ej. Europa) — con Date.UTC el cálculo es directo en UTC.
-function lastDayOfMonthISO(month: string) {
-  const [y, m] = month.split('-').map(Number)
-  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
-}
-
 export default function ReportsPage() {
   const today = new Date().toISOString().slice(0, 10)
   const month = today.slice(0, 7)
@@ -52,9 +44,8 @@ export default function ReportsPage() {
   const [tab, setTab]           = useState<'day' | 'month'>('month')
   const [date, setDate]         = useState(today)
   const [monthSel, setMonthSel] = useState(month)
-  const [view, setView]         = useState<'customer' | 'carrier' | 'provider' | 'area' | 'prefix'>('customer')
+  const [view, setView]         = useState<'customer' | 'carrier' | 'provider'>('customer')
   const [rows, setRows]         = useState<any[] | null>(null)
-  const [areaRows, setAreaRows] = useState<any[] | null>(null)
   const [loading, setLoading]   = useState(true) // arranca en true: el useEffect dispara el primer fetch al montar
   const [expanded, setExpanded] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -99,29 +90,15 @@ export default function ReportsPage() {
     finally { setLoading(false) }
   }
 
-  async function loadAreaPrefix(by: 'area' | 'prefix') {
-    setLoading(true); setError('')
-    try {
-      const dateFrom = tab === 'day' ? date : `${monthSel}-01`
-      const dateTo   = tab === 'day' ? date : lastDayOfMonthISO(monthSel)
-      const p = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, by })
-      const d = await apiGet(`/admin/areas/report?${p}`)
-      setAreaRows(d)
-    } catch (e: any) { setError(e.message || 'Error generando el reporte') }
-    finally { setLoading(false) }
-  }
-
   // Genera automáticamente al entrar y cada vez que cambia el período o la
   // vista — antes había que apretar "Generar" a mano cada vez, lo que se veía
   // como que "faltaba sincronizar" al abrir la página en blanco.
   useEffect(() => {
-    if (view === 'area' || view === 'prefix') loadAreaPrefix(view)
-    else loadCustomerCarrier()
+    loadCustomerCarrier()
   }, [tab, date, monthSel, view]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function generate() {
-    if (view === 'area' || view === 'prefix') loadAreaPrefix(view)
-    else loadCustomerCarrier()
+    loadCustomerCarrier()
   }
 
   const byCustomer = rows ? groupBy(rows, 'customer_name') : null
@@ -228,45 +205,6 @@ export default function ReportsPage() {
     )
   }
 
-  function renderAreaTable(label: string) {
-    return (
-      <div className={`${card} overflow-x-auto`}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-              <th className={`${th} text-left`}>{label}</th>
-              <th className={`${th} text-right`}>Llamadas</th>
-              <th className={`${th} text-right`}>Minutos</th>
-              <th className={`${th} text-right`}>Compra</th>
-              <th className={`${th} text-right`}>Venta</th>
-              <th className={`${th} text-right`}>Ganancia</th>
-              <th className={`${th} text-right`}>ASR</th>
-              <th className={`${th} text-right`}>ACD</th>
-              <th className={`${th} text-right`}>PDD</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--color-border)]/40">
-            {areaRows!.map((r, i) => (
-              <tr key={i}>
-                <td className={`${td} font-medium`}>
-                  {(r.area === 'Sin grupo' || r.area === 'Sin prefijo') ? <span className="text-[var(--color-muted)]">{r.area}</span> : r.area}
-                </td>
-                <td className={`${td} text-right font-mono`}>{r.nbcall}</td>
-                <td className={`${td} text-right font-mono text-[var(--color-text-2)]`}>{mins(r.sessiontime / 60)}</td>
-                <td className={`${td} text-right font-mono text-red-400`}>{money(r.buycost)}</td>
-                <td className={`${td} text-right font-mono text-brand-400`}>{money(r.sessionbill)}</td>
-                <td className={`${td} text-right font-mono text-green-400`}>{money(r.lucro)}</td>
-                <td className={`${td} text-right font-mono`}>{r.asr != null ? pct(r.asr) : '—'}</td>
-                <td className={`${td} text-right font-mono text-[var(--color-text-2)]`}>{r.acd != null ? `${r.acd.toFixed(0)}s` : '—'}</td>
-                <td className={`${td} text-right font-mono text-[var(--color-text-2)]`}>{r.pdd_ms != null ? `${r.pdd_ms.toFixed(0)}ms` : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-semibold">Consumos</h1>
@@ -315,14 +253,15 @@ export default function ReportsPage() {
           {loading ? 'Generando…' : 'Actualizar'}
         </button>
 
-        {/* Vista: por cliente / carrier (datos crudos) o por área / prefijo (destino) */}
+        {/* Vista: por cliente / carrier / proveedor — quién generó el consumo.
+            Agrupar por destino (país/grupo de prefijos/prefijo) vive en su
+            propia página, Reportes → Por destino, que además tiene ASR/ACD/PDD
+            y la herramienta de backfill — tenerlo acá también era redundante. */}
         <div className="ml-auto flex rounded-lg overflow-hidden border border-[var(--color-border)]">
           {([
             ['customer', 'Por cliente'],
             ['carrier',  'Por carrier'],
             ['provider', 'Por proveedor'],
-            ['area',     'Por grupo'],
-            ['prefix',   'Por prefijo'],
           ] as const).map(([v, label]) => (
             <button key={v} onClick={() => { setView(v); setExpanded(null) }}
               className={`px-4 py-1.5 text-sm transition-colors ${
@@ -342,15 +281,9 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {!loading && (view === 'customer' || view === 'carrier' || view === 'provider') && rows !== null && rows.length === 0 && (
+      {!loading && rows !== null && rows.length === 0 && (
         <div className={`${card} p-14 text-center`}>
           <p className="text-[var(--color-muted)] text-sm">Sin datos para el período seleccionado.</p>
-        </div>
-      )}
-
-      {!loading && (view === 'area' || view === 'prefix') && areaRows !== null && areaRows.length === 0 && (
-        <div className={`${card} p-14 text-center`}>
-          <p className="text-[var(--color-muted)] text-sm">Sin llamadas contestadas en el período seleccionado.</p>
         </div>
       )}
 
@@ -366,9 +299,6 @@ export default function ReportsPage() {
       {!loading && rows !== null && rows.length > 0 && view === 'provider' && byProvider && (
         renderSummary(byProvider, 'provider_name', 'carrier_name', 'prov', 'carrier')
       )}
-
-      {!loading && areaRows !== null && areaRows.length > 0 && view === 'area' && renderAreaTable('Grupo de prefijos')}
-      {!loading && areaRows !== null && areaRows.length > 0 && view === 'prefix' && renderAreaTable('Prefijo')}
     </div>
   )
 }

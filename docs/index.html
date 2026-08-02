@@ -455,6 +455,7 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
   nav { padding: 0 16px; }
   .nav-links a:not(.nav-cta) { display: none; }
   .nav-tag { display: none; }
+  .theme-picker { display: none; }
   section { padding: 60px 20px; }
   .hero { padding: 32px 16px 40px; }
   .hero .riveted { padding: 24px; }
@@ -477,7 +478,6 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 <nav>
   <a href="https://voxikam.kpbtec.com" class="nav-logo">
     <img src="assets/logo.svg" alt="VoxiKam" style="height:28px;width:auto;">
-    <span class="nav-tag mono">SIP Class 4</span>
   </a>
   <div class="nav-links">
     <a href="#features">Features</a>
@@ -486,6 +486,7 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
     <a href="#releases">Releases</a>
     <a href="#install">Instalar</a>
     <a href="manual/">Manual</a>
+    <span class="nav-tag mono theme-picker-label">Tema</span>
     <div class="theme-picker" id="theme-picker"></div>
     <a href="https://t.me/KPBTec" class="nav-cta" target="_blank">
       <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
@@ -500,7 +501,7 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
     <span class="rivet-tl"></span><span class="rivet-tr"></span><span class="rivet-bl"></span><span class="rivet-br"></span>
     <div class="hero-inner">
       <div>
-        <div class="nameplate"><span class="dot"></span>Unidad SBC · SIP Class 4</div>
+        <div class="nameplate"><span class="dot"></span>VoxiKam Plataforma · SIP Class 4</div>
         <h1>Kamailio ya rutea tus llamadas.<br>VoxiKam te dice <em>qué pasó</em> con cada una.</h1>
         <p class="hero-desc">
           Billing por minuto, trazas SIP capturadas vía HEP y firewall gestionado desde el panel —
@@ -509,7 +510,7 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
         <div class="hero-buttons">
           <a href="https://github.com/KPBTec/VoxiKam/archive/refs/heads/main.zip" class="btn btn-primary" target="_blank">
             <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            Descargar v2.54.0
+            Descargar v2.54.1
           </a>
           <a href="https://github.com/KPBTec/VoxiKam" class="btn btn-outline" target="_blank">
             <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.016-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.469-2.38 1.235-3.22-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.233 1.91 1.233 3.22 0 4.61-2.807 5.624-5.48 5.92.43.372.823 1.102.823 2.222 0 1.604-.015 2.896-.015 3.286 0 .32.216.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -529,7 +530,7 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
           </div>
           <div class="vu">
             <div class="lbl">Versión</div>
-            <div class="rdg">v2.54.0</div>
+            <div class="rdg">v2.54.1</div>
             <div class="bar"><i style="width:100%"></i></div>
           </div>
         </div>
@@ -740,7 +741,22 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 
       <details class="release-card" open>
         <summary class="release-header">
-          <span class="release-tag latest mono">v2.54.0 latest</span>
+          <span class="release-tag latest mono">v2.54.1 latest</span>
+          <span class="release-title">Consumos sin vistas duplicadas — landing pública más clara</span>
+          <span class="release-date mono">2026-08-02</span>
+          <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="release-body">
+          <ul>
+            <li>Reportes → Consumos queda con 3 vistas (Cliente/Carrier/Proveedor) — "Por grupo"/"Por prefijo" pegaban al mismo endpoint que Reportes → Por destino, sin país ni ACD/PDD ni backfill. Cero funcionalidad perdida, cero duplicación</li>
+            <li>Landing pública (voxikam.kpbtec.com): etiqueta "Tema" junto al selector de colores del nav, logo sin repetir "SIP Class 4", eyebrow del hero ahora dice "VoxiKam Plataforma · SIP Class 4"</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="release-card">
+        <summary class="release-header">
+          <span class="release-tag mono">v2.54.0</span>
           <span class="release-title">Nuevo: Proveedores (agrupa carriers) — IPs de clientes rediseñado — "Área" renombrada a "Grupo de prefijos"</span>
           <span class="release-date mono">2026-08-02</span>
           <svg class="release-chevron ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
