@@ -13,7 +13,16 @@ export function ThemePicker() {
   const [current, setCurrent] = useState<string>("bronce");
 
   useEffect(() => {
-    setCurrent(getUser()?.ui_theme || localStorage.getItem("voxikam_theme") || "bronce");
+    // Resuelve la preferencia guardada (cuenta > localStorage > default) y la
+    // re-aplica acá, no solo para decidir el check visible. Sin esto: si el
+    // script anti-flash del layout (que solo lee localStorage) y la
+    // preferencia real de la cuenta quedan desincronizados (otro dispositivo,
+    // cache borrada), la página seguía pintada con el tema viejo mientras el
+    // picker ya mostraba el check correcto — el chequeo y lo renderizado
+    // podían quedar desincronizados sin que nada los volviera a alinear.
+    const resolved = getUser()?.ui_theme || localStorage.getItem("voxikam_theme") || "bronce";
+    setCurrent(resolved);
+    applyTheme(resolved);
   }, []);
 
   async function choose(id: ThemeId) {
