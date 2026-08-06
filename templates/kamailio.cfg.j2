@@ -246,6 +246,21 @@ request_route {
                 rtpengine_manage();
             }
             if (is_method("BYE")) {
+                # t_check_trans(): si ya existe transacción para este BYE
+                # (retransmisión — normal bajo pérdida de paquetes/latencia,
+                # el UAC reenvía si no le llega la respuesta a tiempo),
+                # Kamailio reenvía solo la respuesta ya guardada y devuelve
+                # false. Sin este chequeo (que CANCEL/ACK sí tienen, ver abajo
+                # y en route[CANCEL]) cada copia del BYE volvía a correr todo
+                # esto de nuevo — log duplicado, UPDATE cdrs duplicado,
+                # rtpengine_delete() duplicado y un RELAY duplicado del BYE —
+                # y ESE relay duplicado es lo que deja al módulo dialog
+                # confundido: la llamada queda contestada-pero-zombie en
+                # dlg.briefing (sigue "viva" ahí) mucho después de haber
+                # cortado de verdad — ver backend/routers/live.py, que ahora
+                # filtra esos zombies por las dudas, pero el fix real es acá.
+                if (!t_check_trans()) { exit; }
+
                 # Liberar la sesión de RTPEngine AHORA — sin esto, queda huérfana
                 # hasta que expira sola por su propio timeout interno (hasta
                 # 3600s para streams silenciosos), acumulando sesiones zombie

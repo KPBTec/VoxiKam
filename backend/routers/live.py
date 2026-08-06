@@ -181,6 +181,7 @@ async def live_detail(db: AsyncSession = Depends(get_db), _=Depends(require_admi
     # sin tocar Kamailio/AWK/ClickHouse.
     call_ids = [c.get("call_id", "") for c in calls if c.get("call_id")]
     carrier_by_call: dict[str, str] = {}
+    known_call_ids: set[str] = set()
     if call_ids:
         cr = await db.execute(text("""
             SELECT ac.call_id, ca.name AS carrier_name
@@ -188,10 +189,24 @@ async def live_detail(db: AsyncSession = Depends(get_db), _=Depends(require_admi
             LEFT JOIN carriers ca ON ca.id = ac.carrier_id
             WHERE ac.call_id IN :call_ids
         """).bindparams(bindparam("call_ids", expanding=True)), {"call_ids": call_ids})
-        carrier_by_call = {row["call_id"]: row["carrier_name"] for row in cr.mappings().all()}
+        for row in cr.mappings().all():
+            known_call_ids.add(row["call_id"])
+            carrier_by_call[row["call_id"]] = row["carrier_name"]
 
     result = []
     for c in calls:
+        cid = c.get("call_id", "")
+        # BYEs duplicados/retransmitidos pueden confundir al módulo dialog
+        # interno de Kamailio: event_route[dialog:end] ya corrió y borró la
+        # fila de active_calls (la llamada terminó de verdad, hay CDR), pero
+        # dlg.briefing sigue reportándola como viva — se ve en Live como una
+        # llamada zombie con duración creciente y sin carrier (nunca lo va a
+        # tener, porque para el sistema de billing esa llamada ya cerró). Sin
+        # fila en active_calls == terminada para nosotros — se excluye del
+        # listado en vez de mostrarla fantasma con "—".
+        if cid and cid not in known_call_ids:
+            continue
+
         pfx     = c.get("prefijo", "")
         cust    = _resolve(pfx, pmap)
         start_ts = c.get("start_ts", 0)

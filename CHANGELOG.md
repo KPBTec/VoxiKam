@@ -9,6 +9,13 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.1 — 2026-08-06
+
+- Corregido: en Live, algunas llamadas ya terminadas podían quedar mostradas como si siguieran activas (sin operador/proveedor asignado, duración creciente). Ya no aparecen.
+- Corregido en el SBC: una causa de fondo de lo anterior — reintentos de red podían hacer que Kamailio procesara el corte de una llamada dos veces. Requiere una actualización completa (Upgrade) para aplicarse, ya que reinicia Kamailio.
+
+---
+
 ## v2.55.0 — 2026-08-02
 
 - Nuevo en la web pública (voxikam.kpbtec.com): selector de idioma Español/English en el nav — toda la página (excepto el historial de versiones) ahora está disponible en inglés.
