@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.2 — 2026-08-06
+
+- Corregido: en Live, las tarjetas de arriba (Contestadas, Activas por cliente) podían mostrar un número distinto al de la lista de llamadas de abajo. Ahora siempre coinciden.
+
+---
+
 ## v2.55.1 — 2026-08-06
 
 - Corregido: en Live, algunas llamadas ya terminadas podían quedar mostradas como si siguieran activas (sin operador/proveedor asignado, duración creciente). Ya no aparecen.

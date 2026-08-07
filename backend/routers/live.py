@@ -78,16 +78,39 @@ def _resolve(prefijo: str, prefix_map: dict) -> dict | None:
     return prefix_map.get(prefijo)
 
 
+async def _known_call_ids(db: AsyncSession, call_ids: list[str]) -> dict[str, str | None]:
+    """
+    {call_id: carrier_name} SOLO para los call_ids que de verdad tienen fila
+    en active_calls — la fuente de verdad de "esta llamada sigue viva para
+    el sistema". Un BYE duplicado/retransmitido puede confundir al módulo
+    dialog interno de Kamailio y dejarlo reportando un diálogo como
+    confirmado mucho después de haber cortado de verdad (CDR ya generado,
+    active_calls ya borrada — ver CHANGELOG v2.55.1). Cualquier call_id que
+    no aparezca en el resultado es una llamada zombie: ya terminó, Kamailio
+    todavía no se dio cuenta. Usado por / y /detail para que el conteo de
+    arriba y el listado de abajo cuenten siempre lo mismo.
+    """
+    if not call_ids:
+        return {}
+    r = await db.execute(text("""
+        SELECT ac.call_id, ca.name AS carrier_name
+        FROM active_calls ac
+        LEFT JOIN carriers ca ON ca.id = ac.carrier_id
+        WHERE ac.call_id IN :call_ids
+    """).bindparams(bindparam("call_ids", expanding=True)), {"call_ids": call_ids})
+    return {row["call_id"]: row["carrier_name"] for row in r.mappings().all()}
+
+
 @router.get("")
 async def live_calls(db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
     snap    = _read_snapshot()
     resumen = snap.get("resumen", {})
     por_pfx = snap.get("resumen_por_prefijo", [])
+    calls   = snap.get("llamadas", [])
 
-    ongoing    = resumen.get("llamadas_activas", 0)
-    timbrando  = resumen.get("timbrando", 0)
-    total      = resumen.get("total", 0)
-    fresh      = _snapshot_is_fresh(snap)
+    raw_ongoing = resumen.get("llamadas_activas", 0)
+    timbrando   = resumen.get("timbrando", 0)
+    fresh       = _snapshot_is_fresh(snap)
 
     # Zombie cleanup silencioso — SOLO si el snapshot es reciente y confiable.
     # Antes esto corría con cualquier snapshot, incluido uno viejo/roto con
@@ -95,10 +118,13 @@ async def live_calls(db: AsyncSession = Depends(get_db), _=Depends(require_admin
     # devuelve NINGUNA fila, así que "call_id NOT IN (nada)" hace match con
     # TODAS las filas — ¡borraba activas_calls entera creyendo que eran todas
     # zombies! Encontrado en vivo mientras se investigaba el reporte del
-    # usuario de "0 arriba pero 20 llamadas reales abajo".
+    # usuario de "0 arriba pero 20 llamadas reales abajo". Se basa en
+    # raw_ongoing (lo que Kamailio CREE que hay) a propósito — este cleanup
+    # ataca el caso contrario al de abajo: active_calls con MÁS filas viejas
+    # de las que Kamailio dice, no menos.
     if fresh:
         total_db = (await db.execute(text("SELECT COUNT(*) FROM active_calls"))).scalar() or 0
-        if total_db > ongoing + 5:
+        if total_db > raw_ongoing + 5:
             deleted = await db.execute(text("""
                 DELETE FROM active_calls
                 WHERE call_id NOT IN (
@@ -107,25 +133,44 @@ async def live_calls(db: AsyncSession = Depends(get_db), _=Depends(require_admin
                         ORDER BY started_at DESC LIMIT :lim
                     ) sub
                 )
-            """), {"lim": max(ongoing, 0)})
+            """), {"lim": max(raw_ongoing, 0)})
             await db.commit()
             if deleted.rowcount:
                 log.warning("Auto-sync: %d zombie(s) eliminados", deleted.rowcount)
+
+    # dlg.briefing puede seguir reportando una llamada como "contestada"
+    # mucho después de haber cortado de verdad — un BYE duplicado/
+    # retransmitido confunde al módulo dialog interno de Kamailio (ver
+    # _known_call_ids y CHANGELOG v2.55.1). Recalculamos "ongoing" cruzando
+    # cada llamada contra active_calls en vez de confiar en el conteo crudo
+    # — mismo criterio que /detail, así las tarjetas de arriba y el listado
+    # de abajo nunca se contradicen entre sí.
+    call_ids   = [c.get("call_id", "") for c in calls if c.get("call_id")]
+    known      = await _known_call_ids(db, call_ids)
+    real_calls = [c for c in calls if not c.get("call_id") or c.get("call_id") in known]
+    ongoing    = len(real_calls)
+    total      = ongoing + timbrando
+
+    active_by_prefix: dict[str, int] = {}
+    for c in real_calls:
+        pfx = c.get("prefijo", "")
+        active_by_prefix[pfx] = active_by_prefix.get(pfx, 0) + 1
 
     # Enriquecer resumen_por_prefijo con nombre de cliente
     pmap = await _prefix_map(db)
     by_customer = []
     for entry in por_pfx:
-        pfx  = entry.get("prefijo", "")
-        cust = _resolve(pfx, pmap)
+        pfx         = entry.get("prefijo", "")
+        cust        = _resolve(pfx, pmap)
+        real_active = active_by_prefix.get(pfx, 0)
         by_customer.append({
             "prefijo":         pfx,
             "customer_id":     cust["id"]    if cust else None,
             "customer_name":   cust["name"]  if cust else pfx,
             "label":           cust["label"] if cust else None,
-            "active_calls":    entry.get("llamadas_activas", 0),
+            "active_calls":    real_active,
             "timbrando":       entry.get("timbrando", 0),
-            "total":           entry.get("total", 0),
+            "total":           real_active + entry.get("timbrando", 0),
         })
     by_customer.sort(key=lambda x: -x["active_calls"])
 
@@ -180,18 +225,7 @@ async def live_detail(db: AsyncSession = Depends(get_db), _=Depends(require_admi
     # (kamailio.cfg.j2, INSERT INTO active_calls). Un solo cruce por call_id,
     # sin tocar Kamailio/AWK/ClickHouse.
     call_ids = [c.get("call_id", "") for c in calls if c.get("call_id")]
-    carrier_by_call: dict[str, str] = {}
-    known_call_ids: set[str] = set()
-    if call_ids:
-        cr = await db.execute(text("""
-            SELECT ac.call_id, ca.name AS carrier_name
-            FROM active_calls ac
-            LEFT JOIN carriers ca ON ca.id = ac.carrier_id
-            WHERE ac.call_id IN :call_ids
-        """).bindparams(bindparam("call_ids", expanding=True)), {"call_ids": call_ids})
-        for row in cr.mappings().all():
-            known_call_ids.add(row["call_id"])
-            carrier_by_call[row["call_id"]] = row["carrier_name"]
+    carrier_by_call = await _known_call_ids(db, call_ids)
 
     result = []
     for c in calls:
@@ -203,8 +237,9 @@ async def live_detail(db: AsyncSession = Depends(get_db), _=Depends(require_admi
         # llamada zombie con duración creciente y sin carrier (nunca lo va a
         # tener, porque para el sistema de billing esa llamada ya cerró). Sin
         # fila en active_calls == terminada para nosotros — se excluye del
-        # listado en vez de mostrarla fantasma con "—".
-        if cid and cid not in known_call_ids:
+        # listado en vez de mostrarla fantasma con "—". Mismo criterio que
+        # el endpoint / (arriba), vía _known_call_ids compartido.
+        if cid and cid not in carrier_by_call:
             continue
 
         pfx     = c.get("prefijo", "")
