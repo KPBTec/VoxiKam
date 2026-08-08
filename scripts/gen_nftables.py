@@ -13,7 +13,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime
-from ipaddress import ip_address
+from ipaddress import ip_network
 from pathlib import Path
 
 import pymysql
@@ -67,22 +67,31 @@ def _valid_ips(ips: list[str]) -> list[str]:
     SIN ESCAPAR en una regla/`define` nftables (`ip saddr {ip} ...`,
     `define set = { {{ ips|join(', ') }} }`), aplicada en caliente como
     root vía `sudo nft -f`. Los endpoints (customers.py::CustomerIPIn,
-    firewall.py::RuleIn) ya validan con ipaddress.ip_address() al guardar,
-    pero esto cubre IPs que ya estuvieran en la DB desde antes de esos
-    validadores, y también carriers.host (que llega acá sin pasar por
-    ningún Pydantic model — nft "ip saddr" tampoco resuelve DNS, así que un
-    host no-IP ya rompía `nft -f` antes de esto, esto solo lo descarta con
-    aviso en vez de dejarlo colar sin control).
+    firewall.py::RuleIn) ya validan al guardar, pero esto cubre IPs que ya
+    estuvieran en la DB desde antes de esos validadores, y también
+    carriers.host (que llega acá sin pasar por ningún Pydantic model — nft
+    "ip saddr" tampoco resuelve DNS, así que un host no-IP ya rompía
+    `nft -f` antes de esto, esto solo lo descarta con aviso en vez de
+    dejarlo colar sin control).
+
+    ip_network(strict=False), no ip_address() puro — acepta CIDR además de
+    IPs sueltas (una IP sola es un /32 válido). nftables soporta CIDR
+    nativo dentro de un set (`ip saddr { 1.2.3.4, 10.0.0.0/24 }`), así que
+    no hace falta cambiar cómo se arma la regla, solo esta validación.
+    Confirmado en producción: una regla real de firewall_rules con un
+    rango /28 (RTP de un carrier) se guardaba bien en la fila pero acá se
+    descartaba en silencio — el rango nunca llegaba a aplicarse al
+    firewall de verdad.
     """
     ok, bad = [], []
     for v in ips:
         try:
-            ip_address(v)
+            ip_network(v, strict=False)
             ok.append(v)
         except ValueError:
             bad.append(v)
     if bad:
-        print(f"  ⚠ {len(bad)} valor(es) no son una IP válida, descartados: {bad!r}")
+        print(f"  ⚠ {len(bad)} valor(es) no son una IP/CIDR válida, descartados: {bad!r}")
     return ok
 
 

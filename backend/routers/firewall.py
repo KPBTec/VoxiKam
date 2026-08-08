@@ -8,7 +8,7 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
-from ipaddress import ip_address
+from ipaddress import ip_network
 import subprocess, sys
 from pathlib import Path
 
@@ -30,15 +30,21 @@ class RuleIn(BaseModel):
     @field_validator("ip")
     @classmethod
     def _ip_must_be_valid(cls, v: str) -> str:
-        """Mismo criterio que customers.py::CustomerIPIn._ip_must_be_valid —
-        se embebe sin escapar en una regla nftables generada por
-        scripts/gen_nftables.py, aplicada como root vía `sudo nft -f`."""
+        """Acepta IP suelta o rango CIDR (ej. carriers cuyo RTP sale de un
+        pool de IPs, no de una sola) — ip_network(strict=False) acepta
+        ambos formatos (una IP sola se interpreta como /32). Antes usaba
+        ip_address() puro, que rechazaba cualquier CIDR — confirmado en
+        producción: una regla real "185.32.76.176/28" (RTP de un carrier)
+        quedaba guardada en la fila pero gen_nftables.py la descartaba en
+        silencio (mismo ip_address() en _valid_ips()) y nunca se aplicaba
+        al firewall. nftables soporta CIDR nativo en sets, así que no hace
+        falta tocar la generación de reglas, solo esta validación."""
         try:
-            ip_address(v)
+            ip_network(v, strict=False)
         except ValueError:
             raise ValueError(
-                "Debe ser una dirección IP válida (IPv4 o IPv6) — se usa tal cual "
-                "en una regla nftables generada"
+                "Debe ser una IP o rango CIDR válido (ej. 1.2.3.4 o 1.2.3.0/24) — "
+                "se usa tal cual en una regla nftables generada"
             )
         return v
 

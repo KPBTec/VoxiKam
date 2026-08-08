@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.6 — 2026-08-08
+
+- Corregido: una regla de firewall con un rango de IPs (CIDR) se guardaba correctamente pero nunca se aplicaba de verdad — quedaba descartada en silencio. Si tenías alguna regla así cargada, ahora sí tiene efecto.
+
+---
+
 ## v2.55.5 — 2026-08-08
 
 - Nuevo: en Grupos de ruteo ahora se ve claramente qué clientes tienen acceso habilitado a cada grupo (separado de quién lo está usando en este momento), con opción de quitar ese acceso.
