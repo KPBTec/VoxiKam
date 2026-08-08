@@ -129,7 +129,22 @@ async def get_group(gid: int, db: AsyncSession = Depends(get_db), _=Depends(requ
         WHERE cp.routing_group_id = :id
         ORDER BY customer_name
     """), {"id": gid})
-    return {**dict(g), "members": members.mappings().all(), "used_by": used_by.mappings().all()}
+    # "Habilitado para" (customer_carrier_groups) vs "used_by" de arriba son
+    # cosas distintas — tener el grupo habilitado no implica estar ruteando
+    # con él ahora mismo (el cliente puede tenerlo disponible y no haberlo
+    # elegido todavía). Sin esta lista separada, "used_by" vacío se leía como
+    # "nadie tiene acceso", pero podía haber clientes habilitados sin usarlo.
+    enabled_for = await db.execute(text("""
+        SELECT c.id AS customer_id, c.name AS customer_name, ccg.display_label
+        FROM customer_carrier_groups ccg JOIN customers c ON c.id = ccg.customer_id
+        WHERE ccg.group_id = :id ORDER BY c.name
+    """), {"id": gid})
+    return {
+        **dict(g),
+        "members": members.mappings().all(),
+        "used_by": used_by.mappings().all(),
+        "enabled_for": enabled_for.mappings().all(),
+    }
 
 
 @router.post("", status_code=201)

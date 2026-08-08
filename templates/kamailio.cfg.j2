@@ -610,6 +610,11 @@ onreply_route[MANAGE_REPLY] {
 
 failure_route[CARRIER_FAILOVER] {
     if (t_is_canceled()) { exit; }
+    # $avp(grp), no $var(grp) — un failure_route corre en una ejecución de
+    # script separada de la original, $var() no sobrevive ese salto (mismo
+    # motivo que $avp(orig_rU)/$avp(cid) más arriba); usar $var(grp) acá
+    # logueaba siempre "grupo 0" en vez del grupo real — confirmado en
+    # producción (vd1sbc2).
 
     if (t_check_status("5[0-9][0-9]") || t_check_status("408")) {
         # "FAILOVER" en el log solo si REALMENTE va a intentar otro carrier —
@@ -620,7 +625,7 @@ failure_route[CARRIER_FAILOVER] {
         # sin mencionar failover — recién si ds_next_dst() confirma que SÍ
         # hay otro destino, ahí sí se llama failover de verdad.
         if (ds_next_dst()) {
-            xlog("L_WARN", "[$(ci{s.select,0,@})] FAILOVER carrier: $du falló ($T_reply_code) — reintentando con siguiente carrier del grupo $var(grp)\n");
+            xlog("L_WARN", "[$(ci{s.select,0,@})] FAILOVER carrier: $du falló ($T_reply_code) — reintentando con siguiente carrier del grupo $avp(grp)\n");
             route(SET_CARRIER_DST);  # actualiza dlg_var(carrier_id) al nuevo carrier
             t_on_failure("CARRIER_FAILOVER");
             route(RELAY);
@@ -629,7 +634,7 @@ failure_route[CARRIER_FAILOVER] {
 
         # Sin otro carrier configurado en el grupo — esto NO es un failover,
         # es simplemente el resultado de esta llamada puntual.
-        xlog("L_WARN", "[$(ci{s.select,0,@})] Llamada fallida: $du respondió ($T_reply_code), grupo $var(grp) sin carrier de respaldo\n");
+        xlog("L_WARN", "[$(ci{s.select,0,@})] Llamada fallida: $du respondió ($T_reply_code), grupo $avp(grp) sin carrier de respaldo\n");
         rtpengine_delete();
         t_reply("503", "Carrier Unavailable");
         exit;
@@ -735,6 +740,14 @@ event_route[dialog:failed] {
     # para este call-id (desde failure_route), esta segunda llamada no hace nada.
     rtpengine_delete();
 
+    # $dlg_var(last_code) solo se setea en onreply_route[MANAGE_REPLY] cuando
+    # REALMENTE llega una respuesta del carrier. Si el carrier no contesta
+    # nada (fr_timer agota sin ni un 100 Trying) el 408 lo genera TM
+    # localmente y nunca pasa por onreply_route — last_code queda sin setear,
+    # y Kamailio interpola el pv vacío como el texto literal "<null>" en el
+    # SQL (sin comillas, porque acá se espera un entero) — sintaxis inválida,
+    # confirmado en producción (vd1sbc2, carrier sin responder). NULLIF lo
+    # mapea a NULL real en vez de romper el INSERT completo.
     sql_query("kb",
         "INSERT INTO cdrs_failed
             (call_id, customer_id, carrier_id, src_ip, src_number, dst_number, start_ts, sip_code)
@@ -746,7 +759,7 @@ event_route[dialog:failed] {
              '$(dlg_var(src_number){s.escape.common})',
              '$(dlg_var(dst_number){s.escape.common})',
              FROM_UNIXTIME($dlg_var(start_ts)),
-             $dlg_var(last_code))",
+             NULLIF('$dlg_var(last_code)', '<null>'))",
         "r");
 
     xlog("L_WARN", "[$(ci{s.select,0,@})] CDR-FAILED: code=$dlg_var(last_code) cust=$dlg_var(customer_id) dst=$dlg_var(dst_number)\n");

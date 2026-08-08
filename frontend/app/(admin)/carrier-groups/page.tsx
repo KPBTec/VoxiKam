@@ -15,7 +15,8 @@ interface GroupMember {
   name: string; host: string; status: string
 }
 interface UsedByEntry { customer_id: number; customer_name: string; ref: 'principal' | 'campaña'; label: string | null }
-interface GroupDetail extends CarrierGroup { members: GroupMember[]; used_by: UsedByEntry[] }
+interface EnabledForEntry { customer_id: number; customer_name: string; display_label: string }
+interface GroupDetail extends CarrierGroup { members: GroupMember[]; used_by: UsedByEntry[]; enabled_for: EnabledForEntry[] }
 interface CarrierOpt { id: number; name: string; host: string; status: string }
 interface CustomerOpt { id: number; name: string; techprefix: string }
 
@@ -145,6 +146,14 @@ export default function CarrierGroupsPage() {
       await reloadDetail()
     } catch (e: any) { setError(e.message) }
     finally { setEnablingForCustomer(false) }
+  }
+
+  async function removeAccess(customerId: number) {
+    if (!selected) return
+    try {
+      await apiDelete(`/admin/customers/${customerId}/carrier-groups/${selected.id}`)
+      await reloadDetail()
+    } catch (e: any) { setError(e.message) }
   }
 
   return (
@@ -322,6 +331,37 @@ export default function CarrierGroupsPage() {
               </div>
             </div>
 
+            {/* Habilitado para — a quién le dimos acceso (customer_carrier_groups), separado
+                de "Usado por" de arriba: tener acceso no implica estar ruteando con él ahora.
+                Sin esto, "Usado por: ninguno" se leía como "nadie tiene acceso todavía". */}
+            <div className="px-5 pb-5">
+              <div className="rounded-lg border border-[var(--color-border)] p-4 space-y-3">
+                <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Habilitado para</p>
+                {selected.enabled_for.length === 0 ? (
+                  <p className="text-sm text-[var(--color-text-2)]">
+                    Ningún cliente tiene acceso a este grupo todavía — habilitalo abajo.
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {selected.enabled_for.map(ef => (
+                      <li key={ef.customer_id} className="text-sm text-[var(--color-text)] flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-brand-500 flex-shrink-0" />
+                          {ef.customer_name}
+                          <span className="text-[var(--color-muted)]">— {ef.display_label}</span>
+                        </span>
+                        <button onClick={() => removeAccess(ef.customer_id)}
+                          title="Quitar acceso a este grupo"
+                          className="text-[var(--color-muted)] hover:text-red-400">
+                          <Trash2 size={14} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
             {/* Habilitar para un cliente — reemplaza el bloque "Grupos habilitados" que
                 antes vivía en la ficha del cliente. El cliente solo selecciona entre sus
                 grupos ya habilitados; habilitar/deshabilitar se gestiona acá. */}
@@ -340,7 +380,7 @@ export default function CarrierGroupsPage() {
                     <select required value={customerToEnable} onChange={e => setCustomerToEnable(e.target.value)} className={inputCls}>
                       <option value="">Seleccionar cliente…</option>
                       {customers
-                        .filter(c => !selected.used_by.some(u => u.customer_id === c.id))
+                        .filter(c => !selected.enabled_for.some(ef => ef.customer_id === c.id))
                         .map(c => <option key={c.id} value={c.id}>{c.name} — {c.techprefix}</option>)}
                     </select>
                   </div>

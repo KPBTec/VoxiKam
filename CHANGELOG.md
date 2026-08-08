@@ -9,6 +9,20 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.5 — 2026-08-08
+
+- Nuevo: en Grupos de ruteo ahora se ve claramente qué clientes tienen acceso habilitado a cada grupo (separado de quién lo está usando en este momento), con opción de quitar ese acceso.
+- Corregido: un error en la consola del navegador que aparecía en cada carga del panel para usuarios con un tema distinto al predeterminado. No afectaba el funcionamiento, solo generaba ruido en la consola.
+
+---
+
+## v2.55.4 — 2026-08-08
+
+- Corregido: cuando un proveedor no respondía nada a una llamada (caído o inalcanzable), esa llamada fallida no quedaba registrada en el historial. Ahora sí.
+- Corregido: los logs internos de reintento entre proveedores mostraban el número de grupo incorrecto — solo afectaba la lectura de logs, no el funcionamiento.
+
+---
+
 ## v2.55.3 — 2026-08-08
 
 - Corregido (crítico): en ciertos casos, al cortar una llamada, el otro extremo (cliente o proveedor) podía no enterarse del corte y seguir contando esa llamada como activa más tiempo del real, inflando la duración facturada de llamadas que en realidad ya habían terminado.

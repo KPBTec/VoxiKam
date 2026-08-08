@@ -46,7 +46,18 @@ const THEME_INIT_SCRIPT = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${publicSans.variable} ${martianMono.variable} ${bigShoulders.variable}`}>
+    <html
+      lang="es"
+      className={`${publicSans.variable} ${martianMono.variable} ${bigShoulders.variable}`}
+      // El THEME_INIT_SCRIPT de abajo le pone data-theme a este <html> ANTES
+      // de que React hidrate (a propósito, ver comentario arriba) — sin esto
+      // React ve el atributo "aparecer de la nada" en la hidratación y tira
+      // el mismatch (React error #418), aunque el resultado visual sea
+      // correcto. Mismo patrón recomendado por React para dark-mode-antes-
+      // de-hidratar. Acotado a este único elemento — no oculta mismatches
+      // reales en el resto del árbol.
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
