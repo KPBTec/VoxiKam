@@ -246,20 +246,30 @@ request_route {
                 rtpengine_manage();
             }
             if (is_method("BYE")) {
-                # t_check_trans(): si ya existe transacción para este BYE
-                # (retransmisión — normal bajo pérdida de paquetes/latencia,
-                # el UAC reenvía si no le llega la respuesta a tiempo),
-                # Kamailio reenvía solo la respuesta ya guardada y devuelve
-                # false. Sin este chequeo (que CANCEL/ACK sí tienen, ver abajo
-                # y en route[CANCEL]) cada copia del BYE volvía a correr todo
-                # esto de nuevo — log duplicado, UPDATE cdrs duplicado,
-                # rtpengine_delete() duplicado y un RELAY duplicado del BYE —
-                # y ESE relay duplicado es lo que deja al módulo dialog
-                # confundido: la llamada queda contestada-pero-zombie en
-                # dlg.briefing (sigue "viva" ahí) mucho después de haber
-                # cortado de verdad — ver backend/routers/live.py, que ahora
-                # filtra esos zombies por las dudas, pero el fix real es acá.
-                if (!t_check_trans()) { exit; }
+                # BUG REAL encontrado y reproducido en un entorno aislado
+                # (Kamailio 6.0.1 + rtpengine + mariadb, fuera de producción):
+                # t_check_trans() acá daba FALSE en el PRIMER Y ÚNICO BYE de
+                # la llamada — no en una retransmisión real, nunca hubo
+                # ninguna. Secuencia confirmada con trazas: loose_route()
+                # dispara el matching del módulo dialog, que EN ESE MOMENTO
+                # ya deja tocada la capa de transacciones (TM) — así que
+                # cuando el script recién acá pregunta con t_check_trans(),
+                # Kamailio ve la transacción "ya existente" y devuelve false,
+                # aunque sea la primera vez que este BYE llega. Resultado:
+                # exit; sin rtpengine_delete(), sin UPDATE de hangup_cause, y
+                # sin relay/reply de ningún tipo — el otro lado de la llamada
+                # nunca se entera del corte y la sigue facturando hasta que
+                # algo externo (ej. el refresh de Session-Expires) la
+                # destapa, mucho más tarde y con la llamada ya "colgada" del
+                # lado de quien nunca recibió el BYE.
+                #
+                # Reemplazado por un marcador propio en $dlg_var — vive en
+                # memoria compartida del diálogo (no en la transacción), así
+                # que sí sobrevive correctamente entre reintentos reales del
+                # mismo BYE (retransmisión UDP) sin depender del estado de TM
+                # que causaba el falso positivo de arriba.
+                if ($dlg_var(bye_seen) == "1") { exit; }
+                $dlg_var(bye_seen) = "1";
 
                 # Liberar la sesión de RTPEngine AHORA — sin esto, queda huérfana
                 # hasta que expira sola por su propio timeout interno (hasta
