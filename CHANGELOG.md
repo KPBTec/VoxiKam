@@ -9,6 +9,13 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.3 — 2026-08-08
+
+- Corregido (crítico): en ciertos casos, al cortar una llamada, el otro extremo (cliente o proveedor) podía no enterarse del corte y seguir contando esa llamada como activa más tiempo del real, inflando la duración facturada de llamadas que en realidad ya habían terminado.
+- Corregido: al quedarte momentáneamente sin proveedores o troncales activos en un grupo de ruteo, las llamadas nuevas podían quedar sin ninguna respuesta en vez de recibir un rechazo claro.
+
+---
+
 ## v2.55.2 — 2026-08-06
 
 - Corregido: en Live, las tarjetas de arriba (Contestadas, Activas por cliente) podían mostrar un número distinto al de la lista de llamadas de abajo. Ahora siempre coinciden.
