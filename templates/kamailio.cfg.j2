@@ -392,7 +392,13 @@ route[OUTBOUND_TO_CARRIER] {
     if (!ds_select_dst($var(grp), $var(alg))) {
         xlog("L_ERR", "OUTBOUND: sin carriers activos en grupo $var(grp) para $fU→$rU\n");
         rtpengine_delete();
-        t_reply("503", "No Carriers Available");
+        # t_reply() exige una transacción ya creada (t_newtran()/t_relay()) —
+        # acá todavía no existe ninguna (ds_select_dst() falló antes de
+        # llegar a CARRIER_SEND/RELAY), por eso tm tiraba "cannot send a
+        # t_reply to a message for which no T-state has been established"
+        # y el llamante se quedaba sin ninguna respuesta (ni 503 ni nada) —
+        # confirmado en producción real, no en teoría.
+        sl_send_reply("503", "No Carriers Available");
         exit;
     }
 
@@ -522,7 +528,10 @@ route[CPS_GATE] {
 route[CPS_TIMEOUT] {
     xlog("L_WARN", "CPS_GATE: carrier $avp(carrier_id) — {{ cps_max_wait_ms }}ms sin lugar, 503\n");
     rtpengine_delete();
-    t_reply("503", "Carrier CPS limit exceeded");
+    # mismo problema que en OUTBOUND_TO_CARRIER: acá tampoco hay transacción
+    # creada todavía (CPS_GATE corre antes de CARRIER_SEND/RELAY) — t_reply()
+    # fallaba silenciosamente, sl_send_reply() no necesita transacción.
+    sl_send_reply("503", "Carrier CPS limit exceeded");
 }
 
 ####### ENTRANTE: Carrier → Asterisk #######
@@ -535,7 +544,10 @@ route[INBOUND_TO_ASTERISK] {
     if (!ds_select_dst("1", $shv(asterisk_alg))) {
         xlog("L_ERR", "INBOUND: sin Asterisk activos (grupo 1) src=$si\n");
         rtpengine_delete();
-        t_reply("503", "All Asterisk Nodes Down");
+        # mismo problema: sin transacción creada todavía en este punto,
+        # t_reply() fallaba (tm.c: "no T-state has been established") y el
+        # carrier se quedaba sin respuesta alguna en vez de un 503 limpio.
+        sl_send_reply("503", "All Asterisk Nodes Down");
         exit;
     }
 
