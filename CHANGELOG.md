@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.8 — 2026-08-09
+
+- Cambio interno de organización del código, sin impacto para el usuario.
+
+---
+
 ## v2.55.7 — 2026-08-09
 
 - Corregido (importante): los cambios de firewall (agregar/quitar IPs de proveedores) no se aplicaban solos al guardar — quedaban en la base de datos pero el firewall real no se actualizaba hasta una intervención manual. Ahora se aplican al instante, como corresponde.

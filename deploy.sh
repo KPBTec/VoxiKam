@@ -170,9 +170,16 @@ _drop_db() {
 # trackea qué versión ya corrió — un deploy futuro solo ejecuta lo pendiente,
 # nunca vuelve a chequear algo ya aplicado.
 #
+# El SQL de cada migración vive en su propio archivo db/migrations/X.Y.Z.sql
+# (no acá adentro) — separa contenido SQL de orquestación bash, permite ver
+# el diff de una migración puntual sin scrollear deploy.sh entero, y da
+# resaltado de sintaxis SQL real en el editor. deploy.sh solo sabe QUÉ
+# versiones existen y en qué orden (el array MIGRATIONS) y CÓMO aplicarlas
+# (run_pending_migrations) — nunca el contenido.
+#
 # CÓMO AGREGAR UNA MIGRACIÓN NUEVA (a partir de v2.53.0):
-#   1. Agregar la versión al array MIGRATIONS de abajo, AL FINAL, en orden.
-#   2. Agregar un case a migration_sql() con el ALTER/CREATE correspondiente.
+#   1. Crear db/migrations/X.Y.Z.sql con el ALTER/CREATE correspondiente.
+#   2. Agregar esa versión al array MIGRATIONS de abajo, AL FINAL, en orden.
 #   3. NO tocar código viejo de --update/--upgrade — ese ya corrió en todo el
 #      parque real, se deja intacto (ver "Bootstrap" abajo).
 #
@@ -185,28 +192,14 @@ MIGRATIONS=(
     "2.55.7"
 )
 
+# migration_sql <version> — imprime el SQL de db/migrations/<version>.sql, o
+# falla (return 1) si el archivo no existe. $INSTALL_DIR ya apunta al repo
+# recién sincronizado en este punto del deploy (--update y --upgrade lo
+# setean antes de llegar acá), así que esto funciona igual en ambas ramas.
 migration_sql() {
-    case "$1" in
-        "2.54.0") cat <<'SQL'
-CREATE TABLE IF NOT EXISTS providers (
-    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(120) NOT NULL,
-    notes       TEXT NULL,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-ALTER TABLE carriers
-    ADD COLUMN provider_id INT UNSIGNED NULL AFTER name,
-    ADD INDEX idx_provider (provider_id),
-    ADD CONSTRAINT fk_carriers_provider FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE SET NULL;
-SQL
-            ;;
-        "2.55.7") cat <<'SQL'
-ALTER TABLE cdrs ADD INDEX idx_billing_pending (buycost, sessionbill, disposition, start_ts);
-SQL
-            ;;
-        *) return 1 ;;
-    esac
+    local f="$INSTALL_DIR/db/migrations/$1.sql"
+    [[ -f "$f" ]] || return 1
+    cat "$f"
 }
 
 # run_pending_migrations <mysql_cmd> <db_name>
