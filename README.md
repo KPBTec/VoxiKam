@@ -239,14 +239,32 @@ La mayoría de plataformas SIP exponen su panel en el puerto 80 sin rate limitin
 ## 🚀 Instalación
 
 ```bash
-git clone <repo> /opt/voxikam
-cd /opt/voxikam
+wget https://raw.githubusercontent.com/KPBTec/VoxiKam/main/install.sh
+sudo bash install.sh
+```
+
+Corre en **Debian 12+**. `install.sh` clona el repo en una carpeta temporal y le pasa el control a
+`deploy.sh`, que detecta las IPs del servidor, solicita configuración mínima y en aproximadamente 10
+minutos deja el sistema operativo.
+
+¿Preferís clonar vos mismo el repo en vez de usar `install.sh`? También funciona:
+
+```bash
+git clone https://github.com/KPBTec/VoxiKam.git
+cd VoxiKam
 sudo ./deploy.sh
 ```
 
-Corre en **Debian 12+**. Detecta IPs del servidor, solicita configuración mínima y en aproximadamente 10 minutos el sistema está operativo.
-
 ### Modos de actualización
+
+Para actualizar una instalación existente, corré `git pull` en la carpeta donde ya la clonaste
+(no hace falta pasar de nuevo por `install.sh` — eso es solo para la instalación inicial):
+
+```bash
+cd VoxiKam   # la carpeta donde clonaste originalmente
+git pull
+sudo ./deploy.sh --update
+```
 
 | Comando | Cuándo usarlo |
 |---|---|

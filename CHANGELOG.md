@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.10 — 2026-08-09
+
+- Nuevo: instalación en un solo paso. Ahora se puede instalar VoxiKam con `wget` + `sudo bash install.sh`, sin necesidad de clonar el repositorio a mano primero. El método anterior (clonar y correr `deploy.sh`) sigue funcionando igual.
+
+---
+
 ## v2.55.9 — 2026-08-09
 
 - Cambio interno de organización del código, sin impacto para el usuario.
