@@ -9,6 +9,13 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.7 — 2026-08-09
+
+- Corregido (importante): los cambios de firewall (agregar/quitar IPs de proveedores) no se aplicaban solos al guardar — quedaban en la base de datos pero el firewall real no se actualizaba hasta una intervención manual. Ahora se aplican al instante, como corresponde.
+- Corregido: bajo tráfico alto, el proceso que calcula la facturación podía chocar consigo mismo internamente y frenarse momentáneamente. Requiere una actualización de base de datos (automática, sin pérdida de datos).
+
+---
+
 ## v2.55.6 — 2026-08-08
 
 - Corregido: una regla de firewall con un rango de IPs (CIDR) se guardaba correctamente pero nunca se aplicaba de verdad — quedaba descartada en silencio. Si tenías alguna regla así cargada, ahora sí tiene efecto.

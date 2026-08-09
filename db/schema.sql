@@ -642,6 +642,15 @@ CREATE TABLE IF NOT EXISTS cdrs (
     INDEX idx_carrier_date    (carrier_id, start_ts),
     INDEX idx_date            (start_ts),
     INDEX idx_call_id         (call_id),
+    -- _billing_worker (backend/main.py) hace SELECT ... FOR UPDATE SKIP
+    -- LOCKED filtrando por buycost=0 AND sessionbill=0 — sin un índice que
+    -- arranque por esos dos campos, el motor termina examinando (y
+    -- bloqueando de paso) filas ya facturadas que no matchean, y con
+    -- --workers > 1 (varios procesos corriendo este worker en paralelo)
+    -- eso produce deadlocks reales entre ellos — confirmado en producción
+    -- (vd1sbc2, 2026-08-09). SKIP LOCKED por sí solo no alcanza si el
+    -- índice no acota bien qué filas se tocan.
+    INDEX idx_billing_pending (buycost, sessionbill, disposition, start_ts),
     INDEX idx_disposition     (disposition),
     PRIMARY KEY (id, start_ts)             -- start_ts en la PK: requisito de MySQL para particionar por esa columna
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4

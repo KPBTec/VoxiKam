@@ -182,6 +182,7 @@ _drop_db() {
 # beneficio y sí agrega riesgo. Este mecanismo es solo para lo nuevo.
 MIGRATIONS=(
     "2.54.0"
+    "2.55.7"
 )
 
 migration_sql() {
@@ -198,6 +199,10 @@ ALTER TABLE carriers
     ADD COLUMN provider_id INT UNSIGNED NULL AFTER name,
     ADD INDEX idx_provider (provider_id),
     ADD CONSTRAINT fk_carriers_provider FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE SET NULL;
+SQL
+            ;;
+        "2.55.7") cat <<'SQL'
+ALTER TABLE cdrs ADD INDEX idx_billing_pending (buycost, sessionbill, disposition, start_ts);
 SQL
             ;;
         *) return 1 ;;

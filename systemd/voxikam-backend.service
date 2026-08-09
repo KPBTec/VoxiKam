@@ -30,7 +30,18 @@ RestartSec=5
 # proyecto hermano (VoxiDet) con este mismo par de directivas. Las otras tres
 # no interfieren con sudo (son namespaces de montaje, no el flag de
 # no-new-privs del kernel) y sí acotan bastante el radio de daño de un RCE.
+# gen_nftables.py corre como subproceso de este backend (mismo namespace de
+# montaje) y escribe /etc/nftables.d/*.nft directo — sin esta excepción,
+# ProtectSystem=full deja TODO /etc de solo lectura para el backend Y sus
+# subprocesos, y esa escritura fallaba SIEMPRE con "[Errno 30] Read-only
+# file system" — silenciosa, porque Popen es fire-and-forget y nadie veía
+# el error salvo mirando el journal a mano. Confirmado en producción
+# (vd1sbc2): corrido a mano con sudo (sin este sandboxing) funcionaba
+# perfecto, pero nunca disparado desde el panel. /etc/kamailio/ (que
+# gen_dispatcher.py sí logra escribir desde este mismo servicio) no tiene
+# el mismo problema — no tocarlo sin evidencia de que también lo tenga.
 ProtectSystem=full
+ReadWritePaths=/etc/nftables.d
 ProtectHome=yes
 PrivateTmp=yes
 StandardOutput=journal
