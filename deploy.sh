@@ -178,7 +178,16 @@ _drop_db() {
 # (run_pending_migrations) — nunca el contenido.
 #
 # CÓMO AGREGAR UNA MIGRACIÓN NUEVA (a partir de v2.53.0):
-#   1. Crear db/migrations/X.Y.Z.sql con el ALTER/CREATE correspondiente.
+#   1. Crear db/migrations/X.Y.Z.sql con el ALTER/CREATE correspondiente —
+#      SIEMPRE con la variante idempotente (CREATE TABLE IF NOT EXISTS,
+#      ADD COLUMN IF NOT EXISTS, ADD INDEX IF NOT EXISTS, DROP ... IF EXISTS,
+#      soportadas desde MariaDB 10.5+). Si el SQL en sí llega a correr bien
+#      pero el INSERT que lo marca como aplicada en schema_migrations falla
+#      por cualquier motivo (conexión cortada, lo que sea), el próximo deploy
+#      reintenta la MISMA migración — sin IF NOT EXISTS eso revienta con
+#      "Duplicate key/column name" y queda pegada fallando para siempre hasta
+#      arreglarla a mano. Confirmado en producción (vd1sbc2, 2026-08-09,
+#      migración 2.55.7 con un ADD INDEX sin IF NOT EXISTS).
 #   2. Agregar esa versión al array MIGRATIONS de abajo, AL FINAL, en orden.
 #   3. NO tocar código viejo de --update/--upgrade — ese ya corrió en todo el
 #      parque real, se deja intacto (ver "Bootstrap" abajo).
