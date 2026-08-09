@@ -253,31 +253,8 @@ run_pending_migrations() {
 setup_rtpengine_systemd_override() {
     if [[ -f /lib/systemd/system/rtpengine-daemon.service ]]; then
         mkdir -p /etc/systemd/system/rtpengine-daemon.service.d
-        cat > /etc/systemd/system/rtpengine-daemon.service.d/voxikam-limits.conf << 'EOF'
-[Service]
-# LimitNOFILE: NO se fija acá — el paquete ya trae 150000 (más alto que
-# nuestro estándar de 65536 para otros servicios); fijarlo más bajo sería
-# una regresión real, no una mejora.
-LimitMEMLOCK=infinity
-LimitCORE=infinity
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_SYS_NICE
-# "FAILED TO DELETE KERNEL TABLE 0 (Permission denied), KERNEL FORWARDING
-# DISABLED" en cada reboot en frío (visto en vd1sbc2) — el módulo kernel
-# xt_RTPENGINE está compilado vía DKMS (confirmado en v2.24.14) pero nada lo
-# cargaba automáticamente al arrancar, así que en un boot recién hecho no
-# está listo cuando RTPEngine intenta usarlo (cae a modo userspace-only sin
-# avisar más que ese error). El ExecStartPre empaquetado
-# (rtpengine-iptables-setup) queda igual, se agrega el modprobe ANTES —
-# `-` al inicio: si el módulo no existiera por algún motivo, no debe romper
-# el arranque de RTPEngine, solo se queda en modo userspace como hasta ahora.
-ExecStartPre=
-ExecStartPre=-/sbin/modprobe -q xt_RTPENGINE
-ExecStartPre=/usr/sbin/rtpengine-iptables-setup start
-# Mismos argumentos que trae el paquete rtpengine-daemon, sin -E — si una
-# versión futura del paquete cambia esos flags, hay que revisar este override.
-ExecStart=
-ExecStart=/usr/bin/rtpengine -f --no-log-timestamps --pidfile /run/rtpengine/rtpengine-daemon.pid --config-file /etc/rtpengine/rtpengine.conf
-EOF
+        cp "$INSTALL_DIR/templates/rtpengine-daemon-override.conf" \
+           /etc/systemd/system/rtpengine-daemon.service.d/voxikam-limits.conf
         ok "RTPEngine systemd override → limits (antes nunca se aplicaban) + quitado -E (ahora sí loguea a syslog/local1) + modprobe xt_RTPENGINE antes de arrancar"
         warn "RTPEngine: log-facility=local1 + override sin -E — hace falta 'systemctl restart rtpengine' a mano (ventana de mantenimiento, corta audio en curso) para que todo esto tome efecto"
     fi
@@ -291,56 +268,24 @@ EOF
 # en main.py).
 setup_kamailio_rtpengine_syslog() {
     mkdir -p /etc/rsyslog.d /etc/logrotate.d
-    cat > /etc/rsyslog.d/40-kamailio.conf << 'EOF'
-# VoxiKam — captura logs de Kamailio (facility LOCAL0)
-# kamailio.cfg: log_facility=LOG_LOCAL0 log_stderror=no
-if $syslogfacility-text == 'local0' then /var/log/kamailio.log
-& stop
-EOF
+    cp "$INSTALL_DIR/templates/rsyslog-kamailio.conf" /etc/rsyslog.d/40-kamailio.conf
     touch /var/log/kamailio.log
     chown root:adm /var/log/kamailio.log 2>/dev/null || chown root:root /var/log/kamailio.log
     chmod 640 /var/log/kamailio.log
 
     # logrotate: solo el día actual, sin compresión (fácil de leer en vivo)
-    cat > /etc/logrotate.d/kamailio << 'EOF'
-/var/log/kamailio.log {
-    daily
-    rotate 1
-    missingok
-    notifempty
-    nocreate
-    postrotate
-        /usr/bin/systemctl -s HUP kill rsyslog.service 2>/dev/null || true
-    endscript
-}
-EOF
+    cp "$INSTALL_DIR/templates/logrotate-kamailio.conf" /etc/logrotate.d/kamailio
 
     # ── RTPEngine logging — mismo esquema, facility LOCAL1 (rtpengine.conf:
     # log-facility=local1) para no mezclarse con Kamailio (LOCAL0) en el mismo
     # archivo ─────────────────────────────────────────────────────────────────
-    cat > /etc/rsyslog.d/41-rtpengine.conf << 'EOF'
-# VoxiKam — captura logs de RTPEngine (facility LOCAL1)
-# rtpengine.conf: log-facility=local1
-if $syslogfacility-text == 'local1' then /var/log/rtpengine.log
-& stop
-EOF
+    cp "$INSTALL_DIR/templates/rsyslog-rtpengine.conf" /etc/rsyslog.d/41-rtpengine.conf
     touch /var/log/rtpengine.log
     chown root:adm /var/log/rtpengine.log 2>/dev/null || chown root:root /var/log/rtpengine.log
     chmod 640 /var/log/rtpengine.log
 
     # logrotate: solo el día actual, igual que kamailio.log
-    cat > /etc/logrotate.d/rtpengine << 'EOF'
-/var/log/rtpengine.log {
-    daily
-    rotate 1
-    missingok
-    notifempty
-    nocreate
-    postrotate
-        /usr/bin/systemctl -s HUP kill rsyslog.service 2>/dev/null || true
-    endscript
-}
-EOF
+    cp "$INSTALL_DIR/templates/logrotate-rtpengine.conf" /etc/logrotate.d/rtpengine
 
     # logrotate para los logs de cron (logs/*.log en INSTALL_DIR + los root-only
     # en LOG_DIR) — antes crecían sin límite, nada los rotaba nunca. 14 días
@@ -348,35 +293,15 @@ EOF
     # (una línea por corrida de cron, no por llamada), no hace falta el esquema
     # agresivo de esos. dlg_stats.log es la excepción (una línea por minuto,
     # forever) — mismo esquema corto que kamailio/rtpengine.
-    cat > /etc/logrotate.d/voxikam-cron << EOF
-$INSTALL_DIR/logs/*.log {
-    daily
-    rotate 14
-    compress
-    missingok
-    notifempty
-    nocreate
-}
-$LOG_DIR/dlg_stats.log $LOG_DIR/infra_alert.log {
-    daily
-    rotate 3
-    compress
-    missingok
-    notifempty
-    nocreate
-}
-EOF
+    sed -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" -e "s|__LOG_DIR__|$LOG_DIR|g" \
+        "$INSTALL_DIR/templates/logrotate-voxikam-cron.conf" > /etc/logrotate.d/voxikam-cron
     ok "logrotate configurado para logs de cron (14 días) y dlg_stats/infra_alert (3 días)"
 
     # journald sin límite gestionado — es el único canal donde sobreviven los
     # WARNING/ERROR reales del backend, y sin tope de retención dependía 100%
     # del default de la distro, no auditado.
     mkdir -p /etc/systemd/journald.conf.d
-    cat > /etc/systemd/journald.conf.d/voxikam.conf << 'EOF'
-[Journal]
-SystemMaxUse=1G
-MaxRetentionSec=30day
-EOF
+    cp "$INSTALL_DIR/templates/journald-voxikam.conf" /etc/systemd/journald.conf.d/voxikam.conf
     systemctl restart systemd-journald 2>/dev/null && ok "journald: tope 1GB / retención 30 días" || warn "No se pudo reiniciar systemd-journald — el límite quedó escrito pero no aplicado hasta el próximo reinicio"
 
     systemctl enable rsyslog 2>/dev/null || true
@@ -1372,21 +1297,8 @@ fi
 if [[ "$MODE" != "upgrade" ]]; then
     hdr "Configurando MariaDB"
 
-    cat > /etc/mysql/mariadb.conf.d/99-voxikam.cnf <<EOF
-[mysqld]
-port                    = $DB_PORT
-bind-address            = 127.0.0.1
-character-set-server    = utf8mb4
-collation-server        = utf8mb4_unicode_ci
-max_connections         = 200
-innodb_buffer_pool_size = 256M
-slow_query_log          = 1
-slow_query_log_file     = /var/log/mysql/slow.log
-long_query_time         = 2
-
-[client]
-port = $DB_PORT
-EOF
+    sed "s|__DB_PORT__|$DB_PORT|g" "$INSTALL_DIR/templates/mariadb-voxikam.cnf" \
+        > /etc/mysql/mariadb.conf.d/99-voxikam.cnf
 
     systemctl stop mariadb 2>/dev/null || true
     systemctl enable mariadb
@@ -1398,32 +1310,25 @@ EOF
 
     if $MSOCK -e "SELECT 1" 2>/dev/null; then
         info "MariaDB sin contraseña de root — configurando seguridad inicial..."
-        $MSOCK 2>/dev/null <<EOSQL || true
-ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
-DELETE FROM mysql.user WHERE User='';
-DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost','127.0.0.1','::1');
-DROP DATABASE IF EXISTS test;
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-FLUSH PRIVILEGES;
-EOSQL
+        DB_ROOT_PASS="$DB_ROOT_PASS" envsubst '$DB_ROOT_PASS' \
+            < "$INSTALL_DIR/db/setup/mariadb_init_security.sql" \
+            | $MSOCK 2>/dev/null || true
     elif [[ -n "$OLD_DB_ROOT_PASS" ]]; then
         info "Usando contraseña de root previa para configurar..."
-        mysql --user=root --password="$OLD_DB_ROOT_PASS" \
-              --socket=/run/mysqld/mysqld.sock 2>/dev/null <<EOSQL || true
-ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
-FLUSH PRIVILEGES;
-EOSQL
+        DB_ROOT_PASS="$DB_ROOT_PASS" envsubst '$DB_ROOT_PASS' \
+            < "$INSTALL_DIR/db/setup/mariadb_set_root_password.sql" \
+            | mysql --user=root --password="$OLD_DB_ROOT_PASS" \
+                    --socket=/run/mysqld/mysqld.sock 2>/dev/null || true
     else
         echo ""
         warn "MariaDB ya tiene contraseña de root. Ingresarla para continuar:"
         read -r -s -p "  Password root actual (vacío si no tiene): " EXISTING_ROOT; echo ""
         if mysql --user=root --password="$EXISTING_ROOT" \
                  --socket=/run/mysqld/mysqld.sock -e "SELECT 1" 2>/dev/null; then
-            mysql --user=root --password="$EXISTING_ROOT" \
-                  --socket=/run/mysqld/mysqld.sock <<EOSQL
-ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_ROOT_PASS';
-FLUSH PRIVILEGES;
-EOSQL
+            DB_ROOT_PASS="$DB_ROOT_PASS" envsubst '$DB_ROOT_PASS' \
+                < "$INSTALL_DIR/db/setup/mariadb_set_root_password.sql" \
+                | mysql --user=root --password="$EXISTING_ROOT" \
+                        --socket=/run/mysqld/mysqld.sock
         else
             err "No se pudo autenticar como root de MariaDB."; exit 1
         fi
@@ -1431,12 +1336,9 @@ EOSQL
     ok "Contraseña de root configurada"
 
     MC="mysql --user=root --password=$DB_ROOT_PASS --host=127.0.0.1 --port=$DB_PORT"
-    $MC <<EOSQL
-CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';
-CREATE USER IF NOT EXISTS '$DB_USER'@'localhost'  IDENTIFIED BY '$DB_PASS';
-FLUSH PRIVILEGES;
-EOSQL
+    DB_NAME="$DB_NAME" DB_USER="$DB_USER" DB_PASS="$DB_PASS" \
+        envsubst '$DB_NAME $DB_USER $DB_PASS' \
+        < "$INSTALL_DIR/db/setup/mariadb_create_db_and_user.sql" | $MC
     ok "MariaDB listo — puerto $DB_PORT | usuario $DB_USER"
 fi
 
@@ -1462,27 +1364,9 @@ hdr "Configurando ClickHouse"
 # de instalar (VPS resizeado) y el cap viejo se queda congelado si no.
 _CH_CONF="/etc/clickhouse-server/config.d/99-voxikam.xml"
 if [[ ! -f "$_CH_CONF" ]]; then
-    cat > "$_CH_CONF" <<EOF
-<clickhouse>
-    <http_port replace="replace">$CH_PORT</http_port>
-    <tcp_port replace="replace">$CH_NATIVE_PORT</tcp_port>
-    <!-- Caches de fábrica pensados para clusters analíticos grandes —
-         sip_traces acá es una sola tabla chica, no necesita nada de eso.
-         Sin bajarlos, el RSS base de ClickHouse en reposo (antes de
-         insertar una sola fila) ya ronda los 2GB, confirmado en producción
-         — inflaba el tope de memoria de abajo sin necesidad real. -->
-    <mark_cache_size>134217728</mark_cache_size>
-    <uncompressed_cache_size>0</uncompressed_cache_size>
-    <!-- Sin tope, ClickHouse usa los defaults del paquete (pensados para
-         servers dedicados grandes) — en una VPS chica compitiendo con
-         MariaDB/Kamailio/RTPEngine/Node eso puede llevar a swap o a que el
-         OOM-killer mate algo crítico. Valor autoajustado a $CH_MEM_CAP
-         arriba, según la RAM real del host — debe quedar por encima del RSS
-         base con los caches ya reducidos, o cada insert falla con
-         MEMORY_LIMIT_EXCEEDED (confirmado en producción con el tope viejo). -->
-    <max_server_memory_usage>$CH_MEM_CAP</max_server_memory_usage>
-</clickhouse>
-EOF
+    sed -e "s|__CH_PORT__|$CH_PORT|g" -e "s|__CH_NATIVE_PORT__|$CH_NATIVE_PORT|g" \
+        -e "s|__CH_MEM_CAP__|$CH_MEM_CAP|g" \
+        "$INSTALL_DIR/templates/clickhouse-voxikam.xml" > "$_CH_CONF"
     chown clickhouse:clickhouse "$_CH_CONF" 2>/dev/null || true
     systemctl restart clickhouse-server
     ok "ClickHouse reconfigurado — puerto HTTP $CH_PORT, puerto nativo $CH_NATIVE_PORT"
@@ -1565,15 +1449,8 @@ fi
 # falla, dejar al usuario de la app sin privilegios tumba toda la plataforma
 # en el próximo arranque — mejor que el deploy corte acá con el error visible
 # a que eso pase en silencio.
-if ! $MC <<EOSQL
-REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$DB_USER'@'127.0.0.1';
-REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$DB_USER'@'localhost';
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES, CREATE TEMPORARY TABLES, LOCK TABLES
-    ON \`$DB_NAME\`.* TO '$DB_USER'@'127.0.0.1';
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES, CREATE TEMPORARY TABLES, LOCK TABLES
-    ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
-FLUSH PRIVILEGES;
-EOSQL
+if ! DB_NAME="$DB_NAME" DB_USER="$DB_USER" envsubst '$DB_NAME $DB_USER' \
+        < "$INSTALL_DIR/db/setup/mariadb_grant_privileges.sql" | $MC
 then
     err "No se pudo acotar los privilegios de '$DB_USER' — revisar manualmente antes de arrancar los servicios (podría haber quedado sin privilegios)."
     exit 1
@@ -1747,44 +1624,14 @@ python3 "$INSTALL_DIR/scripts/gen_configs.py" \
 hdr "Performance tuning del sistema"
 
 # ── sysctl: buffers de red, conntrack, file descriptors ──────────────────────
-cat > /etc/sysctl.d/99-voxikam.conf << 'EOF'
-# VoxiKam v2.0 — SIP/RTP performance tuning
-
-# Buffers de socket UDP (RTPEngine necesita buffers grandes para bursts)
-net.core.rmem_max           = 67108864
-net.core.wmem_max           = 67108864
-net.core.rmem_default       = 4194304
-net.core.wmem_default       = 4194304
-net.ipv4.udp_mem            = 65536 131072 262144
-net.ipv4.udp_rmem_min       = 131072
-net.ipv4.udp_wmem_min       = 131072
-
-# Backlog de paquetes entrantes antes de que el kernel los procese
-net.core.netdev_max_backlog = 30000
-
-# File descriptors a nivel del sistema
-fs.file-max                 = 2097152
-
-# IP forward (requerido para xt_RTPENGINE en el futuro)
-net.ipv4.ip_forward         = 1
-
-# nf_conntrack — tabla más grande, timeouts UDP más cortos para SIP/RTP
-net.netfilter.nf_conntrack_max                  = 131072
-net.netfilter.nf_conntrack_udp_timeout          = 10
-net.netfilter.nf_conntrack_udp_timeout_stream   = 30
-net.netfilter.nf_conntrack_generic_timeout      = 120
-EOF
+cp "$INSTALL_DIR/templates/sysctl-voxikam.conf" /etc/sysctl.d/99-voxikam.conf
 
 sysctl -p /etc/sysctl.d/99-voxikam.conf > /dev/null 2>&1 \
     && ok "sysctl aplicado" \
     || warn "sysctl: algunos parámetros no disponibles en este kernel (normal en VMs)"
 
 # ── Blacklist nf_conntrack_sip — interfiere con RTPEngine ────────────────────
-cat > /etc/modprobe.d/voxikam-blacklist.conf << 'EOF'
-# El helper SIP del kernel parsea y reescribe SDPs — entra en conflicto con RTPEngine
-blacklist nf_conntrack_sip
-install nf_conntrack_sip /bin/true
-EOF
+cp "$INSTALL_DIR/templates/modprobe-voxikam-blacklist.conf" /etc/modprobe.d/voxikam-blacklist.conf
 modprobe -r nf_conntrack_sip 2>/dev/null || true
 ok "nf_conntrack_sip desactivado"
 
@@ -1792,35 +1639,10 @@ ok "nf_conntrack_sip desactivado"
 if systemctl list-units --full -all 2>/dev/null | grep -qE "kamailio(\.service)?"; then
     KAMAILIO_CONFIG_CHANGED=1
     mkdir -p /etc/systemd/system/kamailio.service.d
-    cat > /etc/systemd/system/kamailio.service.d/voxikam-limits.conf << EOF
-[Unit]
-# Sin esto, en un reboot completo no hay garantía de orden entre Kamailio y
-# MariaDB — si Kamailio arranca primero, sus workers (módulo sqlops) fallan
-# al conectar a la DB y esos procesos hijos mueren (init_child failed),
-# incluyendo los procesos timer/secondary timer que corren el sondeo
-# periódico de carriers del módulo dispatcher. Si esos no se recuperan solos,
-# los carriers quedan marcados caídos indefinidamente sin que nadie los
-# vuelva a probar — visto en producción en vd1sbc2 tras un reboot completo.
-After=mariadb.service
-Requires=mariadb.service
-
-[Service]
-LimitNOFILE=65536
-LimitMEMLOCK=infinity
-LimitCORE=infinity
-LimitNPROC=infinity
-# Requires=/After= solo garantiza que el UNIT de MariaDB ya arrancó — no que
-# ya esté aceptando conexiones (init interna, crash recovery de InnoDB, etc.
-# pueden tardar unos segundos más). Sin esto, "Can't connect to server on
-# 127.0.0.1" seguía pasando en vd1sbc2 pese al Requires/After de arriba.
-# TCP puro (no mysqladmin) para no depender de credenciales ni de que el
-# cliente de mysql esté instalado — sale apenas el puerto responde, hasta
-# 30s. Si MariaDB nunca responde, arranca igual (fail-open, no bloquea el
-# boot indefinidamente) — el ExecStartPre de abajo se encarga de esa espera.
-ExecStartPre=/bin/bash -c 'for i in \$(seq 1 30); do (exec 3<>/dev/tcp/127.0.0.1/$DB_PORT) 2>/dev/null && exit 0; sleep 1; done; echo "voxikam: MariaDB no respondió en 127.0.0.1:$DB_PORT tras 30s, arrancando Kamailio igual" >&2; exit 0'
-# Al reiniciar Kamailio pierde todos los diálogos → limpiar active_calls inmediatamente
-ExecStartPost=/bin/sh -c 'sleep 3 && $INSTALL_DIR/venv/bin/python3 $INSTALL_DIR/scripts/cleanup_active_calls.py >> $LOG_DIR/cleanup.log 2>&1 || true'
-EOF
+    sed -e "s|__DB_PORT__|$DB_PORT|g" -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
+        -e "s|__LOG_DIR__|$LOG_DIR|g" \
+        "$INSTALL_DIR/templates/kamailio-systemd-override.conf" \
+        > /etc/systemd/system/kamailio.service.d/voxikam-limits.conf
     ok "Kamailio systemd limits → LimitNOFILE=65536, LimitMEMLOCK=infinity + ExecStartPost cleanup + espera activa a MariaDB + After/Requires=mariadb.service"
     # La memoria interna (SHM/PKG) se calcula más abajo, en scripts/autotune.sh
     # (--no-restart) — después de que kamailio.cfg ya se regeneró desde el
@@ -1852,15 +1674,8 @@ if systemctl is-active mariadb &>/dev/null || systemctl is-active mysql &>/dev/n
         INNODB_POOL_MB=512
     fi
 
-    cat > /etc/mysql/mariadb.conf.d/99-voxikam-perf.cnf << EOF
-# VoxiKam v2.0 — MariaDB performance tuning
-# Auto-calculado: RAM=${TOTAL_MEM_MB}MB → InnoDB pool=${INNODB_POOL_MB}MB
-[mysqld]
-innodb_buffer_pool_size        = ${INNODB_POOL_MB}M
-innodb_flush_log_at_trx_commit = 2
-innodb_log_buffer_size         = 32M
-innodb_flush_method            = O_DIRECT
-EOF
+    sed -e "s|__TOTAL_MEM_MB__|$TOTAL_MEM_MB|g" -e "s|__INNODB_POOL_MB__|$INNODB_POOL_MB|g" \
+        "$INSTALL_DIR/templates/mariadb-perf.cnf" > /etc/mysql/mariadb.conf.d/99-voxikam-perf.cnf
 
     SVC_DB="mariadb"
     systemctl is-active mysql &>/dev/null && SVC_DB="mysql"
@@ -1871,11 +1686,7 @@ fi
 
 # ── NIC ring buffers via udev + aplicar ahora ────────────────────────────────
 if command -v ethtool &>/dev/null; then
-    cat > /etc/udev/rules.d/71-voxikam-nic.rules << 'EOF'
-# VoxiKam v2.0 — ring buffers 4096 en todas las NICs físicas
-ACTION=="add", SUBSYSTEM=="net", KERNEL!="lo", DRIVERS=="?*", \
-    RUN+="/sbin/ethtool -G $name rx 4096 tx 4096 2>/dev/null || true"
-EOF
+    cp "$INSTALL_DIR/templates/udev-voxikam-nic.rules" /etc/udev/rules.d/71-voxikam-nic.rules
     for iface in $(ip -br link show | awk '$1 != "lo" {print $1}' | cut -d@ -f1); do
         ethtool -G "$iface" rx 4096 tx 4096 2>/dev/null \
             && ok "NIC $iface ring buffers → rx/tx 4096" \

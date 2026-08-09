@@ -23,6 +23,11 @@ chk curl         "curl"
 chk openssl      "openssl"
 chk rsync        "rsync"
 chk rsyslogd     "rsyslog"
+# envsubst (gettext-base) — usado por deploy.sh para renderizar db/setup/*.sql
+# (contienen contraseñas reales: sed rompía o corrompía la sustitución si el
+# valor tenía '/', '&' o '\', envsubst sustituye el valor literal sin
+# interpretarlo como patrón).
+chk envsubst     "gettext-base"
 
 dpkg -l mariadb-server 2>/dev/null | grep -q "^ii" || { MISSING+=("mariadb-server"); PKGS+=("mariadb-server mariadb-client"); }
 

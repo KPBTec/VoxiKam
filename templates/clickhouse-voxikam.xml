@@ -1,0 +1,19 @@
+<clickhouse>
+    <http_port replace="replace">__CH_PORT__</http_port>
+    <tcp_port replace="replace">__CH_NATIVE_PORT__</tcp_port>
+    <!-- Caches de fábrica pensados para clusters analíticos grandes —
+         sip_traces acá es una sola tabla chica, no necesita nada de eso.
+         Sin bajarlos, el RSS base de ClickHouse en reposo (antes de
+         insertar una sola fila) ya ronda los 2GB, confirmado en producción
+         — inflaba el tope de memoria de abajo sin necesidad real. -->
+    <mark_cache_size>134217728</mark_cache_size>
+    <uncompressed_cache_size>0</uncompressed_cache_size>
+    <!-- Sin tope, ClickHouse usa los defaults del paquete (pensados para
+         servers dedicados grandes) — en una VPS chica compitiendo con
+         MariaDB/Kamailio/RTPEngine/Node eso puede llevar a swap o a que el
+         OOM-killer mate algo crítico. Valor autoajustado a __CH_MEM_CAP__
+         arriba, según la RAM real del host — debe quedar por encima del RSS
+         base con los caches ya reducidos, o cada insert falla con
+         MEMORY_LIMIT_EXCEEDED (confirmado en producción con el tope viejo). -->
+    <max_server_memory_usage>__CH_MEM_CAP__</max_server_memory_usage>
+</clickhouse>

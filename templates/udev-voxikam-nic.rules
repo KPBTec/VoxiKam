@@ -1,0 +1,3 @@
+# VoxiKam v2.0 — ring buffers 4096 en todas las NICs físicas
+ACTION=="add", SUBSYSTEM=="net", KERNEL!="lo", DRIVERS=="?*", \
+    RUN+="/sbin/ethtool -G $name rx 4096 tx 4096 2>/dev/null || true"

@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.55.9 — 2026-08-09
+
+- Cambio interno de organización del código, sin impacto para el usuario.
+
+---
+
 ## v2.55.8 — 2026-08-09
 
 - Cambio interno de organización del código, sin impacto para el usuario.
