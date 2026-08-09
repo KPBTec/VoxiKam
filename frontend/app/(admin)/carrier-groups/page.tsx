@@ -295,7 +295,7 @@ export default function CarrierGroupsPage() {
                           <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-zinc-700 text-zinc-400">inactivo</span>
                         )}
                       </span>
-                      <button onClick={() => removeMember(m.carrier_id)} className="text-[var(--color-muted)] hover:text-red-400">
+                      <button onClick={() => removeMember(m.carrier_id)} aria-label="Quitar del grupo" className="text-[var(--color-muted)] hover:text-red-400">
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -352,6 +352,7 @@ export default function CarrierGroupsPage() {
                         </span>
                         <button onClick={() => removeAccess(ef.customer_id)}
                           title="Quitar acceso a este grupo"
+                          aria-label="Quitar acceso a este grupo"
                           className="text-[var(--color-muted)] hover:text-red-400">
                           <Trash2 size={14} />
                         </button>

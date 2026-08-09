@@ -199,6 +199,7 @@ _drop_db() {
 MIGRATIONS=(
     "2.54.0"
     "2.55.7"
+    "2.55.12"
 )
 
 # migration_sql <version> — imprime el SQL de db/migrations/<version>.sql, o

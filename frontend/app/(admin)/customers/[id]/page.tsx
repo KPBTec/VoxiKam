@@ -249,7 +249,7 @@ export default function CustomerDetailPage() {
   async function adjustBalance(e: React.FormEvent) {
     e.preventDefault(); setAdjustingBalance(true)
     try {
-      await apiPost(`/admin/customers/${id}/balance?amount=${balanceAmt}`, {})
+      await apiPost(`/admin/customers/${id}/balance`, { amount: Number(balanceAmt) })
       setBalanceAmt(''); load(); loadBalanceTx(true)
     } catch (e: any) { setError(e.message) }
     finally { setAdjustingBalance(false) }
@@ -275,7 +275,7 @@ export default function CustomerDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4 flex-wrap">
-        <Link href="/customers" className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+        <Link href="/customers" aria-label="Volver" className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1 min-w-[10rem]">
@@ -664,7 +664,7 @@ export default function CustomerDetailPage() {
                       </select>
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      <button onClick={() => deletePrefix(p.id)}
+                      <button onClick={() => deletePrefix(p.id)} aria-label="Eliminar prefijo"
                         className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
                         <Trash2 size={14} />
                       </button>

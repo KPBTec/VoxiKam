@@ -6,6 +6,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import hashlib
+import hmac
 import os
 import time
 
@@ -48,7 +49,10 @@ async def require_ingest_secret(x_ingest_secret: str | None = Header(None)) -> N
     llamador (si algún día se usa — ver docstring de ingest_cdr) no puede
     loguearse como usuario, es un posible caller máquina-a-máquina.
     """
-    if not CDR_INGEST_SECRET or x_ingest_secret != CDR_INGEST_SECRET:
+    # Auditoría v2.55: comparar con != hace short-circuit en el primer byte
+    # distinto — canal de temporización que en teoría permite reconstruir el
+    # secreto byte a byte. hmac.compare_digest() es constante-en-tiempo.
+    if not CDR_INGEST_SECRET or not x_ingest_secret or not hmac.compare_digest(x_ingest_secret, CDR_INGEST_SECRET):
         raise HTTPException(status_code=401, detail="Secreto de ingest inválido o ausente")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")

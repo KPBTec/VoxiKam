@@ -95,7 +95,7 @@ export default function ResellerCarrierDetail() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/my/reseller/carriers" className="text-[var(--color-text-2)] hover:text-[var(--color-text)] transition-colors">
+        <Link href="/my/reseller/carriers" aria-label="Volver" className="text-[var(--color-text-2)] hover:text-[var(--color-text)] transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1">
@@ -211,7 +211,7 @@ export default function ResellerCarrierDetail() {
                   <td className="px-5 py-2.5 text-right font-mono text-[var(--color-text-2)]">S/ {(+r.connectcharge).toFixed(4)}</td>
                   <td className="px-5 py-2.5 text-right text-[var(--color-text-2)]">{r.billingblock}s</td>
                   <td className="px-5 py-2.5 text-right">
-                    <button onClick={() => delRate(r.id)} className="text-[var(--color-muted)] hover:text-red-400">
+                    <button onClick={() => delRate(r.id)} aria-label="Eliminar tarifa" className="text-[var(--color-muted)] hover:text-red-400">
                       <Trash2 size={14} />
                     </button>
                   </td>

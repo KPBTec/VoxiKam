@@ -1,9 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { apiGet, apiPost, apiPut } from '@/lib/api'
+import { apiGet, apiPost, apiPut, getErrorMessage } from '@/lib/api'
 import { UserPlus, KeyRound, UserX, UserCheck } from 'lucide-react'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import { Field } from '@/components/Field'
 
 interface AdminUser {
   id: number
@@ -31,10 +32,13 @@ export default function AdminUsersPage() {
   async function load() {
     setLoading(true); setError('')
     try {
-      const [list, me] = await Promise.all([apiGet('/admin/users'), apiGet('/auth/me')])
+      const [list, me] = await Promise.all([
+        apiGet<AdminUser[]>('/admin/users'),
+        apiGet<{ id: number }>('/auth/me'),
+      ])
       setUsers(list)
       setMeId(me.id)
-    } catch (e: any) { setError(e.message || 'Error cargando usuarios') }
+    } catch (e) { setError(getErrorMessage(e, 'Error cargando usuarios')) }
     finally { setLoading(false) }
   }
   useEffect(() => { load() }, [])
@@ -45,7 +49,7 @@ export default function AdminUsersPage() {
       await apiPost('/admin/users', form)
       setForm({ name: '', email: '', password: '' })
       load()
-    } catch (e: any) { setError(e.message) }
+    } catch (e) { setError(getErrorMessage(e, 'Error al crear el usuario')) }
     finally { setCreating(false) }
   }
 
@@ -54,7 +58,7 @@ export default function AdminUsersPage() {
     try {
       await apiPut(`/admin/users/${u.id}/active`, { is_active: !u.is_active })
       load()
-    } catch (e: any) { setError(e.message) }
+    } catch (e) { setError(getErrorMessage(e, 'Error al cambiar el estado')) }
   }
 
   async function savePassword(uid: number) {
@@ -62,11 +66,10 @@ export default function AdminUsersPage() {
     try {
       await apiPut(`/admin/users/${uid}/password`, { password: pwValue })
       setPwFor(null); setPwValue('')
-    } catch (e: any) { setError(e.message) }
+    } catch (e) { setError(getErrorMessage(e, 'Error al guardar la contraseña')) }
   }
 
   const card = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
-  const inputCls = 'w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500'
 
   if (loading) return <div className="text-[var(--color-muted)] p-8">Cargando...</div>
 
@@ -82,18 +85,18 @@ export default function AdminUsersPage() {
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <form onSubmit={createAdmin} className={`${card} p-5 grid grid-cols-4 gap-3 items-end`}>
-        <div>
-          <label className="block text-xs text-[var(--color-text-2)] mb-1">Nombre</label>
-          <input required className={inputCls} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-        </div>
-        <div>
-          <label className="block text-xs text-[var(--color-text-2)] mb-1">Email</label>
-          <input type="email" required className={inputCls} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-        </div>
-        <div>
-          <label className="block text-xs text-[var(--color-text-2)] mb-1">Contraseña</label>
-          <input type="password" required minLength={8} className={inputCls} value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-        </div>
+        <Field
+          id="new-user-name" label="Nombre" required
+          value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+        />
+        <Field
+          id="new-user-email" label="Email" type="email" required
+          value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+        />
+        <Field
+          id="new-user-password" label="Contraseña" type="password" required minLength={8}
+          value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+        />
         <button type="submit" disabled={creating}
           className="flex items-center justify-center gap-1.5 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
           <UserPlus size={15} /> {creating ? 'Creando…' : 'Crear usuario'}
@@ -133,6 +136,7 @@ export default function AdminUsersPage() {
                       <>
                         <input
                           type="password" autoFocus minLength={8} placeholder="Nueva contraseña"
+                          aria-label={`Nueva contraseña para ${u.name}`}
                           value={pwValue} onChange={e => setPwValue(e.target.value)}
                           className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-2 py-1 text-xs w-36"
                         />

@@ -164,15 +164,17 @@ async def add_group_rate(pid: int, body: GroupRateIn, db: AsyncSession = Depends
         {"g": body.group_name}
     )
     prefix_ids = [row[0] for row in r.fetchall()]
-    for pfx_id in prefix_ids:
+    # Auditoría v2.55: antes un INSERT por prefijo en loop — ver mismo criterio
+    # aplicado en carriers.py::add_group_buy_rate (executemany en un solo round-trip).
+    if prefix_ids:
         await db.execute(text("""
             INSERT INTO rates (rate_plan_id, prefix_id, rateinitial, connectcharge,
                                initblock, billingblock, minimal_time_charge, status)
             VALUES (:pid, :pfx, :rate, :cc, :ib, :bb, 0, 'active')
             ON DUPLICATE KEY UPDATE rateinitial=:rate, connectcharge=:cc,
                 initblock=:ib, billingblock=:bb
-        """), {"pid": pid, "pfx": pfx_id, "rate": body.rateinitial, "cc": body.connectcharge,
-               "ib": body.initblock, "bb": body.billingblock})
+        """), [{"pid": pid, "pfx": pfx_id, "rate": body.rateinitial, "cc": body.connectcharge,
+                "ib": body.initblock, "bb": body.billingblock} for pfx_id in prefix_ids])
     await record_event(db, "rate_plan", pid, "group_rate_set", admin.get("name") or admin.get("email"),
                         f"grupo {body.group_name} → {body.rateinitial}/min ({len(prefix_ids)} prefijos)")
     await db.commit()

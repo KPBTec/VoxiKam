@@ -9,6 +9,27 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.56.0 — 2026-08-09
+
+Resultado de una auditoría interna completa de seguridad, backend, frontend y calidad — 22 mejoras y correcciones, de mayor a menor impacto.
+
+- Seguridad: corregida una forma de falsear la IP de origen que podía provocar el baneo (fail2ban) de la IP real de un cliente o proveedor.
+- Seguridad: agregado un límite de intentos de inicio de sesión por cuenta, además del límite existente por IP — más resistente a ataques distribuidos.
+- Seguridad: comparación del secreto de ingesta de llamadas reforzada contra ataques de temporización.
+- Corregido: un ajuste manual de saldo desde el panel no disparaba la alerta de saldo bajo configurada.
+- Corregido: bajo tráfico alto con múltiples procesos, una alerta de saldo bajo podía notificarse duplicada.
+- Corregido: cambiar el dominio del panel podía tardar en propagarse a todos los procesos del backend; ahora converge solo en pocos minutos.
+- Mejorado: las regeneraciones automáticas de firewall/enrutamiento que fallaban en segundo plano ahora quedan registradas en el log, en vez de pasar desapercibidas.
+- Mejorado: aplicar una tarifa a un grupo grande de prefijos es ahora significativamente más rápido.
+- Corregido: una migración de base de datos de una versión anterior podía fallar al reintentarse en instalaciones ya actualizadas. Se autocorrige solo, sin pérdida de datos.
+- Mejorado: nuevo índice de base de datos para acelerar la identificación de proveedores en el registro de llamadas.
+- Corregido: un problema de sincronización en la barra lateral del panel que podía mostrar brevemente información desactualizada al cargar la página.
+- Mejorado: agregadas etiquetas descriptivas a los botones de solo ícono del panel (editar, eliminar, guardar, cancelar, etc.) para mejor accesibilidad con lectores de pantalla.
+- Mejorado: los campos de formulario en varias pantallas del panel ahora están correctamente asociados a su etiqueta, mejorando la accesibilidad y la usabilidad.
+- Interno: código de organización y calidad — nueva suite de pruebas automatizadas, integración continua y pruebas end-to-end para el flujo de inicio de sesión. Sin impacto visible para el usuario, pero reduce el riesgo de regresiones en futuras actualizaciones.
+
+---
+
 ## v2.55.11 — 2026-08-09
 
 - Corregido: una actualización de base de datos de la versión anterior podía quedar reintentando sin éxito en cada actualización posterior. Se autocorrige solo en la próxima actualización, sin pérdida de datos.

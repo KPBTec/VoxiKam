@@ -78,10 +78,22 @@ async def check_balance_alert(db: AsyncSession, customer_id: int) -> None:
     if breached["id"] == already:
         return  # mismo nivel ya notificado, no repetir en cada CDR
 
-    await db.execute(text(
-        "UPDATE customers SET last_alert_rule_id = :rid WHERE id = :id"
+    # Auditoría v2.55: antes esto era check-then-act puro (leído arriba,
+    # escrito acá sin condición) — con --workers>1, dos CDRs del mismo
+    # cliente en dos procesos distintos podían cruzar el mismo umbral en la
+    # misma ventana y ambos leer last_alert_rule_id todavía sin actualizar,
+    # duplicando el correo/webhook. El WHERE de abajo lo vuelve atómico:
+    # InnoDB hace un "current read" al evaluar el UPDATE (no la foto vieja de
+    # la transacción), así que el segundo proceso en llegar ve el valor que
+    # el primero ya escribió y su propio UPDATE afecta 0 filas — mismo
+    # patrón que ya usan mark_paid()/disconnect_policies.py en este repo.
+    result = await db.execute(text(
+        "UPDATE customers SET last_alert_rule_id = :rid "
+        "WHERE id = :id AND (last_alert_rule_id IS NULL OR last_alert_rule_id != :rid)"
     ), {"rid": breached["id"], "id": customer_id})
     await db.commit()
+    if result.rowcount == 0:
+        return  # otro proceso ya lo marcó en esta misma ventana — no duplicar el aviso
 
     to_email = await get_alert_notify_email(db)
     ok = await send_email(

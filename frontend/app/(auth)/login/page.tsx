@@ -83,12 +83,14 @@ export default function LoginPage() {
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1.5">
             <label
+              htmlFor="login-email"
               className="block text-[11px] font-semibold uppercase tracking-widest"
               style={{ color: "var(--color-text-2)" }}
             >
               Email
             </label>
             <input
+              id="login-email"
               type="email" required value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="admin@empresa.com"
@@ -105,12 +107,14 @@ export default function LoginPage() {
 
           <div className="space-y-1.5">
             <label
+              htmlFor="login-password"
               className="block text-[11px] font-semibold uppercase tracking-widest"
               style={{ color: "var(--color-text-2)" }}
             >
               Contraseña
             </label>
             <input
+              id="login-password"
               type="password" required value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all"

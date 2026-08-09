@@ -21,12 +21,12 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
-import subprocess, sys
 from pathlib import Path
 
 from auth import require_admin
 from database import get_db
 from audit import record_event
+from sync_runner import run_sync
 
 router = APIRouter()
 SCRIPTS = Path(__file__).parent.parent.parent / "scripts"
@@ -35,7 +35,7 @@ ALGORITHMS = ("priority", "round_robin", "percent")
 
 
 def _sync_dispatcher():
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_dispatcher.py")])
+    run_sync(SCRIPTS / "gen_dispatcher.py")
 
 
 class CarrierGroupIn(BaseModel):

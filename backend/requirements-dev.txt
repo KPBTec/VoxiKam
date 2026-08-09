@@ -1,0 +1,5 @@
+# Dependencias SOLO para desarrollo/CI (tests) — nunca se instalan en el
+# servidor de producción. Uso: pip install -r requirements.txt -r requirements-dev.txt
+# Versiones verificadas corriendo tests/ real (Python 3.13, ver pytest.ini).
+pytest==9.1.1
+pytest-asyncio==1.4.0

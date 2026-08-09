@@ -68,7 +68,7 @@ export function EntityComments({ entity, entityId }: { entity: "customer" | "car
                   {c.created_by ?? "—"} · {new Date(c.created_at).toLocaleString("es-PE")}
                 </p>
               </div>
-              <button onClick={() => remove(c.id)} className="text-[var(--color-muted)] hover:text-red-400 flex-shrink-0">
+              <button onClick={() => remove(c.id)} aria-label="Eliminar comentario" className="text-[var(--color-muted)] hover:text-red-400 flex-shrink-0">
                 <Trash2 size={14} />
               </button>
             </div>

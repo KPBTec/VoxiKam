@@ -4,7 +4,6 @@
 
 import asyncio
 import logging
-import math
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -35,94 +34,19 @@ from middleware.security import SecurityMiddleware
 from alerts import check_balance_alert
 from disconnect_policies import check_disconnect_policies
 from routers.system import get_domain
+from rating import billable_blocks as _billable_blocks, calc_bill as _calc_bill
 import cors_state
 
 log = logging.getLogger("billing-worker")
 
 ALLOWED_ORIGINS = cors_state.seed_from_env()
 
-
-def _billable_blocks(seconds: int, initblock: int, billingblock: int) -> int:
-    """Mismo cálculo que backend/routers/cdrs.py::_billable_blocks() — los
-    primeros `initblock` segundos se facturan como bloque fijo, el resto se
-    redondea hacia arriba en incrementos de `billingblock`. `initblock=0`
-    (carrier_rates no tiene esta columna) degenera a solo billingblock.
-
-    Encontrado en la auditoría global v2.38.0: este worker (el camino de
-    respaldo) ni siquiera LEÍA billingblock/initblock — facturaba sobre
-    billsec crudo. Un CDR que cayera acá podía cobrar distinto que el mismo
-    CDR procesado por el camino síncrono, con billingblock≠1s (ej. 60 o 6)."""
-    if seconds <= initblock:
-        return initblock
-    return initblock + math.ceil((seconds - initblock) / billingblock) * billingblock
-
-
-async def _calc_bill(db, customer_id: int, carrier_id, dst: str, billsec: int):
-    """Devuelve (buycost, sessionbill, reseller_cost, matched_prefix) para un
-    CDR contestado. reseller_cost es None salvo que el cliente dependa de un
-    reseller — mismo criterio que backend/routers/cdrs.py::ingest_cdr(), que
-    es el camino normal (síncrono); este worker es solo el fallback para
-    CDRs que quedaron en buycost=0 (ej: el customer_id/carrier_id se
-    resolvió después).
-
-    matched_prefix: hasta acá este worker no lo devolvía — routers/areas.py
-    (rentabilidad por área) hace JOIN contra cdrs.prefix_matched, así que
-    todo CDR tarifado por ESTE camino (no por ingest_cdr) quedaba con
-    prefix_matched NULL permanentemente, salvo que alguien corriera el
-    backfill manual desde el panel. Se agrega acá para que los dos caminos
-    dejen el CDR en el mismo estado, sin cambiar ningún monto facturado."""
-    buycost, sessionbill = 0.0, 0.0
-    reseller_cost = None
-    matched_prefix = None
-
-    if carrier_id and billsec > 0:
-        rb = await db.execute(text("""
-            SELECT cr.buy_rate, cr.billingblock, cr.connectcharge
-            FROM carrier_rates cr
-            JOIN prefixes p ON cr.prefix_id = p.id
-            WHERE cr.carrier_id = :cid AND :dst LIKE CONCAT(p.prefix, '%')
-            ORDER BY LENGTH(p.prefix) DESC LIMIT 1
-        """), {"cid": carrier_id, "dst": dst})
-        row = rb.mappings().first()
-        if row:
-            blocks  = _billable_blocks(billsec, 0, int(row["billingblock"]))
-            buycost = round(blocks / 60 * float(row["buy_rate"]) + float(row["connectcharge"]), 6)
-
-    parent_customer_id = None
-    if customer_id and billsec > 0:
-        rs = await db.execute(text("""
-            SELECT r.rateinitial, r.initblock, r.billingblock, r.connectcharge,
-                   r.minimal_time_charge, p.prefix, cu.parent_customer_id
-            FROM rates r
-            JOIN prefixes p   ON r.prefix_id   = p.id
-            JOIN customers cu ON r.rate_plan_id = cu.rate_plan_id AND cu.id = :cid
-            WHERE :dst LIKE CONCAT(p.prefix, '%') AND r.status = 'active'
-            ORDER BY LENGTH(p.prefix) DESC LIMIT 1
-        """), {"cid": customer_id, "dst": dst})
-        row = rs.mappings().first()
-        if row:
-            billable    = max(billsec, int(row["minimal_time_charge"] or 0))
-            blocks      = _billable_blocks(billable, int(row["initblock"]), int(row["billingblock"]))
-            sessionbill = round(blocks / 60 * float(row["rateinitial"]) + float(row["connectcharge"]), 6)
-            matched_prefix = row["prefix"]
-            parent_customer_id = row["parent_customer_id"]
-
-        if parent_customer_id and billsec > 0:
-            rr = await db.execute(text("""
-                SELECT r.rateinitial, r.initblock, r.billingblock, r.connectcharge, r.minimal_time_charge
-                FROM rates r
-                JOIN customers cu ON r.rate_plan_id = cu.rate_plan_id AND cu.id = :pid
-                JOIN prefixes p   ON r.prefix_id = p.id
-                WHERE :dst LIKE CONCAT(p.prefix, '%') AND r.status = 'active'
-                ORDER BY LENGTH(p.prefix) DESC LIMIT 1
-            """), {"pid": parent_customer_id, "dst": dst})
-            reseller_row = rr.mappings().first()
-            if reseller_row:
-                billable_r = max(billsec, int(reseller_row["minimal_time_charge"] or 0))
-                blocks_r   = _billable_blocks(billable_r, int(reseller_row["initblock"]), int(reseller_row["billingblock"]))
-                reseller_cost = round(blocks_r / 60 * float(reseller_row["rateinitial"]) + float(reseller_row["connectcharge"]), 6)
-
-    return buycost, sessionbill, reseller_cost, matched_prefix
+# Auditoría v2.55 (workflow multi-agente): _billable_blocks()/_calc_bill()
+# vivían acá duplicados byte a byte contra routers/cdrs.py — extraídos a
+# rating.py (única fuente de verdad para ambos caminos de facturación). Se
+# re-exportan con estos mismos nombres para no tocar _billing_worker() más
+# abajo ni romper tests/test_billable_blocks.py::main_module._billable_blocks
+# / tests/test_calc_bill.py::from main import _calc_bill.
 
 
 async def _billing_worker():
@@ -224,6 +148,31 @@ async def _stale_calls_cleaner():
         await asyncio.sleep(15 * 60)
 
 
+async def _cors_origin_syncer():
+    """
+    Auditoría v2.55: cors_state.ALLOWED_ORIGINS es una lista en memoria POR
+    PROCESO. Con uvicorn --workers N, routers/system.py::set_domain() solo
+    agrega el origen nuevo al proceso que atendió ESE request — los demás
+    N-1 procesos siguen con la lista vieja hasta que reinician, causando
+    CORS intermitente según a qué worker el SO enrute cada request del
+    navegador. Este task no reemplaza ese mecanismo (que sigue aplicando
+    instantáneo en el proceso que recibió el cambio) — solo hace que los
+    demás converjan solos en minutos en vez de nunca, releyendo la misma
+    fuente de verdad persistente (settings) que ya usa el arranque en
+    lifespan(). add_origin() es un simple "si no está, agregalo" — no hace
+    nada si este proceso ya está al día.
+    """
+    while True:
+        await asyncio.sleep(5 * 60)
+        try:
+            async with AsyncSessionLocal() as db:
+                domain, web_port = await get_domain(db)
+                if domain:
+                    cors_state.add_origin(domain, web_port)
+        except Exception:
+            log.exception("CORS origin syncer error")
+
+
 async def _disconnect_policy_checker():
     """
     Cada 5 min — evalúa disconnect_policies contra traffic_quality_hourly
@@ -254,8 +203,9 @@ async def lifespan(app: FastAPI):
     t1 = asyncio.create_task(_billing_worker())
     t2 = asyncio.create_task(_stale_calls_cleaner())
     t3 = asyncio.create_task(_disconnect_policy_checker())
+    t4 = asyncio.create_task(_cors_origin_syncer())
     yield
-    for t in [t1, t2, t3]:
+    for t in [t1, t2, t3, t4]:
         t.cancel()
         try:
             await t

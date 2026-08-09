@@ -141,8 +141,8 @@ export default function ResellerPrefixesPage() {
                   </td>
                   <td className="px-4 py-2 text-right">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => saveEditPfx(p.id)} className="text-green-400 hover:text-green-300"><Check size={15}/></button>
-                      <button onClick={() => setEditPfxId(null)} className="text-[var(--color-muted)] hover:text-[var(--color-text)]"><X size={15}/></button>
+                      <button onClick={() => saveEditPfx(p.id)} aria-label="Guardar" className="text-green-400 hover:text-green-300"><Check size={15}/></button>
+                      <button onClick={() => setEditPfxId(null)} aria-label="Cancelar edición" className="text-[var(--color-muted)] hover:text-[var(--color-text)]"><X size={15}/></button>
                     </div>
                   </td>
                 </tr>
@@ -158,8 +158,8 @@ export default function ResellerPrefixesPage() {
                   <td className="px-4 py-2 text-right">
                     {!!p.is_own && (
                       <div className="flex justify-end gap-1">
-                        <button onClick={() => startEditPfx(p)} className="p-1 text-[var(--color-muted)] hover:text-brand-400"><Pencil size={13}/></button>
-                        <button onClick={() => delPrefix(p.id)} className="p-1 text-[var(--color-muted)] hover:text-red-400"><Trash2 size={13}/></button>
+                        <button onClick={() => startEditPfx(p)} aria-label="Editar" className="p-1 text-[var(--color-muted)] hover:text-brand-400"><Pencil size={13}/></button>
+                        <button onClick={() => delPrefix(p.id)} aria-label="Eliminar prefijo" className="p-1 text-[var(--color-muted)] hover:text-red-400"><Trash2 size={13}/></button>
                       </div>
                     )}
                   </td>

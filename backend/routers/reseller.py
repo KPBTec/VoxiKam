@@ -12,8 +12,6 @@ admin, sin scope. Acá CADA query lleva `parent_customer_id`/`owner_customer_id`
 incondicional, para que sea estructuralmente imposible que un reseller vea o
 edite datos de otro reseller o de la plataforma.
 """
-import subprocess
-import sys
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -25,19 +23,21 @@ from typing import Optional
 from alerts import check_balance_alert
 from audit import diff_and_record, record_event
 from auth import require_reseller_permission
+from balance import apply_balance_change
 from database import get_db
 from techprefix import (
     techprefix_conflicts, next_campaign_prefix, next_sub_customer_prefix,
 )
 from routers.billing_recalc import RecalcRequest, _start_job, _read_job
+from sync_runner import run_sync
 
 router = APIRouter()
 SCRIPTS = Path(__file__).parent.parent.parent / "scripts"
 
 
 def _sync():
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_dispatcher.py")])
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_nftables.py")])
+    run_sync(SCRIPTS / "gen_dispatcher.py")
+    run_sync(SCRIPTS / "gen_nftables.py")
 
 
 def _my_cid(user: dict) -> int:
@@ -325,17 +325,11 @@ async def adjust_sub_customer_balance(cid: int, body: BalanceIn, user=Depends(re
         # que lo haga él mismo.
         raise HTTPException(409, "El sub-cliente está desactivado — pedile al administrador que lo reactive")
 
-    await db.execute(text(
-        "UPDATE customers SET balance = balance + :amount WHERE id = :id AND parent_customer_id = :pid"
-    ), {"amount": body.amount, "id": cid, "pid": my_cid})
-    bal_row = await db.execute(text("SELECT balance FROM customers WHERE id = :id"), {"id": cid})
-    new_balance = bal_row.scalar()
-
-    await db.execute(text("""
-        INSERT INTO balance_transactions (customer_id, type, amount, balance_after, reference, created_by)
-        VALUES (:cid, 'manual', :amount, :bal, 'Ajuste manual desde panel reseller', :by)
-    """), {"cid": cid, "amount": body.amount, "bal": new_balance,
-            "by": user.get("name") or user.get("email")})
+    new_balance = await apply_balance_change(
+        db, cid, body.amount, type="manual", reference="Ajuste manual desde panel reseller",
+        created_by=user.get("name") or user.get("email"),
+        extra_where=" AND parent_customer_id = :pid", extra_params={"pid": my_cid},
+    )
     await db.commit()
     # Mismo hook que customers.py::adjust_balance() — sin esto, un ajuste hecho
     # por un reseller nunca dispara la alerta de saldo bajo del operador.
@@ -503,15 +497,17 @@ async def add_group_rate(pid: int, body: GroupRateIn, user=Depends(require_resel
     await _own_plan_or_404(db, pid, _my_cid(user))
     r = await db.execute(text("SELECT id FROM prefixes WHERE group_name = :g"), {"g": body.group_name})
     prefix_ids = [row[0] for row in r.fetchall()]
-    for pfx_id in prefix_ids:
+    # Auditoría v2.55: antes un INSERT por prefijo en loop — mismo criterio que
+    # carriers.py::add_group_buy_rate (executemany en un solo round-trip).
+    if prefix_ids:
         await db.execute(text("""
             INSERT INTO rates (rate_plan_id, prefix_id, rateinitial, connectcharge,
                                initblock, billingblock, minimal_time_charge, status)
             VALUES (:pid, :pfx, :rate, :cc, :ib, :bb, 0, 'active')
             ON DUPLICATE KEY UPDATE rateinitial=:rate, connectcharge=:cc,
                 initblock=:ib, billingblock=:bb
-        """), {"pid": pid, "pfx": pfx_id, "rate": body.rateinitial, "cc": body.connectcharge,
-               "ib": body.initblock, "bb": body.billingblock})
+        """), [{"pid": pid, "pfx": pfx_id, "rate": body.rateinitial, "cc": body.connectcharge,
+                "ib": body.initblock, "bb": body.billingblock} for pfx_id in prefix_ids])
     await record_event(db, "rate_plan", pid, "group_rate_set", user.get("name") or user.get("email"),
                         f"grupo {body.group_name} → {body.rateinitial}/min ({len(prefix_ids)} prefijos)")
     await db.commit()
@@ -675,12 +671,15 @@ async def add_carrier_group_buy_rate(cid: int, body: CarrierGroupBuyRateIn, user
     await _own_carrier_or_404(db, cid, my_cid)
     r = await db.execute(text("SELECT id FROM prefixes WHERE group_name = :g"), {"g": body.group_name})
     prefix_ids = [row[0] for row in r.fetchall()]
-    for pfx_id in prefix_ids:
+    # Auditoría v2.55: antes un INSERT por prefijo en loop — mismo criterio que
+    # carriers.py::add_group_buy_rate (executemany en un solo round-trip).
+    if prefix_ids:
         await db.execute(text("""
             INSERT INTO carrier_rates (carrier_id, prefix_id, buy_rate, connectcharge, billingblock)
             VALUES (:cid, :pfx, :rate, :cc, :bb)
             ON DUPLICATE KEY UPDATE buy_rate=:rate, connectcharge=:cc, billingblock=:bb
-        """), {"cid": cid, "pfx": pfx_id, "rate": body.buy_rate, "cc": body.connectcharge, "bb": body.billingblock})
+        """), [{"cid": cid, "pfx": pfx_id, "rate": body.buy_rate, "cc": body.connectcharge, "bb": body.billingblock}
+               for pfx_id in prefix_ids])
     await record_event(db, "carrier", cid, "group_buy_rate_set", user.get("name") or user.get("email"),
                         f"grupo {body.group_name} → {body.buy_rate}/min ({len(prefix_ids)} prefijos)")
     await db.commit()

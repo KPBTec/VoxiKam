@@ -152,7 +152,7 @@ export default function DisconnectPoliciesPage() {
                     </button>
                   </td>
                   <td className="px-5 py-2.5 text-right">
-                    <button onClick={() => remove(p)} className="text-[var(--color-muted)] hover:text-red-400">
+                    <button onClick={() => remove(p)} aria-label="Eliminar política" className="text-[var(--color-muted)] hover:text-red-400">
                       <Trash2 size={14} />
                     </button>
                   </td>

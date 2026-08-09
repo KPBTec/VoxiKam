@@ -113,7 +113,7 @@ export default function EntrantePage() {
                     {r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-6 py-3 text-right">
-                    <button onClick={() => deletePeer(r.id)}
+                    <button onClick={() => deletePeer(r.id)} aria-label="Eliminar peer"
                       className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
                       <Trash2 size={14} />
                     </button>

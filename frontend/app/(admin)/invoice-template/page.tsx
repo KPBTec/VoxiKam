@@ -149,7 +149,7 @@ export default function InvoiceTemplatePage() {
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadLogo(f) }} />
               </label>
               {hasLogo && (
-                <button type="button" onClick={removeLogo} className="p-2 text-[var(--color-muted)] hover:text-red-400">
+                <button type="button" onClick={removeLogo} aria-label="Quitar logo" className="p-2 text-[var(--color-muted)] hover:text-red-400">
                   <Trash2 size={14} />
                 </button>
               )}

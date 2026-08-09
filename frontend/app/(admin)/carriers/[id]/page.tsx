@@ -119,7 +119,7 @@ export default function CarrierDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/carriers" className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+        <Link href="/carriers" aria-label="Volver" className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1">
@@ -345,7 +345,7 @@ export default function CarrierDetailPage() {
                   </td>
                   <td className="px-5 py-2.5 text-right text-[var(--color-muted)]">{r.billingblock}s</td>
                   <td className="px-5 py-2.5 text-right">
-                    <button onClick={() => delRate(r.id)}
+                    <button onClick={() => delRate(r.id)} aria-label="Eliminar tarifa"
                       className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
                       <Trash2 size={14} />
                     </button>

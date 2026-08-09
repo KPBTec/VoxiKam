@@ -1,0 +1,96 @@
+# KPBTec VoxiKam — propuesta de sudoers MÁS RESTRICTIVA que sudoers/voxikam
+#
+# Auditoría v2.55 (workflow multi-agente), hallazgo seguridad/alto:
+# las 3 primeras reglas de sudoers/voxikam autorizan el BINARIO completo sin
+# fijar argumentos —
+#     voxikam ALL=(ALL) NOPASSWD: /usr/sbin/nft
+#     voxikam ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd
+#     voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client
+# — a diferencia de las reglas de systemctl más abajo en ese mismo archivo,
+# que sí fijan comando+argumento exacto, uno por uno. Si el backend se
+# compromete (RCE, deserialización, lo que sea), esas 3 líneas dejan correr
+# CUALQUIER subcomando de nft/kamcmd/fail2ban-client como root — por ejemplo
+# `sudo nft flush ruleset` (tira el firewall entero) o `sudo nft -f
+# /tmp/algo` (carga un ruleset arbitrario), no solo el `-f` esperado.
+#
+# Este archivo es la versión restringida — grep real de todos los `sudo
+# nft/kamcmd/fail2ban-client` que dispara el código hoy (ver
+# scripts/gen_nftables.py, scripts/gen_dispatcher.py,
+# scripts/sync_balance_block.py, backend/routers/firewall.py) confirma que
+# son un conjunto FIJO y chico de invocaciones — nunca argumentos libres
+# excepto la IP de `fail2ban-client set <jail> unbanip <ip>`, que es la
+# función en sí (un admin desbaneando una IP puntual).
+#
+# ESTE ARCHIVO NO ESTÁ CONECTADO A deploy.sh TODAVÍA A PROPÓSITO — deploy.sh
+# sincroniza sudoers/voxikam en CADA deploy (incluido --update), así que
+# tocar ese archivo directo lo aplica en el próximo deploy sin ningún paso
+# manual de verificación. Un sudoers roto es de los errores más caros de
+# diagnosticar en caliente (podés perder la capacidad de hacer cualquier
+# acción admin del panel, aunque SSH/root directo sigan sirviendo). Por eso
+# el rollout es manual y gradual — ver pasos abajo — no autoaplicado.
+#
+# ── Cómo probar esto en producción sin arriesgar nada ───────────────────────
+# 1. Copiar ESTE archivo (no reemplazar sudoers/voxikam) a un sudoers.d
+#    aparte, en un HORARIO DE BAJO TRÁFICO:
+#      sudo cp sudoers/voxikam.tightened-DRAFT /etc/sudoers.d/voxikam-test
+#      sudo chmod 440 /etc/sudoers.d/voxikam-test
+#      sudo visudo -c -f /etc/sudoers.d/voxikam-test   # ¡nunca saltear esto!
+#    Sudo evalúa TODOS los archivos en /etc/sudoers.d/ — con voxikam-test
+#    presente y el sudoers/voxikam original SIN TOCAR todavía, cualquier
+#    comando que este archivo nuevo no cubra sigue funcionando por el viejo.
+#    Es un paso puramente aditivo, cero riesgo de romper nada en este punto.
+# 2. Ejercitar A MANO cada función del panel que dispara sudo, una por una,
+#    mirando `journalctl -u voxikam-backend -f` en paralelo:
+#      - Firewall → agregar/quitar una IP (dispara nft -f)
+#      - Cambiar el carrier/grupo de un cliente (dispara kamcmd dispatcher.reload)
+#      - Firewall → fail2ban → ver baneados + desbanear una IP de prueba
+#      - Sistema → Salud → ver la config actual de fail2ban (fail2ban-client get)
+#    Si algo falla vas a ver "sudo: a password is required" o "sudo: no
+#    command" en el log — en ese punto el archivo VIEJO todavía cubre esa
+#    acción real, así que no hay corte de servicio, solo hay que agregar la
+#    línea que faltó acá y repetir el paso 1.
+# 3. Recién cuando las 4 acciones de arriba funcionaron limpio con
+#    voxikam-test puesto, reemplazar de una el contenido real:
+#      sudo rm /etc/sudoers.d/voxikam-test
+#      cp sudoers/voxikam.tightened-DRAFT sudoers/voxikam   # en el repo
+#      git add sudoers/voxikam && git commit -m "..."
+#    y dejar que el próximo deploy.sh (o uno manual) sincronice
+#    /etc/sudoers.d/voxikam con el contenido ya probado.
+# 4. Borrar este archivo *-DRAFT del repo una vez migrado.
+#
+# Validar siempre con: visudo -c -f <archivo>
+
+# nft — solo puede recargar EXACTAMENTE el archivo que gen_nftables.py arma
+# (scripts/gen_nftables.py::NFTABLES_CONF, default /etc/nftables.conf) — ya
+# no "nft" con cualquier subcomando.
+voxikam ALL=(ALL) NOPASSWD: /usr/sbin/nft -f /etc/nftables.conf
+
+# kamcmd — únicamente los 3 comandos reales que dispara el backend
+# (scripts/gen_dispatcher.py, scripts/sync_balance_block.py). Si se agrega un
+# kamcmd nuevo en el código, agregar su línea acá también.
+voxikam ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd dispatcher.reload
+voxikam ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd htable.reload techmap
+voxikam ALL=(ALL) NOPASSWD: /usr/sbin/kamcmd htable.reload balance_block
+
+# fail2ban-client — jail fijado a los 2 jails reales de la plataforma
+# (backend/routers/firewall.py::FAIL2BAN_JAILS) y param fijado a los 4 que
+# lee el panel (_FAIL2BAN_PARAMS). El único argumento libre real es la IP en
+# "set <jail> unbanip <ip>" — es la función en sí (desbanear una IP puntual
+# que un admin ya autenticado eligió a mano), no una superficie nueva.
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client status sshd
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client status voxikam-security
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client set sshd unbanip *
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client set voxikam-security unbanip *
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client get sshd maxretry
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client get sshd findtime
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client get sshd bantime
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client get sshd banaction
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client get voxikam-security maxretry
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client get voxikam-security findtime
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client get voxikam-security bantime
+voxikam ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client get voxikam-security banaction
+
+# ── El resto (systemctl allowlist, setup_tls.sh, backup_db.sh, nginx reload) ──
+# ya está igual de restringido en sudoers/voxikam — copiar esas líneas tal
+# cual al reemplazar el archivo real en el paso 3 de arriba, este DRAFT solo
+# reescribe las 3 líneas anchas (nft/kamcmd/fail2ban-client).

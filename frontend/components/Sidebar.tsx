@@ -213,7 +213,17 @@ function NavGroup({ group, isOpen, hasActive, path, onToggle, onNavigate, childr
 
 function SidebarContent({ role, onNavigate }: { role: "admin" | "client"; onNavigate?: () => void }) {
   const path = usePathname();
-  const user  = getUser();
+  // Auditoría v2.55: getUser() lee localStorage, que no existe en el render de
+  // servidor — llamarlo directo en el render (como estaba antes) hacía que el
+  // HTML del servidor saliera con user=null y el primer render del cliente
+  // (durante la hidratación, misma pasada que React usa para reconciliar con
+  // ese HTML) saliera con el usuario real, produciendo un mismatch de
+  // hidratación en el nombre/rol del footer y en qué items de clientNav se
+  // filtran por permiso. Arrancar en null y recién leer localStorage en
+  // useEffect (que corre después de montar, nunca durante SSR) hace que la
+  // primera pasada del cliente coincida con el HTML del servidor.
+  const [user, setUser] = useState<AuthUser | null>(null);
+  useEffect(() => { setUser(getUser()); }, []);
 
   const activeGroupLabel = adminNavGroups.find(g => g.items.some(i => isNavActive(path, i.href)))?.label ?? null;
 

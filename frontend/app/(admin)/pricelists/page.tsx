@@ -294,7 +294,7 @@ export default function PricelistsPage() {
                       {it.current_rateinitial == null ? 'nuevo' : pct == null ? '—' : `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`}
                     </td>
                     <td className="py-2 text-right">
-                      <button onClick={() => removeItem(it.prefix_id)} className="text-[var(--color-muted)] hover:text-red-400">
+                      <button onClick={() => removeItem(it.prefix_id)} aria-label="Quitar de la lista" className="text-[var(--color-muted)] hover:text-red-400">
                         <Trash2 size={13} />
                       </button>
                     </td>

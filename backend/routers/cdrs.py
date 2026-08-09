@@ -3,8 +3,6 @@
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
 
-import math
-
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -14,6 +12,7 @@ from typing import Optional
 from alerts import check_balance_alert
 from auth import require_admin, require_ingest_secret
 from database import get_db
+from rating import calc_bill
 from webhooks import dispatch_event
 
 router = APIRouter()
@@ -41,26 +40,6 @@ class CdrIngestIn(BaseModel):
     call_state: Optional[str] = None
     hangup_cause: Optional[str] = None
     sip_code: int = Field(default=200, ge=100, le=699)
-
-
-def _billable_blocks(seconds: int, initblock: int, billingblock: int) -> int:
-    """
-    Esquema típico de telco: los primeros `initblock` segundos se facturan
-    como un bloque fijo (aunque la llamada dure menos), el resto se redondea
-    hacia arriba en incrementos de `billingblock`. `initblock=0` (carrier_rates
-    no tiene esta columna) degenera correctamente a "todo en bloques de
-    billingblock", el comportamiento de siempre.
-
-    Encontrado en la auditoría global v2.38.0: `initblock` se guardaba desde
-    el admin/reseller pero ningún camino de facturación lo leía — un esquema
-    configurado como "60/6" facturaba en realidad todo a 6s, sin el primer
-    bloque de 60. Este helper es la única fuente de verdad para este cálculo,
-    usado también por backend/main.py::_calc_bill() (mismo criterio, sin
-    divergencia entre el camino síncrono y el de respaldo).
-    """
-    if seconds <= initblock:
-        return initblock
-    return initblock + math.ceil((seconds - initblock) / billingblock) * billingblock
 
 
 @router.get("")
@@ -244,70 +223,13 @@ async def ingest_cdr(body: CdrIngestIn, background_tasks: BackgroundTasks, db: A
             dst = dst[len(outbound_pfx):]
     # ────────────────────────────────────────────────────────────────────────
 
-    buycost, sessionbill, matched_prefix = 0.0, 0.0, None
-    reseller_cost = None
-
-    if carrier_id and billsec > 0:
-        # Longest-prefix-match buy rate — filtrado por carrier_id (antes no
-        # filtraba, hacía longest-prefix-match contra TODOS los carriers a la
-        # vez, pudiendo tomar la tarifa de un carrier distinto al que realmente
-        # cursó la llamada si dos carriers tenían el mismo prefijo cargado).
-        rb = await db.execute(text("""
-            SELECT cr.buy_rate, cr.billingblock, cr.connectcharge
-            FROM carrier_rates cr
-            JOIN prefixes p ON cr.prefix_id = p.id
-            WHERE cr.carrier_id = :carrier_id AND :dst LIKE CONCAT(p.prefix, '%')
-            ORDER BY LENGTH(p.prefix) DESC LIMIT 1
-        """), {"dst": dst, "carrier_id": carrier_id})
-        rate_row = rb.mappings().first()
-        if rate_row:
-            blocks   = _billable_blocks(billsec, 0, rate_row["billingblock"])
-            buycost  = round(blocks * rate_row["buy_rate"] / 60 + rate_row["connectcharge"], 6)
-
-    parent_customer_id = None
-    if customer_id and billsec > 0:
-        # Longest-prefix-match sell rate — el rate_plan_id del cliente puede
-        # ser un plan de la plataforma O uno propio de un reseller (rate_plans
-        # .owner_customer_id): la query no cambia, solo sigue el puntero.
-        rs = await db.execute(text("""
-            SELECT r.rateinitial, r.initblock, r.billingblock, r.connectcharge, r.minimal_time_charge,
-                   p.prefix, cu.parent_customer_id
-            FROM rates r
-            JOIN prefixes p   ON r.prefix_id = p.id
-            JOIN customers cu ON r.rate_plan_id = cu.rate_plan_id AND cu.id = :cid
-            WHERE :dst LIKE CONCAT(p.prefix, '%') AND r.status = 'active'
-            ORDER BY LENGTH(p.prefix) DESC LIMIT 1
-        """), {"dst": dst, "cid": customer_id})
-        rate_row = rs.mappings().first()
-        if rate_row:
-            billable    = max(billsec, rate_row["minimal_time_charge"])
-            blocks      = _billable_blocks(billable, rate_row["initblock"], rate_row["billingblock"])
-            sessionbill = round(blocks * rate_row["rateinitial"] / 60 + rate_row["connectcharge"], 6)
-            matched_prefix = rate_row["prefix"]
-            parent_customer_id = rate_row["parent_customer_id"]
-
-        # Reventa multinivel: si el cliente depende de un reseller, calcular
-        # además cuánto le "cuesta" esta llamada al RESELLER (su propio
-        # rate_plan, el que la plataforma le vende a él) — mismo tipo de
-        # lookup que arriba, pero contra el customer_id del reseller en vez
-        # del sub-cliente. Con esto: margen reseller = sessionbill -
-        # reseller_cost; margen plataforma = reseller_cost - buycost. Para
-        # clientes sin reseller (mayoría hoy), parent_customer_id es NULL y
-        # esto no se ejecuta — cero cambio de comportamiento.
-        if parent_customer_id and billsec > 0:
-            rr = await db.execute(text("""
-                SELECT r.rateinitial, r.initblock, r.billingblock, r.connectcharge, r.minimal_time_charge
-                FROM rates r
-                JOIN customers cu ON r.rate_plan_id = cu.rate_plan_id AND cu.id = :pid
-                JOIN prefixes p   ON r.prefix_id = p.id
-                WHERE :dst LIKE CONCAT(p.prefix, '%') AND r.status = 'active'
-                ORDER BY LENGTH(p.prefix) DESC LIMIT 1
-            """), {"dst": dst, "pid": parent_customer_id})
-            reseller_row = rr.mappings().first()
-            if reseller_row:
-                billable_r = max(billsec, reseller_row["minimal_time_charge"])
-                blocks_r   = _billable_blocks(billable_r, reseller_row["initblock"], reseller_row["billingblock"])
-                reseller_cost = round(blocks_r * reseller_row["rateinitial"] / 60 + reseller_row["connectcharge"], 6)
+    # Auditoría v2.55 (workflow multi-agente): este longest-prefix-match +
+    # cascada de reseller estaba reimplementado acá mismo, duplicado contra
+    # main.py::_calc_bill() (el camino de respaldo) — ver rating.py para el
+    # detalle y la nota de paridad verificada contra el código viejo.
+    buycost, sessionbill, reseller_cost, matched_prefix = await calc_bill(
+        db, customer_id, carrier_id, dst, billsec,
+    )
 
     # Derivar call_state estilo sngrep (Kamailio puede enviar DIVERTED explícito)
     disposition = payload.get("disposition", "ANSWERED")

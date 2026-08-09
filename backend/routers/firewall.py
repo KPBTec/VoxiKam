@@ -9,12 +9,13 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from ipaddress import ip_network
-import subprocess, sys
+import subprocess
 from pathlib import Path
 
 from auth import require_admin
 from database import get_db
 from audit import record_event
+from sync_runner import run_sync
 
 router = APIRouter()
 SCRIPTS = Path(__file__).parent.parent.parent / "scripts"
@@ -101,7 +102,7 @@ async def toggle_jail(rid: int, jail: bool, db: AsyncSession = Depends(get_db), 
 
 
 def _sync():
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_nftables.py")])
+    run_sync(SCRIPTS / "gen_nftables.py")
 
 
 # ── fail2ban — ver/desbanear IPs (backend corre nativo, llamada directa) ─────

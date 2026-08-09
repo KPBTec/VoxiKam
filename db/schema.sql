@@ -297,6 +297,9 @@ CREATE TABLE IF NOT EXISTS carriers (
     INDEX idx_status   (status),
     INDEX idx_owner    (owner_customer_id),
     INDEX idx_provider (provider_id),
+    -- backend/routers/cdrs.py::ingest_cdr() busca por host exacto — sin este
+    -- índice era un full scan (tabla chica hoy, pero sin costo tenerlo).
+    INDEX idx_host     (host),
     FOREIGN KEY (owner_customer_id) REFERENCES customers(id) ON DELETE CASCADE,
     FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -4,6 +4,8 @@
 # © 2026 – Todos los derechos reservados.
 
 import logging
+import time
+from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import text
@@ -15,25 +17,59 @@ from database import get_db
 router = APIRouter()
 log = logging.getLogger("voxikam-security")
 
+# Auditoría v2.55: middleware/security.py ya limita /api/auth/login a 10/60s,
+# pero eso es POR IP — un atacante rotando IPs (botnet, proxies rotativos)
+# puede fuerza bruta una cuenta puntual sin acercarse a ese límite. Este es un
+# segundo límite, independiente, keyeado por la cuenta objetivo en vez de por
+# origen — no reemplaza al de IP, lo complementa. En memoria, sin Redis,
+# mismo criterio ya aceptado para el limiter de IP.
+_ACCOUNT_LOGIN_LIMIT = (8, 300)  # 8 intentos fallidos / 5 min por cuenta
+_account_fail_counters: dict[str, list[float]] = defaultdict(list)
+
+
+def _account_rate_limited(email: str) -> bool:
+    max_fail, window = _ACCOUNT_LOGIN_LIMIT
+    now = time.monotonic()
+    key = email.strip().lower()
+    _account_fail_counters[key] = [t for t in _account_fail_counters[key] if now - t < window]
+    return len(_account_fail_counters[key]) >= max_fail
+
+
+def _record_account_failure(email: str) -> None:
+    _account_fail_counters[email.strip().lower()].append(time.monotonic())
+
 
 def _get_real_ip(request: Request) -> str:
-    cf = request.headers.get("CF-Connecting-IP")
-    if cf:
-        return cf.strip().split(",")[0].strip()
-    xff = request.headers.get("X-Forwarded-For")
-    if xff:
-        return xff.split(",")[0].strip()
+    """
+    Auditoría v2.55 (workflow multi-agente): esto antes confiaba en
+    CF-Connecting-IP/X-Forwarded-For leídos directo del request, sin pasar
+    por la resolución de proxy confiable de uvicorn. nginx antepone el valor
+    del cliente en X-Forwarded-For ($proxy_add_x_forwarded_for) y nunca toca
+    CF-Connecting-IP — así que un atacante podía mandar cualquiera de los
+    dos headers con la IP de un carrier/cliente real, y el log
+    SECURITY_REJECT de más abajo (que alimenta a fail2ban) baneaba esa IP
+    durante 1 hora en TODOS los puertos. request.client.host SÍ es confiable
+    acá: uvicorn corre con --proxy-headers --forwarded-allow-ips=127.0.0.1
+    (ver systemd/voxikam-backend.service), que solo confía en el XFF cuando
+    la conexión TCP directa viene de nginx en el mismo host — mismo patrón
+    que ya usa correctamente middleware/security.py.
+    """
     return request.client.host if request.client else "unknown"
 
 
 @router.post("/login")
 async def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    if _account_rate_limited(form.username):
+        log.warning("SECURITY_REJECT ip=%s reason=account_rate_limited path=/api/auth/login", _get_real_ip(request))
+        raise HTTPException(status_code=429, detail="Demasiados intentos para esta cuenta — intenta más tarde")
+
     result = await db.execute(
         text("SELECT id, name, email, password_hash, role, customer_id, is_active, ui_theme FROM users WHERE email = :email"),
         {"email": form.username}
     )
     user = result.mappings().first()
     if not user or not verify_password(form.password, user["password_hash"]):
+        _record_account_failure(form.username)
         log.warning("SECURITY_REJECT ip=%s reason=login_failed path=/api/auth/login", _get_real_ip(request))
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     if not user["is_active"]:

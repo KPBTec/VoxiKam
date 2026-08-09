@@ -9,17 +9,18 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from ipaddress import ip_address
-import subprocess, sys
 from pathlib import Path
 
 from auth import require_admin, hash_password, resolve_permissions
 from database import get_db
 from alerts import check_balance_alert
 from audit import diff_and_record
+from balance import apply_balance_change
 from webhooks import dispatch_event
 from techprefix import (
     assert_techprefix_free, next_campaign_prefix, next_customer_prefix, next_reseller_prefix,
 )
+from sync_runner import run_sync
 
 router = APIRouter()
 SCRIPTS = Path(__file__).parent.parent.parent / "scripts"
@@ -663,20 +664,27 @@ async def set_prefix_routing_group(cid: int, prefix_id: int, body: RoutingGroupI
 
 # ── Balance ───────────────────────────────────────────────────────────────────
 
-@router.post("/{cid}/balance")
-async def adjust_balance(cid: int, amount: float, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
-    await db.execute(text(
-        "UPDATE customers SET balance = balance + :amount WHERE id = :id"
-    ), {"amount": amount, "id": cid})
-    bal_row = await db.execute(text("SELECT balance FROM customers WHERE id = :id"), {"id": cid})
-    new_balance = bal_row.scalar()
+class BalanceIn(BaseModel):
+    amount: float
 
-    await db.execute(text("""
-        INSERT INTO balance_transactions
-            (customer_id, type, amount, balance_after, reference, created_by)
-        VALUES (:cid, 'manual', :amount, :bal, :ref, :by)
-    """), {"cid": cid, "amount": amount, "bal": new_balance,
-            "ref": "Ajuste manual desde panel", "by": admin.get("name") or admin.get("email")})
+
+@router.post("/{cid}/balance")
+async def adjust_balance(cid: int, body: BalanceIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
+    # Auditoría v2.55: antes `amount` era un escalar suelto sin Body(), así que
+    # FastAPI lo tomaba como query param (?amount=...) — inconsistente con el
+    # resto de la API (incluido el BalanceIn equivalente de reseller.py). Y sin
+    # este guard, un cid inexistente hacía un UPDATE de 0 filas, un SELECT que
+    # devolvía NULL, y el INSERT de abajo reventaba con un 500 crudo de
+    # integridad en vez de un 404 claro.
+    existing = await db.execute(text("SELECT 1 FROM customers WHERE id = :id"), {"id": cid})
+    if not existing.first():
+        raise HTTPException(404, "Cliente no encontrado")
+
+    amount = body.amount
+    new_balance = await apply_balance_change(
+        db, cid, amount, type="manual", reference="Ajuste manual desde panel",
+        created_by=admin.get("name") or admin.get("email"),
+    )
 
     # Un recargo (monto positivo) es la nueva referencia del 100% para las
     # alertas de % en prepago, y limpia cualquier alerta ya notificada —
@@ -687,6 +695,13 @@ async def adjust_balance(cid: int, amount: float, db: AsyncSession = Depends(get
         ), {"bal": new_balance, "id": cid})
 
     await db.commit()
+    # Auditoría v2.55: esta llamada existía en el archivo pero quedó pegada,
+    # inalcanzable, después de un return dentro de list_balance_transactions()
+    # de abajo (un GET de solo lectura) — un ajuste manual de balance nunca
+    # disparaba la alerta de saldo bajo. Mismo hook que ya usa correctamente
+    # reseller.py::adjust_sub_customer_balance().
+    await check_balance_alert(db, cid)
+    return {"ok": True, "balance": new_balance}
 
 
 @router.get("/{cid}/balance-transactions")
@@ -717,8 +732,6 @@ async def list_balance_transactions(
         LIMIT :limit OFFSET :offset
     """), {"cid": cid, "limit": limit, "offset": offset})
     return [dict(row) for row in r.mappings().all()]
-    await check_balance_alert(db, cid)
-    return {"ok": True}
 
 
 # ── Acceso al portal (usuario cliente) ───────────────────────────────────────
@@ -788,8 +801,8 @@ async def list_customer_api_keys(cid: int, db: AsyncSession = Depends(get_db), _
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _sync_nftables():
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_nftables.py")])
+    run_sync(SCRIPTS / "gen_nftables.py")
 
 
 def _sync_dispatcher():
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_dispatcher.py")])
+    run_sync(SCRIPTS / "gen_dispatcher.py")

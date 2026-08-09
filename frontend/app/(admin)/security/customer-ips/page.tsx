@@ -163,7 +163,7 @@ function CustomerIpsModal({ customer, onClose, onChanged }: {
             <h2 className="font-semibold">IPs de {customer.name}</h2>
             <p className="text-xs text-[var(--color-text-2)] font-mono">{customer.techprefix}</p>
           </div>
-          <button onClick={onClose} className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+          <button onClick={onClose} aria-label="Cerrar" className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -184,11 +184,11 @@ function CustomerIpsModal({ customer, onClose, onChanged }: {
                       <input value={editDesc} onChange={e => setEditDesc(e.target.value)}
                         placeholder="Descripción" className={`${inp} w-40`} />
                       <button onClick={() => saveEdit(ip.id)} disabled={saving}
-                        className="text-brand-400 hover:text-brand-300 disabled:opacity-50" title="Guardar">
+                        className="text-brand-400 hover:text-brand-300 disabled:opacity-50" title="Guardar" aria-label="Guardar">
                         <Save size={15} />
                       </button>
                       <button onClick={() => setEditingId(null)}
-                        className="text-[var(--color-muted)] hover:text-[var(--color-text)]" title="Cancelar">
+                        className="text-[var(--color-muted)] hover:text-[var(--color-text)]" title="Cancelar" aria-label="Cancelar">
                         <X size={15} />
                       </button>
                     </>
@@ -199,11 +199,11 @@ function CustomerIpsModal({ customer, onClose, onChanged }: {
                         {ip.description && <p className="text-xs text-[var(--color-text-2)] truncate">{ip.description}</p>}
                       </div>
                       <button onClick={() => startEdit(ip)}
-                        className="text-[var(--color-muted)] hover:text-brand-400 transition-colors" title="Editar">
+                        className="text-[var(--color-muted)] hover:text-brand-400 transition-colors" title="Editar" aria-label="Editar">
                         <Pencil size={14} />
                       </button>
                       <button onClick={() => deleteIp(ip.id)} disabled={saving}
-                        className="text-[var(--color-muted)] hover:text-red-400 transition-colors disabled:opacity-50" title="Eliminar">
+                        className="text-[var(--color-muted)] hover:text-red-400 transition-colors disabled:opacity-50" title="Eliminar" aria-label="Eliminar">
                         <Trash2 size={14} />
                       </button>
                     </>

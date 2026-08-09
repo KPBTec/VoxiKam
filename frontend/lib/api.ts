@@ -25,7 +25,13 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   return res;
 }
 
-export async function apiGet(path: string) {
+// Auditoría v2.55: estas firmas devolvían Promise<any> — todo el response
+// quedaba sin tipo en el caller (chequeo de forma solo "a ojo", sin ayuda del
+// compilador). El <T = any> es puramente aditivo: los ~50+ call sites
+// existentes sin especificar el genérico siguen infiriendo `any` exactamente
+// igual que antes — cero cambio de comportamiento — y un caller nuevo (o uno
+// migrado a propósito) puede escribir apiGet<Carrier[]>(...) y obtener el tipo real.
+export async function apiGet<T = any>(path: string): Promise<T> {
   const r = await apiFetch(path);
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
@@ -34,7 +40,7 @@ export async function apiGet(path: string) {
   return r.json();
 }
 
-export async function apiPost(path: string, body: unknown) {
+export async function apiPost<T = any>(path: string, body: unknown): Promise<T> {
   const r = await apiFetch(path, { method: "POST", body: JSON.stringify(body) });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
@@ -43,7 +49,7 @@ export async function apiPost(path: string, body: unknown) {
   return r.json();
 }
 
-export async function apiPut(path: string, body: unknown) {
+export async function apiPut<T = any>(path: string, body: unknown): Promise<T> {
   const r = await apiFetch(path, { method: "PUT", body: JSON.stringify(body) });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
@@ -52,7 +58,7 @@ export async function apiPut(path: string, body: unknown) {
   return r.json();
 }
 
-export async function apiDelete(path: string) {
+export async function apiDelete<T = any>(path: string): Promise<T | null> {
   const r = await apiFetch(path, { method: "DELETE" });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
@@ -62,7 +68,7 @@ export async function apiDelete(path: string) {
 }
 
 // multipart/form-data — no pasar Content-Type manual, el browser arma el boundary solo
-export async function apiUpload(path: string, file: File, fieldName = "file") {
+export async function apiUpload<T = any>(path: string, file: File, fieldName = "file"): Promise<T> {
   const form = new FormData();
   form.append(fieldName, file);
   const token = typeof window !== "undefined" ? localStorage.getItem("voxikam_token") : null;
@@ -76,4 +82,14 @@ export async function apiUpload(path: string, file: File, fieldName = "file") {
     throw new Error(err.detail ?? `POST ${path} → ${res.status}`);
   }
   return res.json();
+}
+
+// Auditoría v2.55: el patrón `err instanceof Error ? err.message : 'fallback'`
+// está repetido a mano en 13+ catch blocks (app/(admin)/areas/page.tsx,
+// area-groups, prefixes, invoice-template, routing-sim...) — cada uno con su
+// propio fallback. Este helper no reemplaza esos call sites (migrarlos es
+// mecánico, no urgente), pero establece el punto único para escribirlo bien
+// una sola vez: `err` de un catch es `unknown`, nunca asumir que es Error.
+export function getErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
 }

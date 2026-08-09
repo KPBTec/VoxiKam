@@ -163,8 +163,8 @@ export default function AreaGroupsPage() {
                       <td className="px-5 py-2 text-right text-[var(--color-muted)]">{a.prefix_count}</td>
                       <td className="px-5 py-2">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => saveEdit(a.id)} className="text-green-400 hover:text-green-300"><Check size={15} /></button>
-                          <button onClick={() => setEditingId(null)} className="text-[var(--color-muted)] hover:text-white"><X size={15} /></button>
+                          <button onClick={() => saveEdit(a.id)} aria-label="Guardar" className="text-green-400 hover:text-green-300"><Check size={15} /></button>
+                          <button onClick={() => setEditingId(null)} aria-label="Cancelar edición" className="text-[var(--color-muted)] hover:text-white"><X size={15} /></button>
                         </div>
                       </td>
                     </>
@@ -176,11 +176,12 @@ export default function AreaGroupsPage() {
                       <td className="px-5 py-2.5 text-right">{a.prefix_count}</td>
                       <td className="px-5 py-2.5">
                         <div className="flex justify-end gap-3">
-                          <button onClick={() => startEdit(a)} className="text-[var(--color-muted)] hover:text-white"><Pencil size={14} /></button>
+                          <button onClick={() => startEdit(a)} aria-label="Editar" className="text-[var(--color-muted)] hover:text-white"><Pencil size={14} /></button>
                           <button
                             onClick={() => removeArea(a)}
                             disabled={a.prefix_count > 0}
                             title={a.prefix_count > 0 ? 'Reasigna sus prefijos antes de eliminarla' : 'Eliminar'}
+                            aria-label={a.prefix_count > 0 ? 'Reasigna sus prefijos antes de eliminarla' : 'Eliminar'}
                             className="text-[var(--color-muted)] hover:text-red-400 disabled:opacity-30 disabled:hover:text-[var(--color-muted)]"
                           >
                             <Trash2 size={14} />

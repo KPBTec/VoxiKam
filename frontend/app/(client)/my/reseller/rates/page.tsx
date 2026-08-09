@@ -272,7 +272,7 @@ export default function ResellerRates() {
                         <td className="px-4 py-2 text-right font-mono">{Number(r.rateinitial).toFixed(4)}</td>
                         <td className="px-4 py-2 text-right font-mono text-[var(--color-text-2)]">{Number(r.connectcharge).toFixed(4)}</td>
                         <td className="px-4 py-2 text-right">
-                          <button onClick={() => delRate(r.id)} className="text-[var(--color-muted)] hover:text-red-400">
+                          <button onClick={() => delRate(r.id)} aria-label="Eliminar tarifa" className="text-[var(--color-muted)] hover:text-red-400">
                             <Trash2 size={14} />
                           </button>
                         </td>

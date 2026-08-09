@@ -21,6 +21,7 @@ from typing import Optional
 from auth import require_admin
 from database import get_db
 from audit import diff_and_record
+from sync_runner import run_sync
 
 router = APIRouter()
 
@@ -110,7 +111,9 @@ async def test_connection(_=Depends(require_admin)):
 async def run_now(admin=Depends(require_admin)):
     # Fire-and-forget: la primera sincronización de un histórico grande puede
     # tardar — el resultado se sigue en GET /log, no en la respuesta HTTP.
-    subprocess.Popen([sys.executable, str(SYNC_SCRIPT)])
+    # timeout largo acá también, solo como red de contención si el script
+    # revienta ANTES de escribir su propio log (si termina normal, /log ya lo cuenta).
+    run_sync(SYNC_SCRIPT, timeout=1800)
     return {"ok": True, "started": True}
 
 

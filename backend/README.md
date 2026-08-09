@@ -100,6 +100,26 @@ INSTALL_DIR=...
 LOG_DIR=...
 ```
 
+## Tests
+
+Suite de caracterización (`tests/`) enfocada en la matemática de facturación
+(`_billable_blocks`, `_calc_bill`, `ingest_cdr`) — la parte del backend donde
+un bug se traduce directo en plata mal cobrada. Sin DB real: usa dobles de
+prueba (`tests/fakes.py`) que matchean las queries por contenido en vez de
+levantar MariaDB.
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+pytest                      # corre todo tests/, ver pytest.ini
+pytest tests/test_calc_bill.py -v
+```
+
+Al tocar `_billable_blocks()`, `_calc_bill()` o `ingest_cdr()` — o al extraer
+la lógica compartida a un futuro `rating.py` (ver `CLAUDE.md`) — correr esta
+suite primero. `test_billable_blocks.py::test_both_copies_agree_across_a_grid_of_inputs`
+es la red de seguridad específica para esa extracción: detecta si las dos
+copias (`main.py` y `routers/cdrs.py`) divergen.
+
 ## Logs
 
 ```bash

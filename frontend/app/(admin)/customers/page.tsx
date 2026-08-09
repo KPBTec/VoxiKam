@@ -147,7 +147,7 @@ export default function CustomersPage() {
                   <StatusBadge variant={customerStatusVariant(r.status)}>{r.status}</StatusBadge>
                 </td>
                 <td className="px-6 py-3 text-right">
-                  <Link href={`/customers/${r.id}`}
+                  <Link href={`/customers/${r.id}`} aria-label="Ver detalle"
                     className="text-[var(--color-muted)] hover:text-brand-400 transition-colors">
                     <ChevronRight size={16} />
                   </Link>

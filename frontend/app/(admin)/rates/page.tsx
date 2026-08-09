@@ -160,8 +160,8 @@ export default function RatesPage() {
                       onChange={e => setEditPlanName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') saveEditPlan(p); if (e.key === 'Escape') setEditPlanId(null) }}
                       className="flex-1 min-w-0 bg-transparent text-sm focus:outline-none" />
-                    <button onClick={() => saveEditPlan(p)} className="text-green-400 hover:text-green-300"><Check size={14}/></button>
-                    <button onClick={() => setEditPlanId(null)} className="text-[var(--color-muted)] hover:text-[var(--color-text)]"><X size={14}/></button>
+                    <button onClick={() => saveEditPlan(p)} aria-label="Guardar" className="text-green-400 hover:text-green-300"><Check size={14}/></button>
+                    <button onClick={() => setEditPlanId(null)} aria-label="Cancelar edición" className="text-[var(--color-muted)] hover:text-[var(--color-text)]"><X size={14}/></button>
                   </div>
                 ) : (
                   <div className="flex items-center">
@@ -169,11 +169,11 @@ export default function RatesPage() {
                       <span className={sel===p.id ? 'text-brand-400' : ''}>{p.name}</span>
                       <span className="block text-xs text-[var(--color-muted)]">{p.currency}</span>
                     </button>
-                    <button onClick={() => startEditPlan(p)}
+                    <button onClick={() => startEditPlan(p)} aria-label="Editar"
                       className="p-2 text-[var(--color-muted)] hover:text-brand-400 transition-colors">
                       <Pencil size={13}/>
                     </button>
-                    <button onClick={() => deletePlan(p.id)}
+                    <button onClick={() => deletePlan(p.id)} aria-label="Eliminar plan"
                       className="p-2 text-[var(--color-muted)] hover:text-red-400 transition-colors">
                       <Trash2 size={13}/>
                     </button>
@@ -324,7 +324,7 @@ export default function RatesPage() {
                         </td>
                         <td className="px-5 py-2.5 text-right text-[var(--color-muted)]">{r.billingblock}s</td>
                         <td className="px-5 py-2.5 text-right">
-                          <button onClick={() => delRate(r.id)}
+                          <button onClick={() => delRate(r.id)} aria-label="Eliminar tarifa"
                             className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
                             <Trash2 size={14}/>
                           </button>

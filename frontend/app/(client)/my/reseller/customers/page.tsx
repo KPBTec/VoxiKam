@@ -417,7 +417,7 @@ export default function ResellerSubCustomers() {
                             <option key={g.group_id} value={g.group_id}>{g.name}</option>
                           ))}
                         </select>
-                        <button onClick={() => deletePrefix(p.id)} className="text-[var(--color-muted)] hover:text-red-400">
+                        <button onClick={() => deletePrefix(p.id)} aria-label="Eliminar prefijo" className="text-[var(--color-muted)] hover:text-red-400">
                           <Trash2 size={13} />
                         </button>
                       </div>

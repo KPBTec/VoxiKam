@@ -159,10 +159,10 @@ export default function WebhooksPage() {
                         <button onClick={() => viewDeliveries(h)} className="text-xs text-[var(--color-muted)] hover:text-white">
                           {openId === h.id ? 'Ocultar' : 'Historial'}
                         </button>
-                        <button onClick={() => rotate(h)} title="Rotar secret" className="text-[var(--color-muted)] hover:text-white">
+                        <button onClick={() => rotate(h)} title="Rotar secret" aria-label="Rotar secret" className="text-[var(--color-muted)] hover:text-white">
                           <RefreshCw size={14} />
                         </button>
-                        <button onClick={() => remove(h)} className="text-[var(--color-muted)] hover:text-red-400">
+                        <button onClick={() => remove(h)} aria-label="Eliminar webhook" className="text-[var(--color-muted)] hover:text-red-400">
                           <Trash2 size={14} />
                         </button>
                       </div>

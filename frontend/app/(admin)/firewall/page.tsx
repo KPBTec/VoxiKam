@@ -198,10 +198,11 @@ export default function FirewallPage() {
                         disabled={jailing === r.id}
                         onClick={() => toggleJail(r.id, !r.jail)}
                         title={r.jail ? "Liberar (sacar de jail)" : "Poner en jail (bloqueo forzado)"}
+                        aria-label={r.jail ? "Liberar (sacar de jail)" : "Poner en jail (bloqueo forzado)"}
                         className={`transition-colors disabled:opacity-50 ${r.jail ? "text-red-400 hover:text-green-400" : "text-[var(--color-muted)] hover:text-red-400"}`}>
                         {r.jail ? <Unlock size={14} /> : <Lock size={14} />}
                       </button>
-                      <button onClick={() => del(r.id)}
+                      <button onClick={() => del(r.id)} aria-label="Eliminar regla"
                         className="text-[var(--color-muted)] hover:text-danger transition-colors">
                         <Trash2 size={15} />
                       </button>

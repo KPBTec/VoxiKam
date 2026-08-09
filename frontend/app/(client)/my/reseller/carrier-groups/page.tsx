@@ -286,7 +286,7 @@ export default function ResellerCarrierGroupsPage() {
                           <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-zinc-700 text-zinc-400">inactivo</span>
                         )}
                       </span>
-                      <button onClick={() => removeMember(m.carrier_id)} className="text-[var(--color-muted)] hover:text-red-400">
+                      <button onClick={() => removeMember(m.carrier_id)} aria-label="Quitar del grupo" className="text-[var(--color-muted)] hover:text-red-400">
                         <Trash2 size={13} />
                       </button>
                     </div>

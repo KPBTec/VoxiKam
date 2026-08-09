@@ -118,7 +118,7 @@ export default function ApiKeysPage() {
                 </td>
                 <td className="px-6 py-3 text-right">
                   {!k.revoked && (
-                    <button onClick={() => revoke(k.id)} className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
+                    <button onClick={() => revoke(k.id)} aria-label="Revocar" className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
                       <Trash2 size={14} />
                     </button>
                   )}

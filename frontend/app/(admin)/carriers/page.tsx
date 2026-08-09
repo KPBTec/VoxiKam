@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { apiGet, apiPost, apiFetch } from '@/lib/api'
+import { apiGet, apiPost, apiFetch, getErrorMessage } from '@/lib/api'
 import Link from 'next/link'
+import { Field } from '@/components/Field'
 
 interface Carrier {
   id: number; name: string; host: string; port: number
@@ -26,7 +27,8 @@ export default function CarriersPage() {
   const [showReseller, setShowReseller] = useState(false)
 
   const load = (withReseller = showReseller) =>
-    apiGet(`/admin/carriers?include_reseller=${withReseller}`).then(setCarriers).catch((e: any) => setError(e.message))
+    apiGet<Carrier[]>(`/admin/carriers?include_reseller=${withReseller}`).then(setCarriers)
+      .catch(e => setError(getErrorMessage(e, 'Error cargando carriers')))
   useEffect(() => { load() }, [showReseller])
   useEffect(() => { apiGet('/admin/providers').then(setProviders).catch(() => {}) }, [])
 
@@ -44,7 +46,7 @@ export default function CarriersPage() {
         await apiPost('/admin/carriers', form)
       }
       setShowForm(false); setForm(EMPTY); setEditing(null); load()
-    } catch (e: any) { setError(e.message) }
+    } catch (e) { setError(getErrorMessage(e, 'Error al guardar el carrier')) }
     finally { setSaving(false) }
   }
 
@@ -79,11 +81,12 @@ export default function CarriersPage() {
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[['Nombre', 'name', 'text'], ['Host / IP', 'host', 'text'], ['Puerto', 'port', 'number'], ['Prefijo saliente', 'outbound_prefix', 'text'], ['Prioridad', 'priority', 'number']].map(([label, key, type]) => (
-              <div key={key}>
-                <label className="block text-xs text-[var(--color-text-2)] mb-1">{label}</label>
-                <input type={type} value={form[key] ?? ''} onChange={e => setForm((f: any) => ({ ...f, [key]: type === 'number' ? +e.target.value : e.target.value }))}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]" />
-              </div>
+              <Field
+                key={key} id={`carrier-${key}`} label={label} type={type}
+                value={form[key] ?? ''}
+                onChange={e => setForm((f: any) => ({ ...f, [key]: type === 'number' ? +e.target.value : e.target.value }))}
+                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
+              />
             ))}
             <div>
               <label className="block text-xs text-[var(--color-text-2)] mb-1">Proveedor</label>
@@ -102,18 +105,18 @@ export default function CarriersPage() {
                 <option value="inactive">Inactivo</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs text-[var(--color-text-2)] mb-1">Límite CPS (vacío = sin límite)</label>
-              <input type="number" min={1} max={65535} value={form.cps_limit ?? ''}
-                onChange={e => setForm((f: any) => ({ ...f, cps_limit: e.target.value === '' ? null : +e.target.value }))}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]" />
-            </div>
+            <Field
+              id="carrier-cps_limit" label="Límite CPS (vacío = sin límite)" type="number" min={1} max={65535}
+              value={form.cps_limit ?? ''}
+              onChange={e => setForm((f: any) => ({ ...f, cps_limit: e.target.value === '' ? null : +e.target.value }))}
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
+            />
           </div>
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">Notas</label>
-            <input value={form.notes ?? ''} onChange={e => setForm((f: any) => ({ ...f, notes: e.target.value }))}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]" />
-          </div>
+          <Field
+            id="carrier-notes" label="Notas"
+            value={form.notes ?? ''} onChange={e => setForm((f: any) => ({ ...f, notes: e.target.value }))}
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
+          />
           <div className="flex gap-3">
             <button onClick={save} disabled={saving}
               className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded">

@@ -104,7 +104,7 @@ export default function ProfilesPage() {
                   className="focus-ring flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-brand-400 hover:bg-white/5 transition-colors">
                   <Pencil size={14} /> Editar
                 </button>
-                <button onClick={() => del(p)}
+                <button onClick={() => del(p)} aria-label="Eliminar perfil"
                   className="focus-ring p-2 rounded-lg text-[var(--color-muted)] hover:text-danger hover:bg-danger/10 transition-colors">
                   <Trash2 size={15} />
                 </button>
@@ -120,7 +120,7 @@ export default function ProfilesPage() {
           <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-card)]">
               <h2 className="font-semibold">{modal === 'create' ? 'Nuevo perfil' : 'Editar perfil'}</h2>
-              <button onClick={() => setModal(null)}
+              <button onClick={() => setModal(null)} aria-label="Cerrar"
                 className="focus-ring text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
                 <X size={18} />
               </button>

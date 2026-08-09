@@ -3,8 +3,6 @@
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
 
-import subprocess
-import sys
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -16,6 +14,7 @@ from typing import Optional
 from auth import require_admin
 from database import get_db
 from audit import diff_and_record, record_event
+from sync_runner import run_sync
 
 router = APIRouter()
 SCRIPTS = Path(__file__).parent.parent.parent / "scripts"
@@ -274,5 +273,6 @@ async def run_backfill(admin=Depends(require_admin)):
     quedaron con prefix_matched NULL/no confiable). Solo toca esa columna, nunca
     buycost/sessionbill — no afecta nada ya facturado.
     """
-    subprocess.Popen([sys.executable, str(SCRIPTS / "backfill_prefix_matched.py"), "--yes"])
+    # timeout largo: recalcula prefix_matched sobre TODO el histórico de CDRs, puede tardar minutos.
+    run_sync(SCRIPTS / "backfill_prefix_matched.py", "--yes", timeout=600)
     return {"ok": True, "started": True}

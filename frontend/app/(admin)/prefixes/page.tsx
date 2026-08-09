@@ -187,8 +187,8 @@ export default function PrefixesPage() {
                   </td>
                   <td className="px-4 py-2 text-right">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => saveEditPfx(p.id)} disabled={editPfxSaving} className="text-green-400 hover:text-green-300"><Check size={15}/></button>
-                      <button onClick={() => setEditPfxId(null)} className="text-[var(--color-muted)] hover:text-[var(--color-text)]"><X size={15}/></button>
+                      <button onClick={() => saveEditPfx(p.id)} disabled={editPfxSaving} aria-label="Guardar" className="text-green-400 hover:text-green-300"><Check size={15}/></button>
+                      <button onClick={() => setEditPfxId(null)} aria-label="Cancelar edición" className="text-[var(--color-muted)] hover:text-[var(--color-text)]"><X size={15}/></button>
                     </div>
                   </td>
                 </tr>
@@ -200,11 +200,11 @@ export default function PrefixesPage() {
                   <td className="px-4 py-2 text-center text-[var(--color-muted)]">{p.country}</td>
                   <td className="px-4 py-2 text-right">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => startEditPfx(p)}
+                      <button onClick={() => startEditPfx(p)} aria-label="Editar"
                         className="p-1 text-[var(--color-muted)] hover:text-brand-400 transition-colors">
                         <Pencil size={14}/>
                       </button>
-                      <button onClick={() => delPrefix(p.id)}
+                      <button onClick={() => delPrefix(p.id)} aria-label="Eliminar prefijo"
                         className="p-1 text-[var(--color-muted)] hover:text-red-400 transition-colors">
                         <Trash2 size={14}/>
                       </button>

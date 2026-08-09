@@ -8,12 +8,12 @@ from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
-import subprocess, sys
 from pathlib import Path
 
 from auth import require_admin
 from database import get_db
 from audit import diff_and_record, record_event
+from sync_runner import run_sync
 
 router = APIRouter()
 SCRIPTS = Path(__file__).parent.parent.parent / "scripts"
@@ -179,12 +179,17 @@ async def add_buy_rate(cid: int, body: BuyRateIn, db: AsyncSession = Depends(get
 async def add_group_buy_rate(cid: int, body: GroupBuyRateIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     r = await db.execute(text("SELECT id FROM prefixes WHERE group_name = :g"), {"g": body.group_name})
     prefix_ids = [row[0] for row in r.fetchall()]
-    for pfx_id in prefix_ids:
+    # Auditoría v2.55: antes esto era un INSERT por prefijo dentro del loop —
+    # un grupo con cientos de prefijos hacía cientos de round-trips a la DB
+    # secuenciales. executemany() (pasar una lista de params a un solo
+    # execute()) deja que el driver batchee todo en una sola ida y vuelta.
+    if prefix_ids:
         await db.execute(text("""
             INSERT INTO carrier_rates (carrier_id, prefix_id, buy_rate, connectcharge, billingblock)
             VALUES (:cid, :pfx, :rate, :cc, :bb)
             ON DUPLICATE KEY UPDATE buy_rate=:rate, connectcharge=:cc, billingblock=:bb
-        """), {"cid": cid, "pfx": pfx_id, "rate": body.buy_rate, "cc": body.connectcharge, "bb": body.billingblock})
+        """), [{"cid": cid, "pfx": pfx_id, "rate": body.buy_rate, "cc": body.connectcharge, "bb": body.billingblock}
+               for pfx_id in prefix_ids])
     await record_event(db, "carrier", cid, "group_buy_rate_set", admin.get("name") or admin.get("email"),
                         f"grupo {body.group_name} → {body.buy_rate}/min ({len(prefix_ids)} prefijos)")
     await db.commit()
@@ -204,5 +209,5 @@ async def delete_buy_rate(cid: int, rate_id: int, db: AsyncSession = Depends(get
 
 
 def _sync():
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_dispatcher.py")])
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_nftables.py")])
+    run_sync(SCRIPTS / "gen_dispatcher.py")
+    run_sync(SCRIPTS / "gen_nftables.py")

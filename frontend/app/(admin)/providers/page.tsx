@@ -1,6 +1,8 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { apiGet, apiPost, apiFetch } from '@/lib/api'
+import { useState } from 'react'
+import { apiPost, apiFetch, getErrorMessage } from '@/lib/api'
+import { useApiResource } from '@/lib/useApiResource'
+import { Field } from '@/components/Field'
 import Link from 'next/link'
 
 interface Provider {
@@ -10,23 +12,22 @@ interface Provider {
 const EMPTY = { name: '', notes: '' }
 
 export default function ProvidersPage() {
-  const [providers, setProviders] = useState<Provider[]>([])
+  const { data: providers, error: loadError, reload: load } =
+    useApiResource<Provider[]>('/admin/providers', 'Error cargando proveedores')
   const [form, setForm]           = useState<any>(EMPTY)
   const [editing, setEditing]     = useState<number | null>(null)
   const [showForm, setShowForm]   = useState(false)
   const [saving, setSaving]       = useState(false)
-  const [error, setError]         = useState('')
-
-  const load = () => apiGet('/admin/providers').then(setProviders).catch((e: any) => setError(e.message))
-  useEffect(() => { load() }, [])
+  const [formError, setFormError] = useState('')
+  const error = formError || loadError
 
   function edit(p: Provider) {
-    setForm({ name: p.name, notes: p.notes ?? '' }); setEditing(p.id); setShowForm(true); setError('')
+    setForm({ name: p.name, notes: p.notes ?? '' }); setEditing(p.id); setShowForm(true); setFormError('')
   }
 
   async function save() {
-    if (!form.name) { setError('Nombre es requerido'); return }
-    setSaving(true); setError('')
+    if (!form.name) { setFormError('Nombre es requerido'); return }
+    setSaving(true); setFormError('')
     try {
       if (editing) {
         await apiFetch(`/admin/providers/${editing}`, { method: 'PUT', body: JSON.stringify(form) })
@@ -34,7 +35,7 @@ export default function ProvidersPage() {
         await apiPost('/admin/providers', form)
       }
       setShowForm(false); setForm(EMPTY); setEditing(null); load()
-    } catch (e: any) { setError(e.message) }
+    } catch (e) { setFormError(getErrorMessage(e, 'Error al guardar el proveedor')) }
     finally { setSaving(false) }
   }
 
@@ -67,16 +68,16 @@ export default function ProvidersPage() {
         <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-6 space-y-4">
           <h2 className="font-medium text-[var(--color-text)]">{editing ? 'Editar proveedor' : 'Nuevo proveedor'}</h2>
           {error && <p className="text-red-400 text-sm">{error}</p>}
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">Nombre</label>
-            <input value={form.name} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]" />
-          </div>
-          <div>
-            <label className="block text-xs text-[var(--color-text-2)] mb-1">Notas</label>
-            <input value={form.notes ?? ''} onChange={e => setForm((f: any) => ({ ...f, notes: e.target.value }))}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]" />
-          </div>
+          <Field
+            id="provider-name" label="Nombre"
+            value={form.name} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))}
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
+          />
+          <Field
+            id="provider-notes" label="Notas"
+            value={form.notes ?? ''} onChange={e => setForm((f: any) => ({ ...f, notes: e.target.value }))}
+            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
+          />
           <div className="flex gap-3">
             <button onClick={save} disabled={saving}
               className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded">
@@ -101,7 +102,7 @@ export default function ProvidersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border)]">
-            {providers.map(p => (
+            {(providers ?? []).map(p => (
               <tr key={p.id} className="hover:bg-white/2">
                 <td className="px-6 py-3 text-[var(--color-text)] font-medium">{p.name}</td>
                 <td className="px-6 py-3 text-[var(--color-text-2)]">{p.notes || '—'}</td>
@@ -114,7 +115,7 @@ export default function ProvidersPage() {
                 </td>
               </tr>
             ))}
-            {providers.length === 0 && (
+            {(providers ?? []).length === 0 && (
               <tr><td colSpan={4} className="px-6 py-10 text-center text-[var(--color-muted)] text-sm">Sin proveedores configurados</td></tr>
             )}
           </tbody>

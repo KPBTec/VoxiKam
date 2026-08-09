@@ -13,13 +13,12 @@ from pathlib import Path
 import hashlib
 import os
 import secrets
-import subprocess
-import sys
 
 from audit import record_event
 from auth import get_current_user, require_permission, has_permission
 from database import get_db
 from routers.areas import _area_report_rows
+from sync_runner import run_sync
 
 router = APIRouter()
 SCRIPTS = Path(__file__).parent.parent.parent / "scripts"
@@ -28,7 +27,7 @@ CLIENT_MAX_ROWS = 200   # techo absoluto para clientes — no negociable
 
 
 def _sync_dispatcher():
-    subprocess.Popen([sys.executable, str(SCRIPTS / "gen_dispatcher.py")])
+    run_sync(SCRIPTS / "gen_dispatcher.py")
 
 
 def _customer_id(user: dict) -> int:
