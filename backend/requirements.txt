@@ -1,11 +1,18 @@
 # fastapi/starlette: CVE-2026-48710 "BadHost" (auth bypass vía Host header,
-# CRÍTICO) — fastapi==0.115.5 permitía starlette<1.0.1 (vulnerable). Pineado
-# a un rango probado (venv real, resuelve a fastapi 0.139.0 + starlette
-# 1.3.1, los 38 routers del backend importan sin error).
-fastapi>=0.120,<0.140
-starlette>=1.0.1
+# CRÍTICO) — fastapi==0.115.5 permitía starlette<1.0.1 (vulnerable). Antes
+# pineado a un rango (>=0.120,<0.140) en vez de una versión exacta — un venv
+# NUEVO (fresh install, ver setup_backend_venv() en deploy.sh) re-resuelve un
+# rango contra PyPI en cada instalación desde cero, exactamente el mismo
+# vector de supply-chain que la razón por la que el frontend pasó de
+# `npm install` a `npm ci` (v2.57.0): una versión recién publicada dentro del
+# rango se instala sin haber sido probada nunca contra este código. Pineado
+# exacto a la versión smoke-testeada (venv real, los 38 routers importan sin
+# error, suite completa de pytest en verde).
+fastapi==0.139.2
+starlette==1.6.0
 uvicorn[standard]==0.32.1
-aiomysql==0.2.0
+# aiomysql: PYSEC-2026-1110, fix en 0.3.0 (auditoría de dependencias v2.57.0)
+aiomysql==0.3.0
 pymysql==1.1.1
 sqlalchemy==2.0.36
 # greenlet: dependencia real de SQLAlchemy AsyncSession (greenlet_spawn) —
@@ -16,25 +23,44 @@ sqlalchemy==2.0.36
 # greenlet y romper con "the greenlet library is required" en el primer
 # uso real de AsyncSession (confirmado armando un venv limpio para
 # voxikam_reload). Pineado explícito para no depender de la suerte de
-# qué otra dependencia lo arrastre.
-greenlet>=3.0
-python-dotenv==1.0.1
-bcrypt>=4.0
-email-validator>=2.0
-python-jose[cryptography]==3.3.0
-python-multipart==0.0.18
+# qué otra dependencia lo arrastre. Versión exacta por el mismo motivo de
+# reproducibilidad que fastapi/starlette arriba.
+greenlet==3.5.4
+# python-dotenv: PYSEC-2026-2270, fix en 1.2.2
+python-dotenv==1.2.2
+bcrypt==4.2.0
+email-validator==2.3.0
+# python-jose: PYSEC-2024-232/233/PYSEC-2025-185 (confusión de algoritmo en
+# jwt.decode), fix en 3.4.0. auth.py ya restringe `algorithms=[ALGORITHM]`
+# explícito al decodificar (mitigación correcta independiente de la versión),
+# pero se actualiza igual — no depender de un solo control.
+#
+# Riesgo transitivo aceptado, no accionable hoy: python-jose (cualquier
+# versión disponible, incluida 3.4.0) fija `pyasn1<0.5.0` y trae `ecdsa` sin
+# opción de excluirlo — ambos tienen CVEs abiertos sin fix compatible
+# (pyasn1 arregla en 0.6.3+, pero eso choca directo con el pin de jose;
+# ecdsa==0.19.2/PYSEC-2026-1325 no tiene fix version publicada todavía).
+# Ninguno de los dos es explotable en este código: este backend firma y
+# decodifica JWT solo con HS256 (`ALGORITHM` en auth.py) — el código de
+# jose/ecdsa/pyasn1 que esas CVEs afectan es el de parseo ASN.1/firmas
+# RSA/EC, que este backend nunca ejecuta. Revisar si python-jose relaja el
+# pin de pyasn1 en una versión futura.
+python-jose[cryptography]==3.4.0
+# python-multipart: múltiples CVEs (PYSEC-2026-1852/3036/3037/3038/3039/3040),
+# fix acumulado en 0.0.32 (última disponible al momento de este pin)
+python-multipart==0.0.32
 # jinja2: CVE-2024-56326/CVE-2024-56201 (RCE vía sandbox bypass), fix en 3.1.5
-jinja2>=3.1.5
+jinja2==3.1.6
 fpdf2==2.8.2
 python-dateutil==2.9.0
-psutil>=5.9
+psutil==7.2.2
 httpx==0.27.2
 psycopg2-binary==2.9.9
 # aiosmtplib: CVE-2026-53533 (inyección de comandos SMTP vía CRLF en
 # sender/recipient), fix en 5.1.1 — mailer.py::send_email() ya usa solo
 # kwargs y no usa source_address, compatible con los breaking changes de la
 # serie 5.x (verificado con smoke-test de import real en venv).
-aiosmtplib>=5.1.1
+aiosmtplib==5.1.2
 # clickhouse-connect: cliente oficial (ClickHouse Inc.), para sip_traces
 # (backend/clickhouse.py, backend/hep_listener.py). El extra [async] instala
 # aiohttp, requerido por get_async_client()/AsyncClient — sin él, el import

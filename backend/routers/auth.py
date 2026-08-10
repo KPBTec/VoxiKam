@@ -4,8 +4,6 @@
 # © 2026 – Todos los derechos reservados.
 
 import logging
-import time
-from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import text
@@ -13,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import create_token, verify_password, get_current_user, resolve_permissions
 from database import get_db
+from rate_limit import increment, peek_count
 
 router = APIRouter()
 log = logging.getLogger("voxikam-security")
@@ -21,22 +20,30 @@ log = logging.getLogger("voxikam-security")
 # pero eso es POR IP — un atacante rotando IPs (botnet, proxies rotativos)
 # puede fuerza bruta una cuenta puntual sin acercarse a ese límite. Este es un
 # segundo límite, independiente, keyeado por la cuenta objetivo en vez de por
-# origen — no reemplaza al de IP, lo complementa. En memoria, sin Redis,
-# mismo criterio ya aceptado para el limiter de IP.
+# origen — no reemplaza al de IP, lo complementa.
+#
+# Re-auditoría v2.56.0: esto era un dict en memoria, mismo bug de fondo que
+# cors_state.ALLOWED_ORIGINS ya tuvo (fragmentado entre workers con
+# --workers>1) — migrado a rate_limit.py, respaldado en la tabla compartida
+# rate_limit_counters. peek_count() (sin incrementar) es lo que permite
+# seguir rechazando ANTES del SELECT de usuario sin gastar una query extra,
+# igual que la versión en memoria; solo se incrementa cuando el login
+# efectivamente FALLA (no cada intento) — mismo criterio de siempre.
 _ACCOUNT_LOGIN_LIMIT = (8, 300)  # 8 intentos fallidos / 5 min por cuenta
-_account_fail_counters: dict[str, list[float]] = defaultdict(list)
 
 
-def _account_rate_limited(email: str) -> bool:
+def _account_key(email: str) -> str:
+    return f"account:{email.strip().lower()}"
+
+
+async def _account_rate_limited(db: AsyncSession, email: str) -> bool:
     max_fail, window = _ACCOUNT_LOGIN_LIMIT
-    now = time.monotonic()
-    key = email.strip().lower()
-    _account_fail_counters[key] = [t for t in _account_fail_counters[key] if now - t < window]
-    return len(_account_fail_counters[key]) >= max_fail
+    return await peek_count(db, _account_key(email), window) >= max_fail
 
 
-def _record_account_failure(email: str) -> None:
-    _account_fail_counters[email.strip().lower()].append(time.monotonic())
+async def _record_account_failure(db: AsyncSession, email: str) -> None:
+    _, window = _ACCOUNT_LOGIN_LIMIT
+    await increment(db, _account_key(email), window)
 
 
 def _get_real_ip(request: Request) -> str:
@@ -59,7 +66,7 @@ def _get_real_ip(request: Request) -> str:
 
 @router.post("/login")
 async def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    if _account_rate_limited(form.username):
+    if await _account_rate_limited(db, form.username):
         log.warning("SECURITY_REJECT ip=%s reason=account_rate_limited path=/api/auth/login", _get_real_ip(request))
         raise HTTPException(status_code=429, detail="Demasiados intentos para esta cuenta — intenta más tarde")
 
@@ -69,7 +76,7 @@ async def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), d
     )
     user = result.mappings().first()
     if not user or not verify_password(form.password, user["password_hash"]):
-        _record_account_failure(form.username)
+        await _record_account_failure(db, form.username)
         log.warning("SECURITY_REJECT ip=%s reason=login_failed path=/api/auth/login", _get_real_ip(request))
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     if not user["is_active"]:

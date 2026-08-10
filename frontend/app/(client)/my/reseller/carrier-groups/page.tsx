@@ -3,6 +3,7 @@ import { ErrorBanner } from '@/components/ErrorBanner'
 import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api'
 import { Plus, Trash2, ArrowLeft, Shuffle } from 'lucide-react'
+import { ClickableRow } from '@/components/ClickableRow'
 
 interface CarrierGroup {
   id: number; name: string; algorithm: 'priority' | 'round_robin' | 'percent'
@@ -368,7 +369,7 @@ export default function ResellerCarrierGroupsPage() {
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {groups.map(g => (
-                <tr key={g.id} onClick={() => openDetail(g.id)} className="hover:bg-white/2 cursor-pointer">
+                <ClickableRow key={g.id} onActivate={() => openDetail(g.id)} className="hover:bg-white/2 cursor-pointer">
                   <td className="px-6 py-3 font-medium text-[var(--color-text)]">{g.name}</td>
                   <td className="px-6 py-3 text-[var(--color-text-2)]">{ALGO_LABELS[g.algorithm]}</td>
                   <td className="px-6 py-3 text-center">{g.member_count}</td>
@@ -376,7 +377,7 @@ export default function ResellerCarrierGroupsPage() {
                     <button onClick={e => { e.stopPropagation(); deleteGroup(g.id) }}
                       className="text-xs text-red-400 hover:text-red-300">Eliminar</button>
                   </td>
-                </tr>
+                </ClickableRow>
               ))}
             </tbody>
           </table>

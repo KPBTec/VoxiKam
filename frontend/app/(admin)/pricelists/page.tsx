@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete, apiUpload, apiFetch } from '@/lib/api'
 import { Plus, Send, Trash2, FileStack, Upload, Download } from 'lucide-react'
+import { ClickableRow } from '@/components/ClickableRow'
+import { StatusBadge, draftStatusVariant } from '@/components/StatusBadge'
 
 interface Plan { id: number; name: string }
 interface Draft {
@@ -193,17 +195,15 @@ export default function PricelistsPage() {
             </thead>
             <tbody>
               {drafts.map(d => (
-                <tr key={d.id} onClick={() => d.status === 'draft' ? openDraftDetail(d) : null}
+                <ClickableRow key={d.id} onActivate={() => openDraftDetail(d)} disabled={d.status !== 'draft'}
                   className={`border-b border-[var(--color-border)]/50 ${d.status === 'draft' ? 'cursor-pointer hover:bg-white/5' : 'opacity-50'}`}>
                   <td className="px-5 py-2.5">{d.label}</td>
-                  <td className="px-5 py-2.5 text-center text-xs">
-                    <span className={
-                      d.status === 'draft' ? 'text-yellow-400' : d.status === 'published' ? 'text-green-400' : 'text-[var(--color-muted)]'
-                    }>{d.status}</span>
+                  <td className="px-5 py-2.5 text-center">
+                    <StatusBadge variant={draftStatusVariant(d.status)}>{d.status}</StatusBadge>
                   </td>
                   <td className="px-5 py-2.5 text-right">{d.item_count}</td>
                   <td className="px-5 py-2.5 text-xs text-[var(--color-muted)]">{new Date(d.created_at).toLocaleString('es-PE')}</td>
-                </tr>
+                </ClickableRow>
               ))}
             </tbody>
           </table>

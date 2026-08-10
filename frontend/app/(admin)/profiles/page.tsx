@@ -4,6 +4,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api'
 import { Plus, Pencil, Trash2, Save, X, Users } from 'lucide-react'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { PermissionTree, PermissionResource } from '@/components/PermissionTree'
+import { Modal } from '@/components/Modal'
 
 interface Profile {
   id: number; name: string; description: string | null
@@ -116,10 +117,10 @@ export default function ProfilesPage() {
 
       {/* Modal */}
       {modal !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <Modal onClose={() => setModal(null)} labelledBy="profile-modal-title"
+          className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-card)]">
-              <h2 className="font-semibold">{modal === 'create' ? 'Nuevo perfil' : 'Editar perfil'}</h2>
+              <h2 id="profile-modal-title" className="font-semibold">{modal === 'create' ? 'Nuevo perfil' : 'Editar perfil'}</h2>
               <button onClick={() => setModal(null)} aria-label="Cerrar"
                 className="focus-ring text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
                 <X size={18} />
@@ -165,8 +166,7 @@ export default function ProfilesPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

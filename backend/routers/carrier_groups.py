@@ -231,9 +231,11 @@ async def add_member(gid: int, body: GroupMemberIn, db: AsyncSession = Depends(g
 
 @router.delete("/{gid}/members/{carrier_id}", status_code=204)
 async def remove_member(gid: int, carrier_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
-    await db.execute(text(
+    r = await db.execute(text(
         "DELETE FROM carrier_group_members WHERE group_id = :gid AND carrier_id = :cid"
     ), {"gid": gid, "cid": carrier_id})
+    if r.rowcount == 0:
+        raise HTTPException(404, "El carrier no es miembro de este grupo")
     await db.commit()
     _sync_dispatcher()
 

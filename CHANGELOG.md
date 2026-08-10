@@ -9,6 +9,22 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.57.0 — 2026-08-10
+
+Segunda ronda de una auditoría interna completa de arquitectura, seguridad, backend, frontend y calidad.
+
+- Crítico: cerrada por completo una condición que podía interrumpir la facturación de todos los clientes si una tarifa quedaba mal configurada con un valor específico — ahora bloqueada en 4 puntos distintos, incluida la base de datos.
+- Seguridad: el límite de intentos de inicio de sesión y el límite de peticiones por IP ahora se comparten entre todos los procesos del servidor — antes, en servidores con múltiples procesos, el límite real era varias veces más débil de lo esperado.
+- Seguridad: actualizadas varias dependencias con vulnerabilidades conocidas públicamente, tanto en el backend como en el panel web.
+- Seguridad: el proceso de publicación ya no puede instalar una versión de una dependencia distinta a la que fue probada.
+- Corregido: alrededor de 25 acciones de edición/eliminación del panel admin devolvían una respuesta de "éxito" aunque el elemento ya no existiera — ahora informan correctamente que no se encontró.
+- Corregido: en cuentas prepago, cruzar dos umbrales de alerta de saldo a la vez podía notificar el umbral equivocado (el menos urgente en vez del más urgente).
+- Mejorado: todas las tablas del panel con filas clicables (llamadas, reportes, en vivo, IPs autorizadas, grupos de carriers, listas de precios, y el panel de reseller) ahora se pueden abrir con el teclado, no solo con el mouse.
+- Mejorado: las ventanas emergentes del panel (editar perfil, IPs de cliente) y el menú lateral en celular ahora se cierran con la tecla Escape y mantienen el foco del teclado dentro de la ventana mientras está abierta.
+- Interno: reorganizado el módulo más grande del backend (panel de reseller) en archivos más chicos y enfocados, sin cambios de comportamiento. Ampliada la cobertura de pruebas automatizadas con pruebas de integración reales contra base de datos. Actualizado el requisito de Node.js a la versión 22.
+
+---
+
 ## v2.56.0 — 2026-08-09
 
 Resultado de una auditoría interna completa de seguridad, backend, frontend y calidad — 22 mejoras y correcciones, de mayor a menor impacto.

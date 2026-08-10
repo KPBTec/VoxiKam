@@ -50,9 +50,9 @@ for _kpkg in kamailio-mysql-modules kamailio-extra-modules kamailio-utils-module
         || { warn "$_kpkg faltante"; MISSING+=("$_kpkg"); PKGS+=("$_kpkg"); }
 done
 
-# Node.js mínimo v20 — debe chequearse ANTES del exit 0 para no saltarse la actualización
+# Node.js mínimo v22 — debe chequearse ANTES del exit 0 para no saltarse la actualización
 NODE_V=$(node --version 2>/dev/null | sed 's/v//' | cut -d. -f1 || echo 0)
-[[ "$NODE_V" -lt 20 ]] && { warn "Node.js v${NODE_V} < 20 requerido"; MISSING+=("nodejs>=20"); }
+[[ "$NODE_V" -lt 22 ]] && { warn "Node.js v${NODE_V} < 22 requerido"; MISSING+=("nodejs>=22"); }
 
 [[ ${#MISSING[@]} -eq 0 ]] && { ok "Todas las dependencias presentes"; exit 0; }
 
@@ -62,13 +62,13 @@ read -r -p "  ¿Instalar ahora? [S/n]: " C
 [[ "${C:-S}" =~ ^[Ss]$ ]] || { err "Instala los paquetes manualmente y vuelve a ejecutar."; exit 1; }
 
 apt-get update -qq
-PKGS_UNIQ=$(echo "${PKGS[@]}" | tr ' ' '\n' | sort -u | grep -v '^nodejs>=20$' | tr '\n' ' ')
+PKGS_UNIQ=$(echo "${PKGS[@]}" | tr ' ' '\n' | sort -u | grep -v '^nodejs>=22$' | tr '\n' ' ')
 [[ -n "$PKGS_UNIQ" ]] && apt-get install -y $PKGS_UNIQ
 
-# Instalar/actualizar Node.js a v20 LTS si la versión es insuficiente
-[[ "$NODE_V" -lt 20 ]] && {
-    info "Instalando Node.js 20 LTS vía nodesource..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+# Instalar/actualizar Node.js a v22 LTS si la versión es insuficiente
+[[ "$NODE_V" -lt 22 ]] && {
+    info "Instalando Node.js 22 LTS vía nodesource..."
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     apt-get install -y nodejs
 }
 

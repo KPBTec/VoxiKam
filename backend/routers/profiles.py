@@ -114,6 +114,8 @@ async def update_profile(pid: int, body: ProfileIn, db: AsyncSession = Depends(g
 async def delete_profile(pid: int, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     r = await db.execute(text("SELECT name FROM customer_profiles WHERE id = :id"), {"id": pid})
     row = r.first()
+    if not row:
+        raise HTTPException(404, "Perfil no encontrado")
     await db.execute(
         text("UPDATE customers SET profile_id = NULL WHERE profile_id = :id"), {"id": pid}
     )

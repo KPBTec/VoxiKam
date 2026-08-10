@@ -17,7 +17,7 @@ import io
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
@@ -40,7 +40,7 @@ class DraftItemIn(BaseModel):
     prefix_id: int
     rateinitial: float
     connectcharge: float = 0.0
-    billingblock: int = 1
+    billingblock: int = Field(default=1, ge=1)
     minimal_time_charge: int = 0
 
 
@@ -123,9 +123,11 @@ async def upsert_items(draft_id: int, body: List[DraftItemIn],
 @router.delete("/drafts/{draft_id}/items/{prefix_id}", status_code=204)
 async def remove_item(draft_id: int, prefix_id: int,
                        db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
-    await db.execute(text(
+    r = await db.execute(text(
         "DELETE FROM rate_plan_draft_items WHERE draft_id = :draft_id AND prefix_id = :prefix_id"
     ), {"draft_id": draft_id, "prefix_id": prefix_id})
+    if r.rowcount == 0:
+        raise HTTPException(404, "Item no encontrado en el draft")
     await db.commit()
 
 
@@ -219,6 +221,21 @@ async def import_csv(draft_id: int, file: UploadFile,
             errors.append(f"Línea {i}: prefijo '{prefix_val}' no existe — crearlo primero en Tarifas → Prefijos")
             continue
 
+        # Re-auditoría v2.56.0 (hallazgo crítico): `int(row_data.get("billingblock")
+        # or 1)` solo cubre la columna AUSENTE o vacía — un CSV con "0" explícito
+        # (string no vacío, por lo tanto truthy) pasaba de largo con
+        # billingblock=0, que rating.py::billable_blocks() no soporta
+        # (ZeroDivisionError). Este import no pasa por DraftItemIn (arma el
+        # INSERT a mano), así que el Field(ge=1) del modelo no alcanza a
+        # cubrirlo — se valida acá explícitamente, como una fila más con error.
+        try:
+            billingblock = int(row_data.get("billingblock") or 1)
+            if billingblock < 1:
+                raise ValueError
+        except (KeyError, ValueError):
+            errors.append(f"Línea {i} ({prefix_val}): 'billingblock' debe ser un entero ≥ 1")
+            continue
+
         await db.execute(text("""
             INSERT INTO rate_plan_draft_items
                 (draft_id, prefix_id, rateinitial, connectcharge, billingblock, minimal_time_charge)
@@ -229,7 +246,7 @@ async def import_csv(draft_id: int, file: UploadFile,
         """), {
             "draft_id": draft_id, "prefix_id": pfx[0], "rateinitial": rateinitial,
             "connectcharge": float(row_data.get("connectcharge") or 0),
-            "billingblock": int(row_data.get("billingblock") or 1),
+            "billingblock": billingblock,
             "minimal_time_charge": int(row_data.get("minimal_time_charge") or 0),
         })
         imported += 1
@@ -240,6 +257,9 @@ async def import_csv(draft_id: int, file: UploadFile,
 
 @router.get("/drafts/{draft_id}/export-csv")
 async def export_draft_csv(draft_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
+    exists = await db.execute(text("SELECT 1 FROM rate_plan_drafts WHERE id = :id"), {"id": draft_id})
+    if not exists.first():
+        raise HTTPException(404, "Draft no encontrado")
     r = await db.execute(text("""
         SELECT p.prefix, i.rateinitial, i.connectcharge, i.billingblock, i.minimal_time_charge
         FROM rate_plan_draft_items i JOIN prefixes p ON p.id = i.prefix_id

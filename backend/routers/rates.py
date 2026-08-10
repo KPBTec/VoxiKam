@@ -8,7 +8,7 @@ import io
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
@@ -31,8 +31,11 @@ class RateIn(BaseModel):
     prefix_id: int
     rateinitial: float
     connectcharge: float = 0.0
-    initblock: int = 1
-    billingblock: int = 1
+    # Re-auditoría v2.56.0 (hallazgo crítico): billingblock=0 hace que
+    # rating.py::billable_blocks() dispare ZeroDivisionError — sin Field(ge=1)
+    # esto se podía grabar desde el panel sin ningún error de validación.
+    initblock: int = Field(default=1, ge=0)
+    billingblock: int = Field(default=1, ge=1)
     minimal_time_charge: int = 0
     status: str = "active"
 
@@ -41,8 +44,8 @@ class GroupRateIn(BaseModel):
     group_name: str
     rateinitial: float
     connectcharge: float = 0.0
-    initblock: int = 1
-    billingblock: int = 1
+    initblock: int = Field(default=1, ge=0)
+    billingblock: int = Field(default=1, ge=1)
 
 
 class PrefixIn(BaseModel):
@@ -86,12 +89,13 @@ async def create_plan(body: PlanIn, db: AsyncSession = Depends(get_db), admin=De
 async def update_plan(pid: int, body: PlanIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     r = await db.execute(text("SELECT * FROM rate_plans WHERE id = :id"), {"id": pid})
     before = r.mappings().first()
+    if not before:
+        raise HTTPException(404, "Plan no encontrado")
     await db.execute(text(
         "UPDATE rate_plans SET name=:name, currency=:currency, description=:description, status=:status WHERE id=:id"
     ), {**body.model_dump(), "id": pid})
-    if before:
-        await diff_and_record(db, "rate_plan", pid, dict(before), body.model_dump(),
-                               ["name", "currency", "status"], admin.get("name") or admin.get("email"))
+    await diff_and_record(db, "rate_plan", pid, dict(before), body.model_dump(),
+                           ["name", "currency", "status"], admin.get("name") or admin.get("email"))
     await db.commit()
     return {"ok": True}
 
@@ -100,6 +104,8 @@ async def update_plan(pid: int, body: PlanIn, db: AsyncSession = Depends(get_db)
 async def delete_plan(pid: int, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     r = await db.execute(text("SELECT name FROM rate_plans WHERE id = :id"), {"id": pid})
     row = r.first()
+    if not row:
+        raise HTTPException(404, "Plan no encontrado")
     await db.execute(text("DELETE FROM rate_plans WHERE id = :id"), {"id": pid})
     await record_event(db, "rate_plan", pid, "deleted", admin.get("name") or admin.get("email"), row[0] if row else "")
     await db.commit()
@@ -107,6 +113,9 @@ async def delete_plan(pid: int, db: AsyncSession = Depends(get_db), admin=Depend
 
 @router.get("/plans/{pid}/rates")
 async def get_plan_rates(pid: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
+    exists = await db.execute(text("SELECT 1 FROM rate_plans WHERE id = :id"), {"id": pid})
+    if not exists.first():
+        raise HTTPException(404, "Plan no encontrado")
     r = await db.execute(text("""
         SELECT r.*, p.prefix, p.destination, p.group_name, p.country
         FROM rates r JOIN prefixes p ON r.prefix_id = p.id
@@ -122,6 +131,9 @@ async def export_plan_rates_csv(pid: int, db: AsyncSession = Depends(get_db), _=
     el flujo recomendado es: exportar acá → editar el CSV → importarlo en un draft nuevo
     en Pricelists (revisa el diff antes de publicar), no reimportar directo a `rates`.
     """
+    exists = await db.execute(text("SELECT 1 FROM rate_plans WHERE id = :id"), {"id": pid})
+    if not exists.first():
+        raise HTTPException(404, "Plan no encontrado")
     r = await db.execute(text("""
         SELECT p.prefix, r.rateinitial, r.connectcharge, r.billingblock, r.minimal_time_charge
         FROM rates r JOIN prefixes p ON r.prefix_id = p.id
@@ -187,7 +199,9 @@ async def delete_rate(pid: int, rid: int, db: AsyncSession = Depends(get_db), ad
         SELECT p.prefix FROM rates r JOIN prefixes p ON r.prefix_id = p.id WHERE r.id = :id
     """), {"id": rid})
     row = r.first()
-    await db.execute(text("DELETE FROM rates WHERE id=:id AND rate_plan_id=:pid"), {"id": rid, "pid": pid})
+    result = await db.execute(text("DELETE FROM rates WHERE id=:id AND rate_plan_id=:pid"), {"id": rid, "pid": pid})
+    if result.rowcount == 0:
+        raise HTTPException(404, "Tarifa no encontrada")
     await record_event(db, "rate_plan", pid, "rate_deleted", admin.get("name") or admin.get("email"),
                         row[0] if row else f"rate_id={rid}")
     await db.commit()
@@ -266,6 +280,8 @@ async def delete_prefix(pid: int, db: AsyncSession = Depends(get_db), admin=Depe
         raise HTTPException(409, "Este prefijo tiene buy rates de carrier cargados — bórralos antes de eliminarlo")
     r = await db.execute(text("SELECT prefix, destination FROM prefixes WHERE id = :id"), {"id": pid})
     row = r.first()
+    if not row:
+        raise HTTPException(404, "Prefijo no encontrado")
     await db.execute(text("DELETE FROM prefixes WHERE id = :id"), {"id": pid})
     await record_event(db, "prefix", pid, "deleted", admin.get("name") or admin.get("email"),
                         f"{row[0]} — {row[1]}" if row else "")

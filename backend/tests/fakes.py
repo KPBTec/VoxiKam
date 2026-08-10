@@ -33,8 +33,13 @@ class FakeRow:
 
 
 class FakeResult:
-    def __init__(self, rows):
+    def __init__(self, rows, rowcount=None):
         self._rows = list(rows)
+        # Para UPDATE/DELETE sin filas de retorno: por default se asume que
+        # afectó 1 fila (el caso común "el UPDATE condicional encontró y
+        # actualizó la fila") — pasar rowcount=0 explícito para simular el
+        # caso "otro proceso ya la actualizó" que estos guards atómicos cubren.
+        self.rowcount = rowcount if rowcount is not None else 1
 
     def first(self):
         return self._rows[0] if self._rows else None
@@ -52,9 +57,24 @@ class FakeResult:
         return row[0] if isinstance(row, FakeRow) else row
 
 
+class WithRowcount:
+    """Envoltorio explícito para especificar rowcount en un UPDATE/DELETE
+    simulado — a propósito NO es una tupla (rows, rowcount) plana, porque
+    varios tests ya usan tuplas vacías `()` como forma de decir "sin filas"
+    para SELECTs, y esas se confundirían con este caso si el chequeo fuera
+    solo "es una tupla"."""
+    __slots__ = ("rows", "rowcount")
+
+    def __init__(self, rows, rowcount):
+        self.rows = rows
+        self.rowcount = rowcount
+
+
 class FakeSession:
     def __init__(self, routes):
-        """routes: lista de (predicate(sql, params) -> bool, rows | callable-que-devuelve-rows)"""
+        """routes: lista de (predicate(sql, params) -> bool, spec), donde spec es
+        una lista/tupla de rows, un WithRowcount(rows, rowcount), o un callable
+        que devuelve cualquiera de esas dos formas."""
         self.routes = routes
         self.calls = []  # [(sql, params)], para asserts sobre qué se ejecutó
         self.committed = False
@@ -63,9 +83,12 @@ class FakeSession:
         sql = str(stmt)
         params = params or {}
         self.calls.append((sql, params))
-        for predicate, rows in self.routes:
+        for predicate, spec in self.routes:
             if predicate(sql, params):
-                return FakeResult(rows() if callable(rows) else rows)
+                resolved = spec() if callable(spec) else spec
+                if isinstance(resolved, WithRowcount):
+                    return FakeResult(resolved.rows, rowcount=resolved.rowcount)
+                return FakeResult(resolved)
         return FakeResult([])
 
     async def commit(self):

@@ -551,7 +551,7 @@ CREATE TABLE IF NOT EXISTS rates (
     prefix_id             INT UNSIGNED    NOT NULL,
     rateinitial           DECIMAL(10,6)   NOT NULL DEFAULT 0.000000,  -- S/./min al cliente
     connectcharge         DECIMAL(10,6)   NOT NULL DEFAULT 0.000000,  -- cargo fijo conexión
-    initblock             SMALLINT UNSIGNED NOT NULL DEFAULT 1,       -- seg. primer bloque (1 = por segundo real)
+    initblock             SMALLINT UNSIGNED NOT NULL DEFAULT 1,       -- seg. primer bloque (1 = por segundo real, 0 = sin bloque inicial)
     billingblock          SMALLINT UNSIGNED NOT NULL DEFAULT 1,       -- seg. bloques siguientes (1 = por segundo real)
     minimal_time_charge   SMALLINT UNSIGNED NOT NULL DEFAULT 0,       -- mínimo facturable seg.
     status                ENUM('active','inactive') NOT NULL DEFAULT 'active',
@@ -559,7 +559,10 @@ CREATE TABLE IF NOT EXISTS rates (
     UNIQUE KEY uq_plan_prefix (rate_plan_id, prefix_id),
     INDEX idx_rate_plan (rate_plan_id),
     FOREIGN KEY (rate_plan_id) REFERENCES rate_plans(id) ON DELETE CASCADE,
-    FOREIGN KEY (prefix_id)    REFERENCES prefixes(id)   ON DELETE RESTRICT
+    FOREIGN KEY (prefix_id)    REFERENCES prefixes(id)   ON DELETE RESTRICT,
+    -- billingblock=0 hace que rating.py::billable_blocks() divida por cero —
+    -- initblock=0 sí es válido (significa "sin bloque inicial").
+    CONSTRAINT chk_rates_billingblock CHECK (billingblock >= 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------------------------------
@@ -589,7 +592,8 @@ CREATE TABLE IF NOT EXISTS rate_plan_draft_items (
     minimal_time_charge SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     UNIQUE KEY uq_draft_prefix (draft_id, prefix_id),
     FOREIGN KEY (draft_id)   REFERENCES rate_plan_drafts(id) ON DELETE CASCADE,
-    FOREIGN KEY (prefix_id)  REFERENCES prefixes(id)         ON DELETE RESTRICT
+    FOREIGN KEY (prefix_id)  REFERENCES prefixes(id)         ON DELETE RESTRICT,
+    CONSTRAINT chk_draft_items_billingblock CHECK (billingblock >= 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------------------------------
@@ -606,7 +610,8 @@ CREATE TABLE IF NOT EXISTS carrier_rates (
     UNIQUE KEY uq_carrier_prefix (carrier_id, prefix_id),
     INDEX idx_carrier (carrier_id),
     FOREIGN KEY (carrier_id) REFERENCES carriers(id) ON DELETE CASCADE,
-    FOREIGN KEY (prefix_id)  REFERENCES prefixes(id) ON DELETE RESTRICT
+    FOREIGN KEY (prefix_id)  REFERENCES prefixes(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_carrier_rates_billingblock CHECK (billingblock >= 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------------------------------
@@ -993,6 +998,18 @@ CREATE TABLE IF NOT EXISTS settings (
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version     VARCHAR(20) NOT NULL PRIMARY KEY,
     applied_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------------------------------
+-- RATE LIMITING compartido entre workers (backend/rate_limit.py) — ver
+-- migración 2.56.2 para el detalle de por qué reemplaza el dict en memoria
+-- de middleware/security.py y routers/auth.py.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS rate_limit_counters (
+    rl_key       VARCHAR(320)     NOT NULL,
+    window_start BIGINT UNSIGNED  NOT NULL,
+    count        INT UNSIGNED     NOT NULL DEFAULT 1,
+    PRIMARY KEY (rl_key, window_start)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { apiFetch, apiGet } from '@/lib/api'
 import { SipLadder, TraceMsg } from '@/components/SipLadder'
 import { StatusBadge, callStateVariant, sipCodeVariant, type BadgeVariant } from '@/components/StatusBadge'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import { ClickableRow } from '@/components/ClickableRow'
 
 interface CDR {
   call_id: string; customer_name: string; carrier_name: string
@@ -339,13 +340,13 @@ export default function CdrsPage() {
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
                   {rows.map(r => (
-                    <tr key={r.call_id} onClick={() => setSelected(r)} className="hover:bg-white/2 cursor-pointer">
+                    <ClickableRow key={r.call_id} onActivate={() => setSelected(r)} className="hover:bg-white/2 cursor-pointer">
                       <td className="px-4 py-2 font-mono text-[var(--color-text-2)]">{dt(r.start_ts)}</td>
                       <td className="px-4 py-2 font-mono text-[var(--color-text)]">{r.src_number}</td>
                       <td className="px-4 py-2 font-mono text-[var(--color-text)] font-medium">{r.dst_number}</td>
                       <td className="px-4 py-2 text-[var(--color-text)]">{r.customer_name}</td>
                       <td className="px-4 py-2 font-mono">{sec(r.billsec)}</td>
-                    </tr>
+                    </ClickableRow>
                   ))}
                   {rows.length === 0 && <tr><td colSpan={5} className="px-6 py-10 text-center text-[var(--color-muted)]">Sin registros</td></tr>}
                 </tbody>

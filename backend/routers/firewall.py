@@ -3,7 +3,7 @@
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -71,6 +71,9 @@ async def add_rule(body: RuleIn, db: AsyncSession = Depends(get_db), admin=Depen
 
 @router.put("/{rid}")
 async def update_rule(rid: int, body: RuleIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
+    existing = await db.execute(text("SELECT 1 FROM firewall_rules WHERE id = :id"), {"id": rid})
+    if not existing.first():
+        raise HTTPException(404, "Regla de firewall no encontrada")
     data = body.model_dump(); data["id"] = rid
     await db.execute(text(
         "UPDATE firewall_rules SET ip=:ip, action=:action, service=:service, description=:description, jail=:jail WHERE id=:id"
@@ -86,6 +89,8 @@ async def update_rule(rid: int, body: RuleIn, db: AsyncSession = Depends(get_db)
 async def delete_rule(rid: int, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     row = await db.execute(text("SELECT ip, action FROM firewall_rules WHERE id=:id"), {"id": rid})
     old = row.mappings().first()
+    if not old:
+        raise HTTPException(404, "Regla de firewall no encontrada")
     await db.execute(text("DELETE FROM firewall_rules WHERE id = :id"), {"id": rid})
     by = admin.get("name") or admin.get("email")
     await record_event(db, "firewall_rule", rid, "deleted", by, f"{old['action']} {old['ip']}" if old else "")

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiDelete } from '@/lib/api'
 import { ArrowLeft, Plus, Trash2, Layers, Hash } from 'lucide-react'
 import Link from 'next/link'
+import { ClickableRow } from '@/components/ClickableRow'
 
 interface Plan   { id: number; name: string; currency: string; description: string | null; status: string }
 interface Rate   { id: number; prefix: string; destination: string; group_name: string; rateinitial: number; connectcharge: number }
@@ -298,11 +299,11 @@ export default function ResellerRates() {
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {plans.map(p => (
-                <tr key={p.id} onClick={() => openPlan(p)} className="hover:bg-white/2 cursor-pointer">
+                <ClickableRow key={p.id} onActivate={() => openPlan(p)} className="hover:bg-white/2 cursor-pointer">
                   <td className="px-6 py-3 font-medium text-[var(--color-text)]">{p.name}</td>
                   <td className="px-6 py-3 text-[var(--color-text)]">{p.currency}</td>
                   <td className="px-6 py-3 text-[var(--color-text-2)]">{p.description || '—'}</td>
-                </tr>
+                </ClickableRow>
               ))}
             </tbody>
           </table>

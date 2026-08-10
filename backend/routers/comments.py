@@ -63,5 +63,7 @@ async def create_comment(body: CommentIn, db: AsyncSession = Depends(get_db), ad
 
 @router.delete("/{comment_id}", status_code=204)
 async def delete_comment(comment_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
-    await db.execute(text("DELETE FROM entity_comments WHERE id = :id"), {"id": comment_id})
+    r = await db.execute(text("DELETE FROM entity_comments WHERE id = :id"), {"id": comment_id})
+    if r.rowcount == 0:
+        raise HTTPException(404, "Comentario no encontrado")
     await db.commit()

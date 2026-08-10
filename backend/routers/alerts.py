@@ -3,7 +3,7 @@
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,6 +53,8 @@ async def update_rule(rule_id: int, body: RuleIn, db: AsyncSession = Depends(get
         "SELECT threshold, active FROM balance_alert_rules WHERE id=:id"
     ), {"id": rule_id})
     before = dict(before_row.mappings().first() or {})
+    if not before:
+        raise HTTPException(404, "Regla no encontrada")
 
     fields, params = [], {"id": rule_id}
     if body.label is not None:

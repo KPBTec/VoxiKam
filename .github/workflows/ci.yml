@@ -8,10 +8,32 @@ on:
 
 jobs:
   backend-tests:
+    # Re-auditoría v2.56.0 (hallazgo QA/alto): la suite entera era
+    # FakeSession, sin DB — ninguna de Depends(require_admin)/
+    # Depends(require_client)/Depends(require_permission)/
+    # Depends(require_api_key) se ejecutaba jamás en CI (más de 30 routers
+    # sin ningún test). tests/integration/ (httpx.AsyncClient + ASGITransport
+    # contra la app real) cubre eso — necesita una MariaDB real, que este job
+    # ahora provee. Si DATABASE_URL no está seteada o inalcanzable, esos
+    # tests se saltan limpio (ver tests/integration/conftest.py) — el resto
+    # de la suite (FakeSession) nunca dependió de esto.
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci_root_pw
+          MARIADB_DATABASE: voxikam_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost -uroot -pci_root_pw"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@v4
 
@@ -26,8 +48,64 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: pytest (caracterización de facturación)
+      - name: Aplicar schema.sql a la MariaDB de CI
+        run: mysql -h127.0.0.1 -uroot -pci_root_pw voxikam_ci < ../db/schema.sql
+
+      - name: pytest (FakeSession + integración contra MariaDB real)
+        env:
+          DATABASE_URL: mysql+aiomysql://root:ci_root_pw@127.0.0.1/voxikam_ci
+          JWT_SECRET: ci-test-secret-not-real
         run: pytest -v
+
+  db-migrations:
+    # Re-auditoría v2.56.0 (hallazgo QA/alto): las migraciones de
+    # db/migrations/ nunca corrían en CI — los 2 incidentes reales de
+    # producción documentados en CHANGELOG.md (2.55.7 y 2.54.0, ADD INDEX no
+    # idempotente) se detectaron a mano, corriendo esto manualmente contra
+    # una DB de prueba. Este job hace exactamente eso, automatizado: levanta
+    # el schema completo, aplica cada migración, y las reaplica una segunda
+    # vez — si algo no es idempotente, el segundo paso falla acá en vez de
+    # en el próximo --update de un cliente real.
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci_root_pw
+          MARIADB_DATABASE: voxikam_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost -uroot -pci_root_pw"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Esperar a que MariaDB esté lista
+        run: |
+          for i in $(seq 1 30); do
+            mysql -h127.0.0.1 -uroot -pci_root_pw -e "SELECT 1" voxikam_ci && break
+            sleep 2
+          done
+
+      - name: Aplicar schema.sql (estado de una instalación nueva)
+        run: mysql -h127.0.0.1 -uroot -pci_root_pw voxikam_ci < db/schema.sql
+
+      - name: Aplicar todas las migraciones (primera vez)
+        run: |
+          for f in $(ls db/migrations/*.sql | sort -V); do
+            echo "→ aplicando $f"
+            mysql -h127.0.0.1 -uroot -pci_root_pw voxikam_ci < "$f"
+          done
+
+      - name: Reaplicar todas las migraciones (segunda vez — debe ser un no-op limpio)
+        run: |
+          for f in $(ls db/migrations/*.sql | sort -V); do
+            echo "→ reaplicando $f (verificando idempotencia)"
+            mysql -h127.0.0.1 -uroot -pci_root_pw voxikam_ci < "$f"
+          done
 
   frontend-checks:
     runs-on: ubuntu-latest
@@ -39,7 +117,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
@@ -66,7 +144,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 

@@ -123,7 +123,6 @@ async def report_month(
     - Hoy (si es el mes actual) → cdrs en vivo via UNION.
     Agrupa por customer + carrier.
     """
-    from datetime import date as _date
     params: dict = {"month": month}
     cid_filter = "AND customer_id = :cid" if customer_id else ""
     if customer_id:

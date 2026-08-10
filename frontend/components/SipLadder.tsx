@@ -151,7 +151,6 @@ export function SipLadder({ msgs, sbcPrivateIp, sbcPublicIp }: SipLadderProps) {
   // 5. Columnas finales: nodos SIP + nodos media al final (con borde punteado)
   const nodes   = [...sipNodes, ...[...mediaSet]]
   const nodeMap = new Map(nodes.map((n, i) => [n, i]))
-  const nCols   = nodes.length
 
   // Con dual-NIC el SBC aparece DOS VECES en la traza — una IP hablando con
   // el cliente (LAN), otra con el carrier (WAN). Match directo contra las

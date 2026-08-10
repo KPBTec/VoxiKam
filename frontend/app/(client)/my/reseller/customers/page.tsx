@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import { ClickableRow } from '@/components/ClickableRow'
 
 interface SubCustomer {
   id: number; name: string; company: string | null; email: string; phone: string | null
@@ -449,7 +450,7 @@ export default function ResellerSubCustomers() {
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]">
               {rows.map(r => (
-                <tr key={r.id} onClick={() => openEdit(r)} className={`hover:bg-white/2 cursor-pointer ${r.status === 'deleted' ? 'opacity-50' : ''}`}>
+                <ClickableRow key={r.id} onActivate={() => openEdit(r)} className={`hover:bg-white/2 cursor-pointer ${r.status === 'deleted' ? 'opacity-50' : ''}`}>
                   <td className="px-6 py-3 font-medium text-[var(--color-text)]">{r.name}</td>
                   <td className="px-6 py-3 text-[var(--color-text)]">{r.email}</td>
                   <td className="px-6 py-3 text-center font-mono text-brand-400">{r.techprefix}</td>
@@ -458,7 +459,7 @@ export default function ResellerSubCustomers() {
                   <td className="px-6 py-3 text-center">
                     <StatusBadge variant={customerStatusVariant(r.status)}>{r.status}</StatusBadge>
                   </td>
-                </tr>
+                </ClickableRow>
               ))}
             </tbody>
           </table>

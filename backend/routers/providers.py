@@ -3,7 +3,7 @@
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,6 +54,8 @@ async def create_provider(body: ProviderIn, db: AsyncSession = Depends(get_db), 
 async def update_provider(pid: int, body: ProviderIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     before_row = await db.execute(text("SELECT name FROM providers WHERE id=:id"), {"id": pid})
     before = dict(before_row.mappings().first() or {})
+    if not before:
+        raise HTTPException(404, "Proveedor no encontrado")
 
     data = body.model_dump(); data["id"] = pid
     await db.execute(text("UPDATE providers SET name=:name, notes=:notes WHERE id=:id"), data)
@@ -69,6 +71,8 @@ async def delete_provider(pid: int, db: AsyncSession = Depends(get_db), admin=De
     # "sin proveedor", el admin los reasigna cuando quiera).
     row = await db.execute(text("SELECT name FROM providers WHERE id=:id"), {"id": pid})
     old = row.mappings().first()
+    if not old:
+        raise HTTPException(404, "Proveedor no encontrado")
     await db.execute(text("DELETE FROM providers WHERE id = :id"), {"id": pid})
     await record_event(db, "provider", pid, "deleted", admin.get("name") or admin.get("email"), old["name"] if old else "")
     await db.commit()

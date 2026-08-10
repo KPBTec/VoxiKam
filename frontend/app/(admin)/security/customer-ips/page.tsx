@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
 import { Plus, Trash2, X, Pencil, Save } from "lucide-react";
 import { ErrorBanner } from "@/components/ErrorBanner";
+import { ClickableRow } from "@/components/ClickableRow";
+import { Modal } from "@/components/Modal";
 
 interface CustomerIP  { id: number; ip: string; description: string | null }
 interface CustomerRow { id: number; name: string; techprefix: string; ips: CustomerIP[] }
@@ -74,7 +76,7 @@ export default function CustomerIpsPage() {
             ) : customers.length === 0 ? (
               <tr><td colSpan={4} className="px-6 py-8 text-center text-[var(--color-muted)] text-sm">Sin clientes</td></tr>
             ) : customers.map(c => (
-              <tr key={c.id} onClick={() => setOpen(c)}
+              <ClickableRow key={c.id} onActivate={() => setOpen(c)}
                 className="border-b border-[var(--color-border)]/50 hover:bg-white/3 cursor-pointer transition-colors">
                 <td className="px-6 py-3 font-medium">{c.name}</td>
                 <td className="px-6 py-3 text-center font-mono text-brand-400">{c.techprefix}</td>
@@ -90,7 +92,7 @@ export default function CustomerIpsPage() {
                 <td className="px-6 py-3 text-right">
                   <span className="text-xs text-brand-400">Ver / editar →</span>
                 </td>
-              </tr>
+              </ClickableRow>
             ))}
           </tbody>
         </table>
@@ -156,11 +158,11 @@ function CustomerIpsModal({ customer, onClose, onChanged }: {
   const inp = "bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <Modal onClose={onClose} labelledBy="customer-ips-modal-title"
+      className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] sticky top-0 bg-[var(--color-card)]">
           <div>
-            <h2 className="font-semibold">IPs de {customer.name}</h2>
+            <h2 id="customer-ips-modal-title" className="font-semibold">IPs de {customer.name}</h2>
             <p className="text-xs text-[var(--color-text-2)] font-mono">{customer.techprefix}</p>
           </div>
           <button onClick={onClose} aria-label="Cerrar" className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
@@ -226,7 +228,6 @@ function CustomerIpsModal({ customer, onClose, onChanged }: {
             </button>
           </form>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

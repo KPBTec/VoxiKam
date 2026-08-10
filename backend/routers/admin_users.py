@@ -77,6 +77,9 @@ async def create_admin(body: AdminUserIn, db: AsyncSession = Depends(get_db), ad
 
 @router.put("/{uid}/active")
 async def set_admin_active(uid: int, body: ActiveIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
+    existing = await db.execute(text("SELECT 1 FROM users WHERE id = :id AND role = 'admin'"), {"id": uid})
+    if not existing.first():
+        raise HTTPException(404, "Administrador no encontrado")
     if uid == admin["id"] and not body.is_active:
         raise HTTPException(400, "No podés desactivar tu propia cuenta")
     if not body.is_active and await _is_superadmin(db, uid):
@@ -96,6 +99,9 @@ async def set_admin_active(uid: int, body: ActiveIn, db: AsyncSession = Depends(
 async def reset_admin_password(uid: int, body: PasswordIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     if len(body.password) < 8:
         raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
+    existing = await db.execute(text("SELECT 1 FROM users WHERE id = :id AND role = 'admin'"), {"id": uid})
+    if not existing.first():
+        raise HTTPException(404, "Administrador no encontrado")
     if uid != admin["id"] and await _is_superadmin(db, uid):
         raise HTTPException(400, "Solo el super admin puede cambiar su propia contraseña")
     await db.execute(text(

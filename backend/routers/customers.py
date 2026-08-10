@@ -284,6 +284,8 @@ async def update_customer(cid: int, body: CustomerIn, background_tasks: Backgrou
         "SELECT name, status, billing_type, rate_plan_id, calllimit, cpslimit, techprefix FROM customers WHERE id=:id"
     ), {"id": cid})
     before = dict(before_row.mappings().first() or {})
+    if not before:
+        raise HTTPException(404, "Cliente no encontrado")
 
     if body.techprefix != before.get("techprefix"):
         await assert_techprefix_free(db, body.techprefix, exclude_id=cid)
@@ -441,9 +443,11 @@ async def add_ip(cid: int, body: CustomerIPIn, db: AsyncSession = Depends(get_db
 
 @router.put("/{cid}/ips/{ip_id}")
 async def update_ip(cid: int, ip_id: int, body: CustomerIPIn, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
-    await db.execute(text(
+    result = await db.execute(text(
         "UPDATE customer_ips SET ip=:ip, description=:desc WHERE id=:id AND customer_id=:cid"
     ), {"ip": body.ip, "desc": body.description, "id": ip_id, "cid": cid})
+    if result.rowcount == 0:
+        raise HTTPException(404, "IP no encontrada")
     await db.commit()
     _sync_nftables()
     return {"ok": True}
@@ -451,9 +455,11 @@ async def update_ip(cid: int, ip_id: int, body: CustomerIPIn, db: AsyncSession =
 
 @router.delete("/{cid}/ips/{ip_id}", status_code=204)
 async def delete_ip(cid: int, ip_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
-    await db.execute(text(
+    result = await db.execute(text(
         "DELETE FROM customer_ips WHERE id = :id AND customer_id = :cid"
     ), {"id": ip_id, "cid": cid})
+    if result.rowcount == 0:
+        raise HTTPException(404, "IP no encontrada")
     await db.commit()
     _sync_nftables()
 
@@ -723,6 +729,9 @@ async def list_balance_transactions(
     limit acotado a 200 — este ledger puede tener cientos de miles de filas
     para un cliente de alto volumen, sin tope el frontend se cuelga solo.
     """
+    exists = await db.execute(text("SELECT 1 FROM customers WHERE id = :id"), {"id": cid})
+    if not exists.first():
+        raise HTTPException(404, "Cliente no encontrado")
     limit = min(max(limit, 1), 200)
     r = await db.execute(text("""
         SELECT id, type, amount, balance_after, reference, created_by, created_at
@@ -765,9 +774,11 @@ async def create_client_user(cid: int, body: UserIn, db: AsyncSession = Depends(
 
 @router.delete("/{cid}/user", status_code=204)
 async def delete_client_user(cid: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
-    await db.execute(
+    r = await db.execute(
         text("DELETE FROM users WHERE customer_id = :cid AND role = 'client'"), {"cid": cid}
     )
+    if r.rowcount == 0:
+        raise HTTPException(404, "Usuario portal no encontrado")
     await db.commit()
 
 
@@ -775,10 +786,12 @@ async def delete_client_user(cid: int, db: AsyncSession = Depends(get_db), _=Dep
 async def reset_client_password(cid: int, body: PasswordIn, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
     if len(body.password) < 8:
         raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
-    await db.execute(
+    result = await db.execute(
         text("UPDATE users SET password_hash = :hash WHERE customer_id = :cid AND role = 'client'"),
         {"hash": hash_password(body.password), "cid": cid}
     )
+    if result.rowcount == 0:
+        raise HTTPException(404, "Usuario portal no encontrado")
     await db.commit()
     return {"ok": True}
 
@@ -791,6 +804,9 @@ async def list_customer_api_keys(cid: int, db: AsyncSession = Depends(get_db), _
     una key a nombre del cliente — la key es una credencial que solo el
     cliente debe poseer.
     """
+    exists = await db.execute(text("SELECT 1 FROM customers WHERE id = :id"), {"id": cid})
+    if not exists.first():
+        raise HTTPException(404, "Cliente no encontrado")
     r = await db.execute(text("""
         SELECT id, label, key_prefix, created_at, last_used_at, revoked
         FROM api_keys WHERE customer_id = :cid ORDER BY created_at DESC

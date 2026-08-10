@@ -128,3 +128,14 @@ export function sipMethodVariant(method: string | null): BadgeVariant {
     default:       return 'muted' // ACK / desconocido
   }
 }
+
+/** Estado de drafts de tarifas (draft/published/discarded) — antes
+ * pricelists/page.tsx armaba estos colores a mano con text-yellow-400/
+ * text-green-400 en vez de los tokens semánticos del resto del sistema. */
+export function draftStatusVariant(status: string): BadgeVariant {
+  switch (status) {
+    case 'draft':     return 'warning'
+    case 'published': return 'success'
+    default:           return 'muted' // discarded / desconocido
+  }
+}

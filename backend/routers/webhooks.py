@@ -86,15 +86,19 @@ async def rotate_secret(wid: int, db: AsyncSession = Depends(get_db), admin=Depe
 async def delete_webhook(wid: int, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     r = await db.execute(text("SELECT url, event FROM webhooks WHERE id = :id"), {"id": wid})
     hook = r.mappings().first()
+    if not hook:
+        raise HTTPException(404, "Webhook no encontrado")
     await db.execute(text("DELETE FROM webhooks WHERE id = :id"), {"id": wid})
-    if hook:
-        await record_event(db, "webhook", wid, "deleted", admin.get("name") or admin.get("email"),
-                            f"{hook['event']} → {hook['url']}")
+    await record_event(db, "webhook", wid, "deleted", admin.get("name") or admin.get("email"),
+                        f"{hook['event']} → {hook['url']}")
     await db.commit()
 
 
 @router.get("/{wid}/deliveries")
 async def webhook_deliveries(wid: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
+    exists = await db.execute(text("SELECT 1 FROM webhooks WHERE id = :id"), {"id": wid})
+    if not exists.first():
+        raise HTTPException(404, "Webhook no encontrado")
     r = await db.execute(text("""
         SELECT id, event, status_code, attempt, success, error, created_at
         FROM webhook_deliveries WHERE webhook_id = :wid

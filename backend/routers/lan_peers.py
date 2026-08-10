@@ -77,10 +77,11 @@ async def add_lan_peer(body: LanPeerIn, db: AsyncSession = Depends(get_db), admi
 async def delete_lan_peer(peer_id: int, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     row = await db.execute(text("SELECT host, port FROM lan_peers WHERE id = :id"), {"id": peer_id})
     peer = row.mappings().first()
+    if not peer:
+        raise HTTPException(404, "Peer no encontrado")
     await db.execute(text("DELETE FROM lan_peers WHERE id = :id"), {"id": peer_id})
-    if peer:
-        await record_event(db, "lan_peer", peer_id, "deleted",
-                            admin.get("name") or admin.get("email"), f"{peer['host']}:{peer['port']}")
+    await record_event(db, "lan_peer", peer_id, "deleted",
+                        admin.get("name") or admin.get("email"), f"{peer['host']}:{peer['port']}")
     await db.commit()
     _sync_dispatcher()
 

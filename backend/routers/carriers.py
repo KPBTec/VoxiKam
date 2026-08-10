@@ -4,7 +4,7 @@
 # © 2026 – Todos los derechos reservados.
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
@@ -47,7 +47,9 @@ class BuyRateIn(BaseModel):
     prefix_id: int
     buy_rate: float
     connectcharge: float = 0.0
-    billingblock: int = 1
+    # Re-auditoría v2.56.0 (hallazgo crítico): billingblock=0 hace que
+    # rating.py::billable_blocks() dispare ZeroDivisionError.
+    billingblock: int = Field(default=1, ge=1)
     effective_date: Optional[str] = None
 
 
@@ -55,7 +57,7 @@ class GroupBuyRateIn(BaseModel):
     group_name: str
     buy_rate: float
     connectcharge: float = 0.0
-    billingblock: int = 1
+    billingblock: int = Field(default=1, ge=1)
 
 
 @router.get("")
@@ -116,6 +118,8 @@ async def create_carrier(body: CarrierIn, db: AsyncSession = Depends(get_db), ad
 async def update_carrier(cid: int, body: CarrierIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
     before_row = await db.execute(text("SELECT status, host, port, priority FROM carriers WHERE id=:id"), {"id": cid})
     before = dict(before_row.mappings().first() or {})
+    if not before:
+        raise HTTPException(404, "Carrier no encontrado")
 
     data = body.model_dump(); data["id"] = cid
     await db.execute(text("""
@@ -143,6 +147,8 @@ async def delete_carrier(cid: int, db: AsyncSession = Depends(get_db), admin=Dep
         raise HTTPException(409, "Este carrier es miembro de al menos un Grupo de ruteo — sacalo del grupo antes de borrarlo")
     row = await db.execute(text("SELECT name FROM carriers WHERE id=:id"), {"id": cid})
     old = row.mappings().first()
+    if not old:
+        raise HTTPException(404, "Carrier no encontrado")
     await db.execute(text("DELETE FROM carriers WHERE id = :id"), {"id": cid})
     await record_event(db, "carrier", cid, "deleted", admin.get("name") or admin.get("email"), old["name"] if old else "")
     await db.commit()
@@ -153,6 +159,9 @@ async def delete_carrier(cid: int, db: AsyncSession = Depends(get_db), admin=Dep
 
 @router.get("/{cid}/rates")
 async def get_buy_rates(cid: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
+    exists = await db.execute(text("SELECT 1 FROM carriers WHERE id = :id"), {"id": cid})
+    if not exists.first():
+        raise HTTPException(404, "Carrier no encontrado")
     r = await db.execute(text("""
         SELECT cr.*, p.prefix, p.destination
         FROM carrier_rates cr JOIN prefixes p ON cr.prefix_id = p.id
@@ -202,7 +211,9 @@ async def delete_buy_rate(cid: int, rate_id: int, db: AsyncSession = Depends(get
         SELECT p.prefix FROM carrier_rates cr JOIN prefixes p ON cr.prefix_id = p.id WHERE cr.id = :id
     """), {"id": rate_id})
     row = r.first()
-    await db.execute(text("DELETE FROM carrier_rates WHERE id=:id AND carrier_id=:cid"), {"id": rate_id, "cid": cid})
+    result = await db.execute(text("DELETE FROM carrier_rates WHERE id=:id AND carrier_id=:cid"), {"id": rate_id, "cid": cid})
+    if result.rowcount == 0:
+        raise HTTPException(404, "Tarifa de compra no encontrada")
     await record_event(db, "carrier", cid, "buy_rate_deleted", admin.get("name") or admin.get("email"),
                         row[0] if row else f"rate_id={rate_id}")
     await db.commit()

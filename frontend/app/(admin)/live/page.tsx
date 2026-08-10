@@ -4,6 +4,7 @@ import { apiGet, apiDelete } from '@/lib/api'
 import { groupByCustomer } from '@/lib/liveGrouping'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { LiveIndicator } from '@/components/LiveIndicator'
+import { ClickableRow } from '@/components/ClickableRow'
 
 function sec2str(s: number) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
@@ -137,7 +138,7 @@ export default function LivePage() {
                 const isExp = expanded === key
                 return (
                   <Fragment key={key}>
-                    <tr onClick={() => multi && setExpanded(isExp ? null : key)}
+                    <ClickableRow onActivate={() => setExpanded(isExp ? null : key)} disabled={!multi}
                       className={`hover:bg-white/3 ${multi ? 'cursor-pointer' : ''}`}>
                       <td className="px-6 py-3 text-[var(--color-text)]">
                         {multi && (
@@ -155,7 +156,7 @@ export default function LivePage() {
                         <span className="bg-warning/15 text-warning px-2 py-0.5 rounded-full text-xs font-mono">{g.timbrando}</span>
                       </td>
                       <td className="px-6 py-3 text-right text-[var(--color-text-2)] text-xs font-mono">{g.total}</td>
-                    </tr>
+                    </ClickableRow>
                     {multi && isExp && g.rows.map((r: any) => (
                       <tr key={r.prefijo} className="bg-[var(--color-surface)]/60">
                         <td className="px-6 py-2 pl-12 text-[var(--color-text-2)] text-xs">

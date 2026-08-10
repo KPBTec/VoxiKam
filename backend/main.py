@@ -35,6 +35,7 @@ from alerts import check_balance_alert
 from disconnect_policies import check_disconnect_policies
 from routers.system import get_domain
 from rating import billable_blocks as _billable_blocks, calc_bill as _calc_bill
+from rate_limit import purge_expired as _purge_rate_limit_counters
 import cors_state
 
 log = logging.getLogger("billing-worker")
@@ -92,30 +93,45 @@ async def _billing_worker():
 
                 affected_customers: set[int] = set()
                 for cdr in pending:
-                    buycost, sessionbill, reseller_cost, matched_prefix = await _calc_bill(
-                        db, cdr.customer_id, cdr.carrier_id,
-                        cdr.dst_number or "", cdr.billsec
-                    )
-                    # start_ts en el WHERE permite partition pruning (cdrs está particionado por mes)
-                    await db.execute(text(
-                        "UPDATE cdrs SET buycost=:bc, reseller_cost=:rc, sessionbill=:sb, prefix_matched=:pfx WHERE id=:id AND start_ts=:start_ts"
-                    ), {"bc": buycost, "rc": reseller_cost, "sb": sessionbill, "pfx": matched_prefix,
-                        "id": cdr.id, "start_ts": cdr.start_ts})
-                    if sessionbill > 0:
+                    # Re-auditoría v2.56.0 (hallazgo crítico): antes, una sola
+                    # tarifa corrupta (ej. billingblock=0, ya bloqueado en el
+                    # alta pero posible en datos viejos) hacía que _calc_bill()
+                    # lanzara ZeroDivisionError ACÁ, sin ningún try/except
+                    # propio — la excepción se propagaba fuera del for, el
+                    # commit() de más abajo (que aplica a TODO el batch) nunca
+                    # se alcanzaba, y el mismo lote de hasta 100 CDRs (de
+                    # cualquier cliente, no solo el de la tarifa rota) quedaba
+                    # reintentándose cada 30s para siempre. Aislar el fallo a
+                    # SOLO este CDR — el resto del batch sigue facturándose.
+                    try:
+                        buycost, sessionbill, reseller_cost, matched_prefix = await _calc_bill(
+                            db, cdr.customer_id, cdr.carrier_id,
+                            cdr.dst_number or "", cdr.billsec
+                        )
+                        # start_ts en el WHERE permite partition pruning (cdrs está particionado por mes)
                         await db.execute(text(
-                            "UPDATE customers SET balance = balance - :bill WHERE id = :cid"
-                        ), {"bill": sessionbill, "cid": cdr.customer_id})
-                        bal_row = await db.execute(text(
-                            "SELECT balance FROM customers WHERE id = :cid"
-                        ), {"cid": cdr.customer_id})
-                        new_balance = bal_row.scalar()
-                        await db.execute(text("""
-                            INSERT INTO balance_transactions
-                                (customer_id, type, amount, balance_after, reference)
-                            VALUES (:cid, 'cdr', :amount, :bal, :ref)
-                        """), {"cid": cdr.customer_id, "amount": -float(sessionbill),
-                                "bal": new_balance, "ref": cdr.call_id})
-                        affected_customers.add(cdr.customer_id)
+                            "UPDATE cdrs SET buycost=:bc, reseller_cost=:rc, sessionbill=:sb, prefix_matched=:pfx WHERE id=:id AND start_ts=:start_ts"
+                        ), {"bc": buycost, "rc": reseller_cost, "sb": sessionbill, "pfx": matched_prefix,
+                            "id": cdr.id, "start_ts": cdr.start_ts})
+                        if sessionbill > 0:
+                            await db.execute(text(
+                                "UPDATE customers SET balance = balance - :bill WHERE id = :cid"
+                            ), {"bill": sessionbill, "cid": cdr.customer_id})
+                            bal_row = await db.execute(text(
+                                "SELECT balance FROM customers WHERE id = :cid"
+                            ), {"cid": cdr.customer_id})
+                            new_balance = bal_row.scalar()
+                            await db.execute(text("""
+                                INSERT INTO balance_transactions
+                                    (customer_id, type, amount, balance_after, reference)
+                                VALUES (:cid, 'cdr', :amount, :bal, :ref)
+                            """), {"cid": cdr.customer_id, "amount": -float(sessionbill),
+                                    "bal": new_balance, "ref": cdr.call_id})
+                            affected_customers.add(cdr.customer_id)
+                    except Exception:
+                        log.exception("Billing worker: CDR id=%s call_id=%s no pudo tarifarse — "
+                                       "sigue con buycost=0/sessionbill=0, revisar la tarifa a mano",
+                                       cdr.id, cdr.call_id)
 
                 if pending:
                     await db.commit()
@@ -173,6 +189,26 @@ async def _cors_origin_syncer():
             log.exception("CORS origin syncer error")
 
 
+async def _rate_limit_purger():
+    """
+    Re-auditoría v2.56.0: rate_limit_counters (backend/rate_limit.py) es el
+    almacén compartido que reemplazó los dicts en memoria de
+    middleware/security.py y routers/auth.py — sin esta purga, cada (key,
+    ventana) distinta que alguna vez pasó por acá deja una fila para
+    siempre. El default de purge_expired() (1h) cubre con margen la ventana
+    más larga configurada hoy (300s, límite por cuenta de login).
+    """
+    while True:
+        await asyncio.sleep(15 * 60)
+        try:
+            async with AsyncSessionLocal() as db:
+                deleted = await _purge_rate_limit_counters(db)
+                if deleted:
+                    log.info("Rate limit purger: %d fila(s) de ventanas vencidas eliminadas", deleted)
+        except Exception:
+            log.exception("Rate limit purger error")
+
+
 async def _disconnect_policy_checker():
     """
     Cada 5 min — evalúa disconnect_policies contra traffic_quality_hourly
@@ -204,8 +240,9 @@ async def lifespan(app: FastAPI):
     t2 = asyncio.create_task(_stale_calls_cleaner())
     t3 = asyncio.create_task(_disconnect_policy_checker())
     t4 = asyncio.create_task(_cors_origin_syncer())
+    t5 = asyncio.create_task(_rate_limit_purger())
     yield
-    for t in [t1, t2, t3, t4]:
+    for t in [t1, t2, t3, t4, t5]:
         t.cancel()
         try:
             await t

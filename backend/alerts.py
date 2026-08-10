@@ -56,9 +56,17 @@ async def check_balance_alert(db: AsyncSession, customer_id: int) -> None:
         if not c["last_topup_amount"] or float(c["last_topup_amount"]) <= 0:
             return  # sin recarga registrada todavía — no hay referencia para calcular %
         pct_remaining = float(c["balance"]) / float(c["last_topup_amount"]) * 100
+        # Re-auditoría v2.56.0: faltaba este break (la rama postpago, dos
+        # líneas más abajo, ya lo tenía). Sin él, cuando el balance cruza
+        # varios umbrales a la vez la última iteración (el threshold más
+        # GRANDE que todavía cumple, o sea el MENOS severo) sobreescribía
+        # `breached` — quedando con la regla menos severa en vez de la más
+        # severa, justo lo opuesto del comentario de arriba. El primer match
+        # en orden ascendente es, por construcción, el más severo.
         for r in sorted(rules, key=lambda r: r["threshold"]):  # más severo = menor %
             if pct_remaining <= float(r["threshold"]):
                 breached = r
+                break
     else:  # postpago — threshold negativo, más severo = más negativo
         for r in sorted(rules, key=lambda r: r["threshold"]):  # ya ordenado más negativo primero
             if float(c["balance"]) <= float(r["threshold"]):

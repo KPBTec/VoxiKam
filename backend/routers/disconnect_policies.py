@@ -104,7 +104,9 @@ async def update_policy(pid: int, body: PolicyIn, db: AsyncSession = Depends(get
 
 @router.delete("/{pid}", status_code=204)
 async def delete_policy(pid: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
-    await db.execute(text("DELETE FROM disconnect_policies WHERE id = :id"), {"id": pid})
+    r = await db.execute(text("DELETE FROM disconnect_policies WHERE id = :id"), {"id": pid})
+    if r.rowcount == 0:
+        raise HTTPException(404, "Política no encontrada")
     await db.commit()
 
 

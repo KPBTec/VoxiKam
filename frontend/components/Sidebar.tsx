@@ -340,6 +340,15 @@ export function Sidebar({ role }: { role: "admin" | "client" }) {
   // recién abierta hasta que el usuario lo cierra a mano.
   useEffect(() => { setMobileOpen(false) }, [path]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMobileOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [mobileOpen]);
+
   return (
     <>
       {/* Barra superior — solo mobile/tablet angosto. En desktop (md+) no existe. */}

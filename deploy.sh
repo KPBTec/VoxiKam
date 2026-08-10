@@ -200,6 +200,8 @@ MIGRATIONS=(
     "2.54.0"
     "2.55.7"
     "2.55.12"
+    "2.56.1"
+    "2.56.2"
 )
 
 # migration_sql <version> — imprime el SQL de db/migrations/<version>.sql, o
@@ -364,9 +366,16 @@ build_frontend() {
     hdr "Frontend Next.js"
     cd "$INSTALL_DIR/frontend"
     # Limpiar node_modules previo — evita bug de npm con optional deps
-    # (github.com/npm/cli/issues/4828)
-    rm -rf node_modules package-lock.json
-    _run_spinner "Instalando paquetes npm" npm install --include=optional
+    # (github.com/npm/cli/issues/4828). package-lock.json NO se borra: un
+    # `npm install` sin lockfile re-resuelve cada dependencia contra el
+    # registry en cada deploy, instalando lo que sea la versión más nueva que
+    # matchee el rango del momento — exactamente el vector de un ataque de
+    # supply-chain vía una versión maliciosa recién publicada de una
+    # dependencia transitiva. `npm ci` exige el lockfile committeado, instala
+    # EXACTAMENTE esas versiones, y falla en vez de re-resolver si package.json
+    # y package-lock.json quedaron desincronizados.
+    rm -rf node_modules
+    _run_spinner "Instalando paquetes npm" npm ci --include=optional
 
     # npm en entorno no-interactivo omite optional deps aunque se pida
     # --include=optional — si el binding nativo de @tailwindcss/oxide no

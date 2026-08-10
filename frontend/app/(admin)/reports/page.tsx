@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { apiGet } from '@/lib/api'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import { ClickableRow } from '@/components/ClickableRow'
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -144,7 +145,7 @@ export default function ReportsPage() {
 
               return (
                 <Fragment key={key}>
-                  <tr onClick={() => setExpanded(exp ? null : key)}
+                  <ClickableRow onActivate={() => setExpanded(exp ? null : key)}
                     className="hover:bg-white/3 cursor-pointer transition-colors">
                     <td className={`${td} font-medium`}>
                       <span className="text-[var(--color-muted)] mr-2 text-xs select-none">
@@ -163,7 +164,7 @@ export default function ReportsPage() {
                     <td className={`${td} text-right font-mono text-brand-400`}>{money(s.sessionbill)}</td>
                     <td className={`${td} text-right font-mono text-green-400`}>{money(s.lucro)}</td>
                     <td className={`${td} text-right font-mono`}>{pct(asr)}</td>
-                  </tr>
+                  </ClickableRow>
 
                   {exp && grpRows.map((r, i) => (
                     <tr key={i} className="bg-[var(--color-surface)]/60 border-b border-[var(--color-border)]/20">
