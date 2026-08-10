@@ -42,9 +42,15 @@ def run_sync(script: Path, *extra_args: str, timeout: float = _TIMEOUT_S) -> Non
 
 def _watch(proc: subprocess.Popen, label: str, timeout: float) -> None:
     try:
-        _, stderr = proc.communicate(timeout=timeout)
+        stdout, stderr = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         log.warning("run_sync: %s no terminó en %ss (sigue corriendo en background, no se mató)", label, timeout)
         return
     if proc.returncode != 0:
-        log.warning("run_sync: %s terminó con código %s: %s", label, proc.returncode, (stderr or "").strip()[-2000:])
+        # gen_dispatcher.py/gen_nftables.py imprimen el error real con
+        # print() (stdout), no con sys.stderr — solo loguear stderr dejaba
+        # el WARNING sin ningún detalle útil ("terminó con código 1:" y nada
+        # después de los dos puntos), encontrado en producción diagnosticando
+        # un routing-group que no se aplicaba en Kamailio hasta reiniciar.
+        detail = "\n".join(s.strip() for s in (stdout, stderr) if s and s.strip())
+        log.warning("run_sync: %s terminó con código %s: %s", label, proc.returncode, detail[-2000:])

@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.57.1 — 2026-08-10
+
+- Corregido: cuando la regeneración automática de la configuración de Kamailio fallaba en segundo plano, el registro no mostraba el motivo del error, solo el código de fallo — dificultaba el diagnóstico. Ahora queda registrado el detalle completo.
+
+---
+
 ## v2.57.0 — 2026-08-10
 
 Segunda ronda de una auditoría interna completa de arquitectura, seguridad, backend, frontend y calidad.
