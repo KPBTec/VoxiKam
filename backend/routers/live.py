@@ -20,7 +20,7 @@ router = APIRouter()
 log = logging.getLogger("live")
 
 _SNAPSHOT_FILE = Path("/var/lib/voxikam/live_snapshot.json")
-_STALE_AFTER_SECONDS = 90  # cron_dlg_stats.py escribe cada 10s — más de esto y algo está fallando
+_STALE_AFTER_SECONDS = 90  # cron_dlg_stats.py escribe cada 5s — más de esto y algo está fallando
 
 
 def _read_snapshot() -> dict:
@@ -137,7 +137,7 @@ async def live_calls(db: AsyncSession = Depends(get_db), _=Depends(require_admin
     # aunque siguió viva en Kamailio. Ahora cruza contra el CONJUNTO real de
     # call_id que el snapshot dice vivos (no una cuenta ni un orden), con un
     # margen de 30s para no pisarse con una llamada recién insertada que
-    # todavía no aparece en el snapshot (cron_dlg_stats.py escribe c/10s).
+    # todavía no aparece en el snapshot (cron_dlg_stats.py escribe c/5s).
     if fresh:
         total_db = (await db.execute(text("SELECT COUNT(*) FROM active_calls"))).scalar() or 0
         if total_db > raw_ongoing + 5:
@@ -232,7 +232,7 @@ async def live_detail(db: AsyncSession = Depends(get_db), _=Depends(require_admi
     pmap = await _prefix_map(db)
     now_ts = int(_time.time())
 
-    # El snapshot liviano (dlg.briefing, cada 10s) no puede traer dlg_vars
+    # El snapshot liviano (dlg.briefing, cada 5s) no puede traer dlg_vars
     # custom como carrier_id (ver comentario grande sobre esto en gen_
     # dispatcher.py/kamailio.cfg.j2) — pero active_calls SÍ lo tiene, escrito
     # en tiempo real por Kamailio en cada event_route[dialog:start]

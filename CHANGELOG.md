@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.57.4 — 2026-08-10
+
+- Mejorado: el panel "Llamadas en curso" ahora se actualiza cada 5 segundos en vez de 10, para reflejar más rápido lo que pasa en el conmutador. Requiere `install.sh --update` para tomar efecto.
+
+---
+
 ## v2.57.3 — 2026-08-10
 
 - Corregido: el panel "Llamadas en curso" podía dejar de mostrar una llamada real que seguía activa (la llamada en sí nunca se vio afectada — es solo un problema de visualización en el panel). Requiere `install.sh --update` para tomar efecto.

@@ -1,6 +1,6 @@
 # frontend/
 
-Next.js 15 con `output: 'standalone'`. Corre como servicio `sip-frontend` en `127.0.0.1:3000` detrás de Nginx.
+Next.js 15 con `output: 'standalone'`. Corre como servicio `voxikam-frontend` en `127.0.0.1:3000` detrás de Nginx.
 
 ## Stack
 
@@ -11,43 +11,43 @@ Next.js 15 con `output: 'standalone'`. Corre como servicio `sip-frontend` en `12
 
 ## Estructura de carpetas
 
+`app/(admin)/` y `app/(client)/my/` crecieron mucho desde que se escribió esto por primera vez —
+son ~30 y ~15 páginas respectivamente hoy (perfiles, grupos de carriers, pricelists, seguridad/IPs,
+webhooks, disconnect-policies, áreas, usuarios, auditoría, sistema, trazas, calidad ASR, alertas,
+routing-sim, traffic-sampling, external-sync, billing-recalc, resellers, y el panel reseller propio
+bajo `my/reseller/*`). Para el listado exacto, `ls "app/(admin)/"` / `ls "app/(client)/my/"`
+directo, o la tabla de rutas backend en `../CLAUDE.md` (cada página admin tiene su router
+homónimo). Convenciones que sí se mantienen estables:
+
 ```
 app/
   page.tsx              ← root redirect por rol (no UI)
   layout.tsx            ← RootLayout: metadata + globals.css
   globals.css           ← @theme tokens: --color-surface, --color-card, --color-brand-*, etc.
   (auth)/login/         ← página de login (no sidebar)
-  (admin)/              ← layout con guard admin + sidebar
-    dashboard/          ← KPIs + active calls (poll 30s)
-    live/               ← llamadas por cliente en tiempo real (poll 10s)
-    customers/          ← listado clientes con link a detalle
-    customers/[id]/     ← detalle: IPs autorizadas (add/del), carriers, balance, edición
-    carriers/           ← CRUD carriers
-    rates/              ← planes tarifarios + tarifas por destino
-    cdrs/               ← visor CDRs con filtros y paginación
-    reports/            ← resúmenes día/mes agrupados por cliente o carrier (botón Generar)
-    invoices/           ← generar factura, marcar pagada, descargar PDF
-    firewall/           ← reglas IP ALLOW/DENY/JAIL
-  (client)/my/          ← layout con guard cliente + sidebar
-    overview/           ← 4 KPIs + active calls + últimas 5 calls (poll 30s)
-    calls/              ← historial CDR, máx 200 registros, con aviso si capped
-    invoices/           ← facturas del cliente + descargar PDF
-    trunk-guide/        ← config Asterisk autogenerada con datos del trunk
+  (admin)/layout.tsx    ← guard: no admin → /login. Cada subcarpeta = 1 página del panel admin
+  (client)/layout.tsx   ← guard: no auth → /login; módulo sin permiso → /my/overview
+  (client)/my/reseller/ ← panel de reseller (solo visible si customers.is_reseller=1)
 components/
-  Sidebar.tsx           ← sidebar role-aware (9 items admin, 4 items cliente)
-  ui/                   ← componentes reutilizables (Card, Badge, etc.)
+  Sidebar.tsx           ← adminNavTop (fijo) + adminNavGroups (colapsables, persistidos en
+                           localStorage) — clientNav filtrado por permisos resueltos en login
+  ClickableRow.tsx      ← <tr> accesible por teclado (role=button + tabIndex + onKeyDown)
+  Modal.tsx             ← diálogo con Escape-to-close + focus trap
+  StatusBadge.tsx       ← pills de estado sobre tokens semánticos (variant helpers por dominio)
+  PermissionTree.tsx    ← editor del árbol granular de permisos (profiles/ y customers/[id])
 lib/
-  api.ts                ← apiFetch, apiGet, apiPost, apiPut, apiDelete
-  auth.ts               ← saveAuth, getUser, logout (localStorage)
+  api.ts                ← apiFetch, apiGet, apiPost, apiPut, apiDelete, apiUpload
+  auth.ts               ← saveAuth, getUser, logout (localStorage: voxikam_token/voxikam_user)
 ```
 
 ## Auth flow en el cliente
 
-1. Login → `POST /api/auth/login` → recibe `{access_token, role, name, customer_id}`
-2. `saveAuth()` guarda token en `localStorage.sip_token` y user en `localStorage.sip_user`
+1. Login → `POST /api/auth/login` → recibe `{access_token, role, name, customer_id, permissions, ...}`
+2. `saveAuth()` guarda token en `localStorage.voxikam_token` y user en `localStorage.voxikam_user`
+   (incluye los permisos ya resueltos — el frontend no vuelve a pedirlos hasta el próximo login)
 3. Redirect a `/dashboard` (admin) o `/my/overview` (client)
 4. Cada layout guard lee `getUser()` en `useEffect` — si no hay user, redirect a `/login`
-5. `apiFetch` lee `localStorage.sip_token` y lo agrega como `Authorization: Bearer`
+5. `apiFetch` lee `localStorage.voxikam_token` y lo agrega como `Authorization: Bearer`
 6. Si el backend devuelve 401, `apiFetch` redirige automáticamente a `/login`
 
 ## Calls a la API
@@ -75,7 +75,7 @@ const res = await apiFetch('/auth/login', { method: 'POST', body: formData })
 --color-border:   #334155   /* bordes */
 --color-muted:    #64748b   /* texto secundario */
 --color-text:     #f1f5f9   /* texto principal */
---color-brand-*   /* sky-500 palette */
+--color-brand-*   /* ámbar — NO azul/cian (compartido con VoxiDet, familia Voxi) */
 --color-success/warning/danger
 ```
 
@@ -101,7 +101,7 @@ cp -r public         .next/standalone/public
 ## Logs
 
 ```bash
-journalctl -u sip-frontend -n 50 -f
+journalctl -u voxikam-frontend -n 50 -f
 ```
 
 ---

@@ -5,9 +5,10 @@
 # © 2026 – Todos los derechos reservados.
 
 """
-cron_dlg_stats.py — Snapshot de Kamailio cada 10 segundos.
+cron_dlg_stats.py — Snapshot de Kamailio cada 5 segundos.
 
-Ejecuta en un loop interno (5 × 10s = 50s) dentro del cron por-minuto.
+Ejecuta en un loop interno (10 × 5s = 50s) dentro del cron por-minuto — mismos
+50s/10s de margen que antes con INTERVAL=10/ITERATIONS=5, solo más granular.
 Guarda en /var/lib/voxikam/live_snapshot.json el JSON completo con:
   - resumen:            totales (activas, timbrando, total)
   - resumen_por_prefijo: por techprefix (para el widget "Activas por cliente")
@@ -48,8 +49,8 @@ else:
 load_dotenv(_install / "backend" / ".env")
 
 SNAPSHOT_FILE = Path("/var/lib/voxikam/live_snapshot.json")
-INTERVAL      = 10   # segundos entre capturas
-ITERATIONS    = 5    # 5 × 10s = 50s → deja 10s buffer antes del siguiente cron
+INTERVAL      = 5    # segundos entre capturas
+ITERATIONS    = 10   # 10 × 5s = 50s → deja 10s buffer antes del siguiente cron
 
 
 def get_db():

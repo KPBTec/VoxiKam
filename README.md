@@ -4,7 +4,7 @@
 
 ### Plataforma SIP Class 4 — Billing, Monitoreo y Control de Tráfico
 
-[![Version](https://img.shields.io/badge/version-2.52.5-e8a262?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.57.3-e8a262?style=flat-square)](CHANGELOG.md)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Debian%2012%2B-orange?style=flat-square)](#-instalación)
 [![Telegram](https://img.shields.io/badge/soporte-Telegram-2CA5E0?style=flat-square&logo=telegram)](https://t.me/KPBTec)
