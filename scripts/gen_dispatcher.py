@@ -349,26 +349,48 @@ def main():
     # líneas "✓" sin timestamp, imposible de correlacionar con un incidente.
     print(f"gen_dispatcher.py — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     conn = get_db()
+    failed = False
     try:
         lan_peers     = fetch_lan_peers(conn)
         customers     = fetch_customers(conn)
         cust_prefixes = fetch_customer_prefixes(conn)
         groups        = fetch_carrier_groups(conn)
 
-        disp = build_dispatcher_list(lan_peers, groups)
-        Path(DISPATCHER_LIST).write_text(disp)
-        print(f"  ✓ {DISPATCHER_LIST} actualizado ({len(groups)} grupos)")
+        # dispatcher.list (recarga en caliente vía dispatcher.reload) y
+        # techprefix_map (htable, recarga en caliente vía htable.reload) son
+        # independientes — antes vivían en el mismo try/except y un error
+        # escribiendo dispatcher.list (ej. permisos, disco lleno) abortaba
+        # ANTES de llegar a sync_techprefix_map(), dejando un cambio de grupo
+        # de ruteo sin aplicarse en caliente aunque el htable sí soporte
+        # hacerlo — solo un reinicio completo de Kamailio lo reflejaba.
+        # Encontrado en producción (vd1sbc2): ProtectSystem=full sin
+        # ReadWritePaths=/etc/kamailio (ver systemd/voxikam-backend.service)
+        # hacía fallar el write SIEMPRE, bloqueando el htable también.
+        try:
+            disp = build_dispatcher_list(lan_peers, groups)
+            Path(DISPATCHER_LIST).write_text(disp)
+            print(f"  ✓ {DISPATCHER_LIST} actualizado ({len(groups)} grupos)")
+        except Exception as e:
+            print(f"  ✗ Error escribiendo {DISPATCHER_LIST}: {e}")
+            failed = True
 
-        rows = build_techprefix_rows(customers, cust_prefixes, groups)
-        sync_techprefix_map(conn, rows)
-        print(f"  ✓ techprefix_map actualizado ({len(rows)} prefijos)")
+        try:
+            rows = build_techprefix_rows(customers, cust_prefixes, groups)
+            sync_techprefix_map(conn, rows)
+            print(f"  ✓ techprefix_map actualizado ({len(rows)} prefijos)")
+        except Exception as e:
+            print(f"  ✗ Error actualizando techprefix_map: {e}")
+            failed = True
 
         reload_kamailio()
     except Exception as e:
         print(f"  ✗ Error: {e}")
-        sys.exit(1)
+        failed = True
     finally:
         conn.close()
+
+    if failed:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.57.2 — 2026-08-10
+
+- Corregido: un cambio de grupo de ruteo desde el panel no se aplicaba en Kamailio hasta reiniciarlo manualmente. Ahora se aplica en caliente, sin necesidad de reinicio. **Requiere actualizar con `install.sh --update` para tomar efecto**, no alcanza con solo actualizar el código.
+
+---
+
 ## v2.57.1 — 2026-08-10
 
 - Corregido: cuando la regeneración automática de la configuración de Kamailio fallaba en segundo plano, el registro no mostraba el motivo del error, solo el código de fallo — dificultaba el diagnóstico. Ahora queda registrado el detalle completo.

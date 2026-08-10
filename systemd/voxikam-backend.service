@@ -30,18 +30,23 @@ RestartSec=5
 # proyecto hermano (VoxiDet) con este mismo par de directivas. Las otras tres
 # no interfieren con sudo (son namespaces de montaje, no el flag de
 # no-new-privs del kernel) y sí acotan bastante el radio de daño de un RCE.
-# gen_nftables.py corre como subproceso de este backend (mismo namespace de
-# montaje) y escribe /etc/nftables.d/*.nft directo — sin esta excepción,
+# gen_nftables.py y gen_dispatcher.py corren como subprocesos de este backend
+# (mismo namespace de montaje) y escriben /etc/nftables.d/*.nft y
+# /etc/kamailio/dispatcher.list directo — sin estas excepciones,
 # ProtectSystem=full deja TODO /etc de solo lectura para el backend Y sus
-# subprocesos, y esa escritura fallaba SIEMPRE con "[Errno 30] Read-only
-# file system" — silenciosa, porque Popen es fire-and-forget y nadie veía
-# el error salvo mirando el journal a mano. Confirmado en producción
-# (vd1sbc2): corrido a mano con sudo (sin este sandboxing) funcionaba
-# perfecto, pero nunca disparado desde el panel. /etc/kamailio/ (que
-# gen_dispatcher.py sí logra escribir desde este mismo servicio) no tiene
-# el mismo problema — no tocarlo sin evidencia de que también lo tenga.
+# subprocesos, y esa escritura falla SIEMPRE con "[Errno 30] Read-only file
+# system" — antes silenciosa (Popen fire-and-forget, nadie veía el error
+# salvo mirar el journal a mano), ahora logueada como WARNING por
+# sync_runner.py pero igual de rota funcionalmente hasta agregar el path acá.
+# nftables.d confirmado en producción (vd1sbc2) desde la ronda anterior de
+# fixes; kamailio confirmado en la misma máquina en esta ronda — un cambio de
+# grupo de ruteo no se aplicaba en caliente y solo un reinicio manual de
+# Kamailio lo reflejaba, porque gen_dispatcher.py aborta ANTES de sincronizar
+# techprefix_map (el htable que sí recarga en caliente) apenas falla el write
+# del .list — ver el fix en gen_dispatcher.py que separa ambos pasos.
 ProtectSystem=full
 ReadWritePaths=/etc/nftables.d
+ReadWritePaths=/etc/kamailio
 ProtectHome=yes
 PrivateTmp=yes
 StandardOutput=journal
