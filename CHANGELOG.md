@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.57.5 — 2026-08-10
+
+- Nuevo: la frecuencia con la que se actualiza el snapshot de llamadas en vivo (4, 8 o 12 segundos) ahora se puede cambiar directamente desde el panel "Llamadas en curso", sin necesidad de actualizar el sistema.
+
+---
+
 ## v2.57.4 — 2026-08-10
 
 - Mejorado: el panel "Llamadas en curso" ahora se actualiza cada 5 segundos en vez de 10, para reflejar más rápido lo que pasa en el conmutador. Requiere `install.sh --update` para tomar efecto.

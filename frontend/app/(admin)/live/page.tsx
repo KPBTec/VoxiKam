@@ -1,6 +1,6 @@
 'use client'
 import { Fragment, useEffect, useState } from 'react'
-import { apiGet, apiDelete } from '@/lib/api'
+import { apiGet, apiDelete, apiPut } from '@/lib/api'
 import { groupByCustomer } from '@/lib/liveGrouping'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { LiveIndicator } from '@/components/LiveIndicator'
@@ -21,6 +21,36 @@ export default function LivePage() {
   const [cleanMsg, setCleanMsg] = useState('')
   const [error, setError] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  // Intervalo del snapshot de Kamailio (cron_dlg_stats.py) — configurable
+  // desde acá vía settings en DB, sin necesitar install.sh --update por
+  // cada ajuste (ver backend/routers/live.py::/config). Distinto de los
+  // 10s fijos con los que ESTA página hace polling al backend (más abajo,
+  // setInterval) — ese es el ritmo del navegador, este es el de Kamailio.
+  const [dlgInterval, setDlgInterval] = useState<number | null>(null)
+  const [dlgAllowed, setDlgAllowed] = useState<number[]>([4, 8, 12])
+  const [savingInterval, setSavingInterval] = useState(false)
+
+  const loadConfig = async () => {
+    try {
+      const c = await apiGet('/admin/live/config')
+      setDlgInterval(c.interval_seconds)
+      setDlgAllowed(c.allowed)
+    } catch { /* no bloquea el resto de la página si esto falla */ }
+  }
+
+  const changeInterval = async (seconds: number) => {
+    if (seconds === dlgInterval || savingInterval) return
+    setSavingInterval(true)
+    try {
+      await apiPut('/admin/live/config', { interval_seconds: seconds })
+      setDlgInterval(seconds)
+    } catch (e: any) {
+      setError(e.message || 'Error guardando el intervalo')
+    } finally {
+      setSavingInterval(false)
+    }
+  }
 
   const load = async () => {
     try {
@@ -50,6 +80,7 @@ export default function LivePage() {
 
   useEffect(() => {
     load()
+    loadConfig()
     const t = setInterval(load, 10000)
     return () => clearInterval(t)
   }, [])
@@ -76,6 +107,19 @@ export default function LivePage() {
             </button>
           )}
           {cleanMsg ? <span className="text-xs text-[var(--color-muted)]">{cleanMsg}</span> : null}
+          {dlgInterval != null && (
+            <label className="flex items-center gap-1.5 text-xs text-[var(--color-muted)]" title="Cada cuánto Kamailio genera el snapshot de llamadas — no confundir con el ritmo de esta página, que siempre pide datos cada 10s">
+              Snapshot Kamailio
+              <select
+                value={dlgInterval}
+                disabled={savingInterval}
+                onChange={e => changeInterval(parseInt(e.target.value))}
+                className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-2 py-1 text-xs text-[var(--color-text)] disabled:opacity-50"
+              >
+                {dlgAllowed.map(s => <option key={s} value={s}>{s}s</option>)}
+              </select>
+            </label>
+          )}
           <LiveIndicator active label="Actualiza cada 10s" className="text-sm text-[var(--color-text-2)]" />
         </div>
       </div>

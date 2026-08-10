@@ -10,9 +10,11 @@ from pathlib import Path
 import time as _time
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from audit import diff_and_record
 from auth import require_admin
 from database import get_db
 
@@ -20,7 +22,57 @@ router = APIRouter()
 log = logging.getLogger("live")
 
 _SNAPSHOT_FILE = Path("/var/lib/voxikam/live_snapshot.json")
-_STALE_AFTER_SECONDS = 90  # cron_dlg_stats.py escribe cada 5s — más de esto y algo está fallando
+_STALE_AFTER_SECONDS = 90  # cron_dlg_stats.py escribe cada 4-12s (configurable, ver /config abajo) — más de esto y algo está fallando
+
+# Intervalo del snapshot de dlg.briefing (cron_dlg_stats.py) — configurable
+# desde el panel a pedido del usuario en vez de fijo en código, para no
+# necesitar install.sh --update solo para ajustar este número. Valores
+# fijos (no un input libre): cron_dlg_stats.py calcula ITERATIONS = 48 //
+# interval para mantener el total por corrida siempre ~48s, dentro de la
+# ventana de 60s del cron por-minuto (cron/voxikam) con margen — un valor
+# arbitrario podría no dividir bien ese presupuesto.
+DLG_STATS_ALLOWED_INTERVALS = (4, 8, 12)
+DLG_STATS_DEFAULT_INTERVAL = 4
+
+
+class DlgStatsIntervalIn(BaseModel):
+    interval_seconds: int
+
+
+@router.get("/config")
+async def get_live_config(db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
+    r = await db.execute(text("SELECT value FROM settings WHERE key_name = 'dlg_stats_interval_seconds'"))
+    row = r.first()
+    try:
+        val = int(row[0]) if row and row[0] else DLG_STATS_DEFAULT_INTERVAL
+    except (TypeError, ValueError):
+        val = DLG_STATS_DEFAULT_INTERVAL
+    if val not in DLG_STATS_ALLOWED_INTERVALS:
+        val = DLG_STATS_DEFAULT_INTERVAL
+    return {"interval_seconds": val, "allowed": list(DLG_STATS_ALLOWED_INTERVALS)}
+
+
+@router.put("/config")
+async def set_live_config(body: DlgStatsIntervalIn, db: AsyncSession = Depends(get_db), admin=Depends(require_admin)):
+    if body.interval_seconds not in DLG_STATS_ALLOWED_INTERVALS:
+        return {"ok": False, "error": f"Debe ser uno de estos valores: {', '.join(str(v) for v in DLG_STATS_ALLOWED_INTERVALS)} segundos"}
+
+    before_row = await db.execute(text("SELECT value FROM settings WHERE key_name = 'dlg_stats_interval_seconds'"))
+    before_val = before_row.scalar()
+    before = {"interval_seconds": int(before_val) if before_val else DLG_STATS_DEFAULT_INTERVAL}
+
+    await db.execute(text("""
+        INSERT INTO settings (key_name, value, description)
+        VALUES ('dlg_stats_interval_seconds', :v, 'Intervalo en segundos del snapshot de llamadas en vivo (cron_dlg_stats.py)')
+        ON DUPLICATE KEY UPDATE value = :v
+    """), {"v": str(body.interval_seconds)})
+
+    await diff_and_record(db, "live_config", 1, before, body.model_dump(),
+                           ["interval_seconds"], admin.get("name") or admin.get("email"))
+    await db.commit()
+    # cron_dlg_stats.py lee este valor de la DB en cada corrida (cada minuto) —
+    # el cambio se aplica solo, sin reiniciar ningún servicio ni proceso.
+    return {"ok": True}
 
 
 def _read_snapshot() -> dict:

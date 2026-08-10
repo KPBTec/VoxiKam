@@ -5,10 +5,16 @@
 # © 2026 – Todos los derechos reservados.
 
 """
-cron_dlg_stats.py — Snapshot de Kamailio cada 5 segundos.
+cron_dlg_stats.py — Snapshot de Kamailio, intervalo configurable (4/8/12s,
+default 4s) vía `settings.dlg_stats_interval_seconds` — ver
+backend/routers/live.py::/config. Sin este valor en DB (instalación vieja,
+fila no seteada todavía), cae a 4s.
 
-Ejecuta en un loop interno (10 × 5s = 50s) dentro del cron por-minuto — mismos
-50s/10s de margen que antes con INTERVAL=10/ITERATIONS=5, solo más granular.
+Ejecuta en un loop interno dentro del cron por-minuto — ITERATIONS se
+calcula en runtime (RUN_BUDGET_SECONDS // interval) para que el total por
+corrida quede siempre ~48s sin importar el intervalo elegido, dejando
+~12s de margen antes de que el cron (una vez por minuto) dispare la
+siguiente corrida.
 Guarda en /var/lib/voxikam/live_snapshot.json el JSON completo con:
   - resumen:            totales (activas, timbrando, total)
   - resumen_por_prefijo: por techprefix (para el widget "Activas por cliente")
@@ -49,8 +55,31 @@ else:
 load_dotenv(_install / "backend" / ".env")
 
 SNAPSHOT_FILE = Path("/var/lib/voxikam/live_snapshot.json")
-INTERVAL      = 5    # segundos entre capturas
-ITERATIONS    = 10   # 10 × 5s = 50s → deja 10s buffer antes del siguiente cron
+
+# Configurable desde el panel (backend/routers/live.py::/config), tabla
+# `settings` — sin esto, ajustar el intervalo exigía tocar este archivo y
+# hacer install.sh --update solo para cambiar un número. Valores fijos (no
+# un input libre): ITERATIONS se calcula para que el total por corrida
+# quede siempre ~48s sin importar el intervalo elegido, dentro de la
+# ventana de 60s del cron por-minuto (cron/voxikam) con margen.
+ALLOWED_INTERVALS  = (4, 8, 12)
+DEFAULT_INTERVAL   = 4
+RUN_BUDGET_SECONDS = 48   # total objetivo por corrida — deja ~12s de margen antes del siguiente minuto
+
+
+def fetch_interval_seconds(conn) -> int:
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT value FROM settings WHERE key_name = 'dlg_stats_interval_seconds'")
+        row = cur.fetchone()
+        cur.close()
+        if row:
+            val = int(row[0])
+            if val in ALLOWED_INTERVALS:
+                return val
+    except Exception:
+        pass
+    return DEFAULT_INTERVAL
 
 
 def get_db():
@@ -294,16 +323,21 @@ def main():
     # no responde, se sigue con la lista vacía en vez de abortar todo el
     # snapshot: mismo criterio best-effort que ya usa capture() con kamcmd.
     known_prefixes: list[str] = []
+    interval = DEFAULT_INTERVAL
     try:
         conn = get_db()
         try:
             known_prefixes = fetch_known_prefixes(conn)
+            interval = fetch_interval_seconds(conn)
         finally:
             conn.close()
     except Exception as e:
-        print(f"  ⚠ no se pudo leer prefijos conocidos de la DB: {e}", file=sys.stderr)
+        print(f"  ⚠ no se pudo leer configuración de la DB: {e}", file=sys.stderr)
 
-    for i in range(ITERATIONS):
+    iterations = max(1, RUN_BUDGET_SECONDS // interval)
+    print(f"  · intervalo={interval}s iteraciones={iterations} (~{interval * iterations}s por corrida)")
+
+    for i in range(iterations):
         t0 = time.time()
         try:
             snap = capture(known_prefixes)
@@ -318,9 +352,9 @@ def main():
         except Exception as e:
             print(f"  ✗ {e}", file=sys.stderr)
 
-        if i < ITERATIONS - 1:
+        if i < iterations - 1:
             elapsed = time.time() - t0
-            time.sleep(max(0, INTERVAL - elapsed))
+            time.sleep(max(0, interval - elapsed))
 
 
 if __name__ == "__main__":
