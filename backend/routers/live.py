@@ -122,21 +122,35 @@ async def live_calls(db: AsyncSession = Depends(get_db), _=Depends(require_admin
     # raw_ongoing (lo que Kamailio CREE que hay) a propósito — este cleanup
     # ataca el caso contrario al de abajo: active_calls con MÁS filas viejas
     # de las que Kamailio dice, no menos.
+    #
+    # v2.57.3: la versión anterior mantenía "las N filas con started_at más
+    # reciente" (N = raw_ongoing) y borraba el resto — asumía que una llamada
+    # vieja siempre termina antes que una nueva, que NO es cierto: una
+    # llamada larga iniciada a las 8:00 puede seguir viva mientras una corta
+    # iniciada a las 8:15 ya cortó. Si la fila zombie de la de 8:15 nunca se
+    # limpió a tiempo (BYE mal manejado, ver _known_call_ids), esta lógica
+    # la "salvaba" por ser más reciente y borraba la de 8:00 — la que
+    # seguía genuinamente activa. Encontrado en producción (vd1sbc2):
+    # cambiar un grupo de ruteo no afecta llamadas ya establecidas, pero
+    # coincidió con una tanda de churn de llamadas que disparó este cleanup
+    # y borró la fila de una llamada real en curso — desapareció del panel
+    # aunque siguió viva en Kamailio. Ahora cruza contra el CONJUNTO real de
+    # call_id que el snapshot dice vivos (no una cuenta ni un orden), con un
+    # margen de 30s para no pisarse con una llamada recién insertada que
+    # todavía no aparece en el snapshot (cron_dlg_stats.py escribe c/10s).
     if fresh:
         total_db = (await db.execute(text("SELECT COUNT(*) FROM active_calls"))).scalar() or 0
         if total_db > raw_ongoing + 5:
-            deleted = await db.execute(text("""
-                DELETE FROM active_calls
-                WHERE call_id NOT IN (
-                    SELECT call_id FROM (
-                        SELECT call_id FROM active_calls
-                        ORDER BY started_at DESC LIMIT :lim
-                    ) sub
-                )
-            """), {"lim": max(raw_ongoing, 0)})
-            await db.commit()
-            if deleted.rowcount:
-                log.warning("Auto-sync: %d zombie(s) eliminados", deleted.rowcount)
+            live_call_ids = [c["call_id"] for c in calls if c.get("call_id")]
+            if live_call_ids:
+                deleted = await db.execute(text("""
+                    DELETE FROM active_calls
+                    WHERE call_id NOT IN :live_ids
+                      AND started_at < NOW() - INTERVAL 30 SECOND
+                """).bindparams(bindparam("live_ids", expanding=True)), {"live_ids": live_call_ids})
+                await db.commit()
+                if deleted.rowcount:
+                    log.warning("Auto-sync: %d zombie(s) eliminados", deleted.rowcount)
 
     # dlg.briefing puede seguir reportando una llamada como "contestada"
     # mucho después de haber cortado de verdad — un BYE duplicado/
