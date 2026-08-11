@@ -33,8 +33,11 @@ function sipBadge(code: number | null) {
   return <StatusBadge variant={sipCodeVariant(code)} mono className="font-semibold">{code}</StatusBadge>
 }
 
-// Quién cortó la llamada — CARRIER (proveedor) es la señal "atenta pero no
-// alarmante" (warning); cualquier otra cosa es corte por el cliente (info).
+// Quién mandó el BYE — Kamailio compara la IP de quien lo envía contra la
+// IP que mandó el INVITE original (kamailio.cfg.j2): si coincide, el corte
+// vino del lado Origen (cliente); si no, del lado Destino (proveedor).
+// CARRIER/Destino es la señal "atenta pero no alarmante" (warning); Origen
+// es info.
 function hangupCauseVariant(cause: string): BadgeVariant {
   return cause === 'CARRIER' ? 'warning' : 'info'
 }
@@ -98,6 +101,30 @@ function CdrDetailPanel({ row, onClose }: { row: CDR; onClose: () => void }) {
     }
   }
 
+  // Alternativa al PCAP para quien no tiene Wireshark/tshark a mano — mismos
+  // mensajes que ya se cargaron para el ladder, en texto plano legible.
+  function downloadTraceTxt() {
+    const lines = msgs.map(m => {
+      const label = m.method ?? (m.status ? `SIP/2.0 ${m.status}` : '?')
+      return [
+        `[${new Date(m.ts).toLocaleString('es-PE')}] ${label}`,
+        `${m.src_ip}:${m.src_port ?? '?'} → ${m.dst_ip}:${m.dst_port ?? '?'}`,
+        m.raw,
+        '',
+      ].join('\n')
+    })
+    const blob = new Blob(
+      [`Traza SIP — call_id ${row.call_id}\n${'='.repeat(60)}\n\n${lines.join('\n')}`],
+      { type: 'text/plain;charset=utf-8' },
+    )
+    const url = URL.createObjectURL(blob)
+    const a   = document.createElement('a')
+    a.href     = url
+    a.download = `trace-${row.call_id.slice(0, 40)}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
@@ -146,7 +173,7 @@ function CdrDetailPanel({ row, onClose }: { row: CDR; onClose: () => void }) {
               <td className="px-4 py-2.5">
                 {row.hangup_cause ? (
                   <StatusBadge variant={hangupCauseVariant(row.hangup_cause)} className="font-medium">
-                    {row.hangup_cause === 'CARRIER' ? 'Proveedor' : 'Cliente'}
+                    {row.hangup_cause === 'CARRIER' ? 'Destino' : 'Origen'}
                   </StatusBadge>
                 ) : <span className="text-[var(--color-muted)] text-xs">Sin dato de quién cortó</span>}
               </td>
@@ -179,10 +206,18 @@ function CdrDetailPanel({ row, onClose }: { row: CDR; onClose: () => void }) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Traza SIP</p>
-            <button onClick={downloadPcap} disabled={loadingTrace || msgs.length === 0}
-              className="px-2 py-1 rounded text-xs font-mono bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 disabled:opacity-30 disabled:cursor-not-allowed focus-ring">
-              ⬇ Descargar PCAP
-            </button>
+            <div className="flex gap-2">
+              <button onClick={downloadTraceTxt} disabled={loadingTrace || msgs.length === 0}
+                title="Los mensajes SIP crudos en texto plano — no requiere Wireshark ni ningún visor de PCAP"
+                className="px-2 py-1 rounded text-xs font-mono bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 disabled:opacity-30 disabled:cursor-not-allowed focus-ring">
+                ⬇ Descargar TXT
+              </button>
+              <button onClick={downloadPcap} disabled={loadingTrace || msgs.length === 0}
+                title="Para abrir en Wireshark u otro analizador de paquetes"
+                className="px-2 py-1 rounded text-xs font-mono bg-brand-500/10 text-brand-400 hover:bg-brand-500/20 disabled:opacity-30 disabled:cursor-not-allowed focus-ring">
+                ⬇ Descargar PCAP
+              </button>
+            </div>
           </div>
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg">
             {loadingTrace ? (

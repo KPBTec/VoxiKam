@@ -210,6 +210,30 @@ function SearchView({ initialCallId }: { initialCallId: string }) {
     }
   }
 
+  // Alternativa al PCAP para quien no tiene Wireshark/tshark a mano — mismos
+  // mensajes que ya están cargados en el ladder, en texto plano legible.
+  function downloadTraceTxt(call_id: string) {
+    const lines = msgs.map(m => {
+      const label = m.method ?? (m.status ? `SIP/2.0 ${m.status}` : '?')
+      return [
+        `[${new Date(m.ts).toLocaleString('es-PE')}] ${label}`,
+        `${m.src_ip}:${m.src_port ?? '?'} → ${m.dst_ip}:${m.dst_port ?? '?'}`,
+        m.raw,
+        '',
+      ].join('\n')
+    })
+    const blob = new Blob(
+      [`Traza SIP — call_id ${call_id}\n${'='.repeat(60)}\n\n${lines.join('\n')}`],
+      { type: 'text/plain;charset=utf-8' },
+    )
+    const url = URL.createObjectURL(blob)
+    const a   = document.createElement('a')
+    a.href     = url
+    a.download = `trace-${call_id.slice(0, 40)}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // Auto-search if initialCallId provided (p.ej. desde el link "SIP" de /cdrs) —
   // sin el setSelected acá, el ladder nunca se renderizaba: quedaba cargado en
   // `msgs` pero la vista seguía mostrando "Selecciona una llamada" porque esa
@@ -312,6 +336,11 @@ function SearchView({ initialCallId }: { initialCallId: string }) {
                 <p className="font-mono text-xs text-brand-400 truncate">{selected}</p>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                <button onClick={() => downloadTraceTxt(selected)}
+                  title="Los mensajes SIP crudos en texto plano — no requiere Wireshark ni ningún visor de PCAP"
+                  className="px-2.5 py-1 rounded text-xs bg-[var(--color-card-2)] text-[var(--color-text)] border border-[var(--color-border)] hover:border-brand-500 hover:text-brand-400 transition-colors focus-ring">
+                  Descargar TXT
+                </button>
                 <button onClick={() => downloadPcap(selected)}
                   title="Descargar como .pcap para abrir en Wireshark"
                   className="px-2.5 py-1 rounded text-xs bg-[var(--color-card-2)] text-[var(--color-text)] border border-[var(--color-border)] hover:border-brand-500 hover:text-brand-400 transition-colors focus-ring">

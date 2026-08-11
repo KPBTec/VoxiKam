@@ -9,6 +9,13 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.58.3 — 2026-08-11
+
+- Mejorado: en el detalle de una llamada, "Colgó" ahora dice "Origen"/"Destino" en vez de "Cliente"/"Proveedor" — mismo dato de siempre, mismo vocabulario que ya usa la traza SIP.
+- Nuevo: las trazas SIP ahora se pueden descargar como texto plano, además de PCAP — para quien no tiene Wireshark ni otro visor de paquetes a mano.
+
+---
+
 ## v2.58.2 — 2026-08-11
 
 - Mejorado: en la ficha de cliente, "Historial de balance" pasa a ser su propia pestaña (junto a "General" y "Red y Ruteo") en vez de una tabla fija al final de la pantalla — sigue accesible con un click, pero ya no ocupa espacio de la vista principal.
