@@ -54,7 +54,7 @@ export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   useEffect(() => { document.title = 'Cliente · VoxiKam' }, [])
 
-  const [tab, setTab] = useState<'general' | 'red'>('general')
+  const [tab, setTab] = useState<'general' | 'red' | 'historial'>('general')
 
   const [customer, setCustomer]   = useState<CustomerDetail | null>(null)
   const [ratePlans, setRatePlans] = useState<RatePlan[]>([])
@@ -349,6 +349,12 @@ export default function CustomerDetailPage() {
         >
           Red y Ruteo
         </button>
+        <button
+          onClick={() => setTab('historial')}
+          className={`focus-ring px-4 py-1.5 text-sm font-medium transition-colors ${tab === 'historial' ? 'bg-brand-600 text-white' : 'bg-[var(--color-surface)] text-[var(--color-text-2)] hover:text-[var(--color-text)]'}`}
+        >
+          Historial
+        </button>
       </div>
 
       {/* ── TAB: GENERAL ──────────────────────────────────────────────────── */}
@@ -543,61 +549,6 @@ export default function CustomerDetailPage() {
               {adjustingBalance ? 'Aplicando...' : 'Aplicar'}
             </Button>
           </form>
-        </Card>
-
-        {/* Historial de balance */}
-        <Card className="p-5 space-y-4 lg:col-span-2">
-          <div>
-            <h2 className="font-semibold">Historial de balance</h2>
-            <p className="text-xs text-[var(--color-muted)] mt-0.5">
-              Cada fila es un movimiento real que tocó el balance — llamada facturada, ajuste manual,
-              pago de factura o recálculo de tarifas. Esto es lo que explica el número de arriba.
-            </p>
-          </div>
-          {balanceTx === null || (loadingBalanceTx && balanceTx.length === 0) ? (
-            <p className="text-sm text-[var(--color-muted)] py-4 text-center">Cargando...</p>
-          ) : balanceTx.length === 0 ? (
-            <p className="text-sm text-[var(--color-muted)] py-4 text-center">Sin movimientos todavía.</p>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm tabular-nums">
-                  <thead>
-                    <tr className="text-left text-xs text-[var(--color-text-2)] uppercase tracking-wider border-b border-[var(--color-border)]">
-                      <th className="py-2 pr-4">Fecha</th>
-                      <th className="py-2 pr-4">Tipo</th>
-                      <th className="py-2 pr-4 text-right">Monto</th>
-                      <th className="py-2 pr-4 text-right">Balance después</th>
-                      <th className="py-2 pr-4">Referencia</th>
-                      <th className="py-2">Por</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--color-border)]/40">
-                    {balanceTx.map(tx => (
-                      <tr key={tx.id}>
-                        <td className="py-2 pr-4 text-[var(--color-text-2)] whitespace-nowrap">
-                          {new Date(tx.created_at).toLocaleString('es-PE')}
-                        </td>
-                        <td className="py-2 pr-4">{BALANCE_TX_LABEL[tx.type] ?? tx.type}</td>
-                        <td className={`py-2 pr-4 text-right font-mono tabular-nums ${parseFloat(tx.amount) >= 0 ? 'text-success' : 'text-danger'}`}>
-                          {parseFloat(tx.amount) >= 0 ? '+' : ''}{parseFloat(tx.amount).toFixed(2)}
-                        </td>
-                        <td className="py-2 pr-4 text-right font-mono">{parseFloat(tx.balance_after).toFixed(2)}</td>
-                        <td className="py-2 pr-4 text-[var(--color-text-2)] font-mono text-xs">{tx.reference ?? '—'}</td>
-                        <td className="py-2 text-[var(--color-text-2)]">{tx.created_by ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {balanceTxMore && (
-                <button onClick={() => loadBalanceTx(false)} disabled={loadingBalanceTx}
-                  className="focus-ring text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50">
-                  {loadingBalanceTx ? 'Cargando...' : 'Cargar más'}
-                </button>
-              )}
-            </>
-          )}
         </Card>
       </div>
       )}
@@ -795,6 +746,63 @@ export default function CustomerDetailPage() {
         )}
       </Card>
       </>
+      )}
+
+      {/* ── TAB: HISTORIAL ──────────────────────────────────────────────────── */}
+      {tab === 'historial' && (
+        <Card className="p-5 space-y-4">
+          <div>
+            <h2 className="font-semibold">Historial de balance</h2>
+            <p className="text-xs text-[var(--color-muted)] mt-0.5">
+              Cada fila es un movimiento real que tocó el balance — llamada facturada, ajuste manual,
+              pago de factura o recálculo de tarifas. Esto es lo que explica el número de arriba.
+            </p>
+          </div>
+          {balanceTx === null || (loadingBalanceTx && balanceTx.length === 0) ? (
+            <p className="text-sm text-[var(--color-muted)] py-4 text-center">Cargando...</p>
+          ) : balanceTx.length === 0 ? (
+            <p className="text-sm text-[var(--color-muted)] py-4 text-center">Sin movimientos todavía.</p>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm tabular-nums">
+                  <thead>
+                    <tr className="text-left text-xs text-[var(--color-text-2)] uppercase tracking-wider border-b border-[var(--color-border)]">
+                      <th className="py-2 pr-4">Fecha</th>
+                      <th className="py-2 pr-4">Tipo</th>
+                      <th className="py-2 pr-4 text-right">Monto</th>
+                      <th className="py-2 pr-4 text-right">Balance después</th>
+                      <th className="py-2 pr-4">Referencia</th>
+                      <th className="py-2">Por</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-border)]/40">
+                    {balanceTx.map(tx => (
+                      <tr key={tx.id}>
+                        <td className="py-2 pr-4 text-[var(--color-text-2)] whitespace-nowrap">
+                          {new Date(tx.created_at).toLocaleString('es-PE')}
+                        </td>
+                        <td className="py-2 pr-4">{BALANCE_TX_LABEL[tx.type] ?? tx.type}</td>
+                        <td className={`py-2 pr-4 text-right font-mono tabular-nums ${parseFloat(tx.amount) >= 0 ? 'text-success' : 'text-danger'}`}>
+                          {parseFloat(tx.amount) >= 0 ? '+' : ''}{parseFloat(tx.amount).toFixed(2)}
+                        </td>
+                        <td className="py-2 pr-4 text-right font-mono">{parseFloat(tx.balance_after).toFixed(2)}</td>
+                        <td className="py-2 pr-4 text-[var(--color-text-2)] font-mono text-xs">{tx.reference ?? '—'}</td>
+                        <td className="py-2 text-[var(--color-text-2)]">{tx.created_by ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {balanceTxMore && (
+                <button onClick={() => loadBalanceTx(false)} disabled={loadingBalanceTx}
+                  className="focus-ring text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50">
+                  {loadingBalanceTx ? 'Cargando...' : 'Cargar más'}
+                </button>
+              )}
+            </>
+          )}
+        </Card>
       )}
 
       {/* Notas internas — visible siempre en la tab General */}
