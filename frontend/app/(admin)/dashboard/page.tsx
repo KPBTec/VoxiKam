@@ -50,6 +50,20 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Mismo intervalo configurable (4/8/12s) que la página Live — "Activas
+  // ahora" viene del mismo snapshot de Kamailio (/admin/live), así que se
+  // pide con la misma cadencia en vez de los 30s fijos del resto del
+  // dashboard (facturación/sistema, que no dependen de ese snapshot).
+  const [dlgInterval, setDlgInterval] = useState<number | null>(null);
+  const effectiveInterval = dlgInterval ?? 4;
+
+  const loadConfig = useCallback(async () => {
+    try {
+      const c = await apiGet("/admin/live/config");
+      setDlgInterval(c.interval_seconds);
+    } catch { /* no bloquea el resto del dashboard si esto falla */ }
+  }, []);
+
   const loadTs = useCallback(async (r: number) => {
     try {
       const res = await apiGet(`/timeseries/admin?range=${r}`);
@@ -57,23 +71,36 @@ export default function Dashboard() {
     } catch (e: any) { setError(e.message || "Error cargando el gráfico"); }
   }, []);
 
-  const loadAll = useCallback(async () => {
+  const loadLive = useCallback(async () => {
     try {
-      const [d, l, s] = await Promise.all([
+      const l = await apiGet("/admin/live");
+      setLive(l); setError("");
+    } catch (e: any) { setError(e.message || "Error actualizando llamadas activas"); }
+  }, []);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const [d, s] = await Promise.all([
         apiGet("/admin/reports/dashboard"),
-        apiGet("/admin/live"),
         apiGet("/admin/system"),
       ]);
-      setData(d); setLive(l); setSys(s); setError("");
+      setData(d); setSys(s); setError("");
     } catch (e: any) { setError(e.message || "Error actualizando el dashboard"); }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
-    loadAll();
-    const t = setInterval(loadAll, 30000);
+    loadStats();
+    loadConfig();
+    const t = setInterval(loadStats, 30000);
     return () => clearInterval(t);
-  }, [loadAll]);
+  }, [loadStats, loadConfig]);
+
+  useEffect(() => {
+    loadLive();
+    const t = setInterval(loadLive, effectiveInterval * 1000);
+    return () => clearInterval(t);
+  }, [loadLive, effectiveInterval]);
 
   useEffect(() => {
     loadTs(range);
@@ -88,7 +115,10 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <LiveIndicator label="Auto-actualiza cada 30s" className="text-xs text-[var(--color-muted)]" />
+        <LiveIndicator
+          label={`Activas cada ${effectiveInterval}s · resto cada 30s`}
+          className="text-xs text-[var(--color-muted)]"
+        />
       </div>
 
       {error && <ErrorBanner>{error}</ErrorBanner>}

@@ -25,12 +25,15 @@ export default function LivePage() {
 
   // Intervalo del snapshot de Kamailio (cron_dlg_stats.py) — configurable
   // desde acá vía settings en DB, sin necesitar install.sh --update por
-  // cada ajuste (ver backend/routers/live.py::/config). Distinto de los
-  // 10s fijos con los que ESTA página hace polling al backend (más abajo,
-  // setInterval) — ese es el ritmo del navegador, este es el de Kamailio.
+  // cada ajuste (ver backend/routers/live.py::/config). Antes esta página
+  // pedía datos al backend cada 10s fijos, sin relación con este valor —
+  // pedir más rápido que lo que Kamailio genera es inútil, y más lento
+  // deja la pantalla atrasada. Ahora el polling de la página USA este
+  // mismo número (effectiveInterval, más abajo) — un solo reloj.
   const [dlgInterval, setDlgInterval] = useState<number | null>(null)
   const [dlgAllowed, setDlgAllowed] = useState<number[]>([4, 8, 12])
   const [savingInterval, setSavingInterval] = useState(false)
+  const effectiveInterval = dlgInterval ?? 4 // default hasta que cargue /config
 
   const loadConfig = async () => {
     try {
@@ -82,9 +85,12 @@ export default function LivePage() {
   useEffect(() => {
     load()
     loadConfig()
-    const t = setInterval(load, 10000)
-    return () => clearInterval(t)
   }, [])
+
+  useEffect(() => {
+    const t = setInterval(load, effectiveInterval * 1000)
+    return () => clearInterval(t)
+  }, [effectiveInterval])
 
   const ongoing    = data?.kamailio?.ongoing    ?? 0
   const timbrando  = data?.kamailio?.connecting ?? 0
@@ -109,8 +115,8 @@ export default function LivePage() {
           )}
           {cleanMsg ? <span className="text-xs text-[var(--color-muted)]">{cleanMsg}</span> : null}
           {dlgInterval != null && (
-            <label className="flex items-center gap-1.5 text-xs text-[var(--color-muted)]" title="Cada cuánto Kamailio genera el snapshot de llamadas — no confundir con el ritmo de esta página, que siempre pide datos cada 10s">
-              Snapshot Kamailio
+            <label className="flex items-center gap-1.5 text-xs text-[var(--color-muted)]" title="Cada cuánto Kamailio genera el snapshot y esta página vuelve a pedirlo — un solo valor para los dos">
+              Actualiza cada
               <select
                 value={dlgInterval}
                 disabled={savingInterval}
@@ -121,7 +127,7 @@ export default function LivePage() {
               </select>
             </label>
           )}
-          <LiveIndicator active label="Actualiza cada 10s" className="text-sm text-[var(--color-text-2)]" />
+          <LiveIndicator active label="En vivo" className="text-sm text-[var(--color-text-2)]" />
         </div>
       </div>
 

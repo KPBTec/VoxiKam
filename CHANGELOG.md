@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.58.1 — 2026-08-11
+
+- Corregido: en Live y Dashboard, el intervalo de actualización configurable (4/8/12 segundos) ahora también controla cada cuánto la pantalla vuelve a pedir los datos — antes solo controlaba la generación del snapshot en el servidor, y la pantalla seguía en un ritmo fijo separado (10s en Live, 30s en Dashboard para "Activas ahora").
+
+---
+
 ## v2.58.0 — 2026-08-11
 
 Resultado de una auditoría independiente de experiencia de usuario y diseño visual, tanto del panel de administrador como del portal de cliente/reseller.
