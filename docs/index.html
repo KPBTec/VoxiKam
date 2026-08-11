@@ -140,27 +140,33 @@ a:hover { color: #eba456; }
 nav {
   background: var(--surface);
   border-bottom: 1px solid var(--line);
-  padding: 0 32px;
-  display: flex; align-items: center; justify-content: space-between;
   height: 60px;
 }
+.nav-inner {
+  max-width: 1200px; height: 100%; margin: 0 auto; padding: 0 32px;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+}
 .nav-logo { display: flex; align-items: center; gap: 10px; }
-.nav-links { display: flex; gap: 4px; align-items: center; }
-.nav-links a:not(.nav-cta) {
+.nav-links { display: flex; gap: 2px; align-items: center; }
+.nav-links a {
   color: var(--muted); font-size: 13px; font-weight: 600;
   padding: 7px 13px; border-radius: var(--radius-sm);
   transition: color .15s, background .15s;
 }
-.nav-links a:not(.nav-cta):hover { color: var(--text); background: var(--surface-2); }
+.nav-links a:hover { color: var(--text); background: var(--surface-2); }
+.nav-utility {
+  display: flex; gap: 2px; align-items: center;
+  padding-left: 20px; border-left: 1px solid var(--line);
+}
 .nav-cta {
   display: inline-flex; align-items: center; gap: 6px;
-  background: transparent; color: var(--text) !important;
-  font-weight: 600; font-size: 13px;
-  border: 1px solid var(--line-2); border-radius: var(--radius-sm);
-  padding: 7px 14px; margin-left: 8px;
-  transition: border-color .15s, background .15s;
+  background: var(--signal); color: var(--ink) !important;
+  font-weight: 700; font-size: 13px;
+  border: 1px solid var(--signal); border-radius: var(--radius-sm);
+  padding: 7px 14px; margin-left: 10px;
+  transition: background .15s, border-color .15s;
 }
-.nav-cta:hover { border-color: var(--signal); background: var(--surface-2); }
+.nav-cta:hover { background: var(--signal-glow); border-color: var(--signal-glow); }
 
 /* ── SECTION COMMON ───────────────────────────────────────────────── */
 section { padding: 88px 32px; border-bottom: 1px solid var(--line); }
@@ -468,9 +474,16 @@ details.release-card[open] .release-chevron { transform: rotate(180deg); }
 .install-table td code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 2px 7px; border-radius: 4px; color: var(--signal); }
 
 /* ── FOOTER ───────────────────────────────────────────────────────── */
-footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text-align: center; }
-.footer-sub { font-size: 13px; margin: 14px 0 22px; color: var(--muted); }
-.footer-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
+footer { background: #0d0904; color: var(--muted); padding: 40px 32px 28px; }
+.footer-inner { max-width: 1200px; margin: 0 auto; }
+.footer-top {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 20px;
+  padding-bottom: 26px; margin-bottom: 22px; border-bottom: 1px solid var(--line);
+}
+.footer-brand { display: flex; align-items: center; gap: 14px; }
+.footer-sub { font-size: 13px; color: var(--muted); }
+.footer-links { display: flex; gap: 8px; flex-wrap: wrap; }
 .footer-links a {
   display: inline-flex; align-items: center; gap: 6px;
   color: var(--muted); font-size: 13px; font-weight: 600;
@@ -478,12 +491,12 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
   transition: color .15s, background .15s;
 }
 .footer-links a:hover { color: var(--text); background: var(--surface); }
-.footer-copy { font-size: 12px; color: var(--line-2); }
+.footer-copy { font-size: 12px; color: var(--line-2); text-align: center; }
 
 /* ── RESPONSIVE ───────────────────────────────────────────────────── */
 @media(max-width: 768px) {
-  nav { padding: 0 16px; }
-  .nav-links a:not(.nav-cta) { display: none; }
+  .nav-inner { padding: 0 16px; }
+  .nav-links { display: none; }
   .theme-dropdown { display: none; }
   section { padding: 60px 20px; }
   .hero { padding: 32px 16px 40px; }
@@ -505,34 +518,39 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 
 <!-- NAV -->
 <nav>
-  <a href="https://voxikam.kpbtec.com" class="nav-logo">
-    <img src="assets/logo.svg" alt="VoxiKam" style="height:28px;width:auto;">
-  </a>
-  <div class="nav-links">
-    <a href="#features"><span class="i18n-es">Funciones</span><span class="i18n-en">Features</span></a>
-    <a href="#admin"><span class="i18n-es">Operador</span><span class="i18n-en">Operator</span></a>
-    <a href="#client"><span class="i18n-es">Cliente</span><span class="i18n-en">Client</span></a>
-    <a href="#releases">Releases</a>
-    <a href="#install"><span class="i18n-es">Instalar</span><span class="i18n-en">Install</span></a>
-    <a href="manual/">Manual</a>
-    <details class="theme-dropdown">
-      <summary>
-        <span class="i18n-es">Tema</span><span class="i18n-en">Theme</span>
-        <svg class="chev ico" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-      </summary>
-      <div class="theme-dropdown-menu" id="theme-picker"></div>
-    </details>
-    <details class="theme-dropdown">
-      <summary>
-        <span class="i18n-es">Idioma</span><span class="i18n-en">Language</span>
-        <svg class="chev ico" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-      </summary>
-      <div class="theme-dropdown-menu" id="lang-picker"></div>
-    </details>
-    <a href="https://t.me/KPBTec" class="nav-cta" target="_blank">
-      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
-      <span class="i18n-es">Soporte</span><span class="i18n-en">Support</span>
+  <div class="nav-inner">
+    <a href="https://voxikam.kpbtec.com" class="nav-logo">
+      <img src="assets/logo.svg" alt="VoxiKam" style="height:28px;width:auto;">
     </a>
+    <div class="nav-links">
+      <a href="#features"><span class="i18n-es">Funciones</span><span class="i18n-en">Features</span></a>
+      <a href="#admin"><span class="i18n-es">Operador</span><span class="i18n-en">Operator</span></a>
+      <a href="#client"><span class="i18n-es">Cliente</span><span class="i18n-en">Client</span></a>
+      <a href="#releases">Releases</a>
+      <a href="#install"><span class="i18n-es">Instalar</span><span class="i18n-en">Install</span></a>
+      <a href="manual/">Manual</a>
+    </div>
+    <div class="nav-utility">
+      <details class="theme-dropdown">
+        <summary>
+          <span class="i18n-es">Tema</span><span class="i18n-en">Theme</span>
+          <svg class="chev ico" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="theme-dropdown-menu" id="theme-picker"></div>
+      </details>
+      <details class="theme-dropdown">
+        <summary>
+          <svg class="ico" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span class="i18n-es">Idioma</span><span class="i18n-en">Language</span>
+          <svg class="chev ico" style="width:13px;height:13px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="theme-dropdown-menu" id="lang-picker"></div>
+      </details>
+      <a href="https://t.me/KPBTec" class="nav-cta" target="_blank">
+        <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
+        <span class="i18n-es">Soporte</span><span class="i18n-en">Support</span>
+      </a>
+    </div>
   </div>
 </nav>
 
@@ -930,35 +948,39 @@ footer { background: #0d0904; color: var(--muted); padding: 48px 32px 32px; text
 
 <!-- FOOTER -->
 <footer>
-  <a href="https://voxikam.kpbtec.com" style="display:inline-block;">
-    <img src="assets/logo.svg" alt="VoxiKam" style="height:44px;width:auto;">
-  </a>
-  <div class="footer-sub">By KPBTec · Knowledge, Protection &amp; Business Technology</div>
-  <div class="footer-links">
-    <a href="https://github.com/KPBTec/VoxiKam" target="_blank">
-      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.016-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.469-2.38 1.235-3.22-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.233 1.91 1.233 3.22 0 4.61-2.807 5.624-5.48 5.92.43.372.823 1.102.823 2.222 0 1.604-.015 2.896-.015 3.286 0 .32.216.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
-    </a>
-    <a href="manual/">
-      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      Manual
-    </a>
-    <a href="https://t.me/KPBTec" target="_blank">
-      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
-      Telegram
-    </a>
-    <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md" target="_blank">
-      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
-      Changelog
-    </a>
-    <a href="https://github.com/KPBTec/VoxiKam/blob/main/LICENSE" target="_blank">
-      <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      AGPL v3
-    </a>
-  </div>
-  <div class="footer-copy">
-    <span class="i18n-es">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · Todos los derechos reservados.</span>
-    <span class="i18n-en">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · All rights reserved.</span>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <a href="https://voxikam.kpbtec.com" class="footer-brand">
+        <img src="assets/logo.svg" alt="VoxiKam" style="height:40px;width:auto;">
+        <span class="footer-sub">By KPBTec · Knowledge, Protection &amp; Business Technology</span>
+      </a>
+      <div class="footer-links">
+        <a href="https://github.com/KPBTec/VoxiKam" target="_blank">
+          <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.016-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.605-2.665-.303-5.467-1.332-5.467-5.93 0-1.31.469-2.38 1.235-3.22-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.3 1.23A11.5 11.5 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.233 1.91 1.233 3.22 0 4.61-2.807 5.624-5.48 5.92.43.372.823 1.102.823 2.222 0 1.604-.015 2.896-.015 3.286 0 .32.216.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+        <a href="manual/">
+          <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Manual
+        </a>
+        <a href="https://t.me/KPBTec" target="_blank">
+          <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="currentColor"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/></svg>
+          Telegram
+        </a>
+        <a href="https://github.com/KPBTec/VoxiKam/blob/main/CHANGELOG.md" target="_blank">
+          <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
+          Changelog
+        </a>
+        <a href="https://github.com/KPBTec/VoxiKam/blob/main/LICENSE" target="_blank">
+          <svg class="ico" style="width:15px;height:15px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          AGPL v3
+        </a>
+      </div>
+    </div>
+    <div class="footer-copy">
+      <span class="i18n-es">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · Todos los derechos reservados.</span>
+      <span class="i18n-en">© 2026 KPBTec · Knowledge, Protection &amp; Business Technology · All rights reserved.</span>
+    </div>
   </div>
 </footer>
 
