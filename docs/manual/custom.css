@@ -39,13 +39,6 @@
   --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
 }
 
-.theme-picker { display: flex; gap: 6px; align-items: center; padding: 10px 16px 4px; }
-.theme-picker button {
-  width: 15px; height: 15px; border-radius: 50%; cursor: pointer; padding: 0; border: none;
-  box-shadow: 0 0 0 1px var(--line);
-}
-.theme-picker button[data-active="true"] { box-shadow: 0 0 0 2px var(--text); }
-
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
@@ -113,6 +106,7 @@ a:hover { color: var(--signal-100); }
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text) !important;
+  text-decoration: none;
   display: block;
   padding: 20px 20px 16px;
   border-bottom: 1px solid var(--line);
@@ -120,7 +114,13 @@ a:hover { color: var(--signal-100); }
   font-size: 17px;
 }
 
-.sidebar-nav > ul > li > p,
+/* :has(strong) acota el estilo de "encabezado de sección" (mono, mayúsculas,
+   gris) a los <p> que de verdad son un título en negrita ("**Panel de
+   operador**") — sin esto, Docsify envuelve CUALQUIER link suelto de primer
+   nivel (ej. "Inicio", sin sub-items) en un <p> también, y ese link
+   terminaba heredando el mismo look de encabezado en vez de verse como un
+   link normal. */
+.sidebar-nav > ul > li > p:has(strong),
 .sidebar-nav strong {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -130,6 +130,7 @@ a:hover { color: var(--signal-100); }
   color: var(--muted);
   margin: 22px 0 8px;
 }
+.sidebar-nav > ul > li > p:not(:has(strong)) { margin: 0 0 6px; }
 .sidebar-nav ul { margin: 0; }
 .sidebar-nav li { margin: 0; list-style: none; }
 .sidebar-nav li > a, .sidebar-nav li > p > a {

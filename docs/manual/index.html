@@ -71,44 +71,6 @@ window.$docsify = {
         ticks.forEach(function (ms) { setTimeout(fixActiveLink, ms); });
       });
     },
-    // Selector de tema — 4 swatches arriba del buscador de la sidebar.
-    // mounted corre una sola vez (no en cada navegación), por eso el picker
-    // no se re-crea/duplica al cambiar de página.
-    function (hook) {
-      hook.mounted(function () {
-        var THEMES = [
-          { id: 'bronce',  label: 'Bronce',  swatch: '#dd8b3d' },
-          { id: 'papel',   label: 'Papel',   swatch: '#c7bc9d' },
-          { id: 'fosforo', label: 'Fósforo', swatch: '#33cc66' },
-          { id: 'vidrio',  label: 'Vidrio',  swatch: '#a8a8ad' },
-        ];
-        var search = document.querySelector('.sidebar .search');
-        if (!search) return;
-        var picker = document.createElement('div');
-        picker.className = 'theme-picker';
-        var current = localStorage.getItem('voxikam_theme') || 'bronce';
-        function render() {
-          picker.innerHTML = '';
-          THEMES.forEach(function (t) {
-            var b = document.createElement('button');
-            b.type = 'button';
-            b.title = t.label;
-            b.style.background = t.swatch;
-            b.dataset.active = String(t.id === current);
-            b.addEventListener('click', function () {
-              current = t.id;
-              localStorage.setItem('voxikam_theme', current);
-              if (current === 'bronce') document.documentElement.removeAttribute('data-theme');
-              else document.documentElement.setAttribute('data-theme', current);
-              render();
-            });
-            picker.appendChild(b);
-          });
-        }
-        render();
-        search.parentNode.insertBefore(picker, search);
-      });
-    },
   ],
 };
 </script>
