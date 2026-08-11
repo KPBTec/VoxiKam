@@ -131,8 +131,18 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit -p .
 
+      # next/font descarga los .woff2 de fonts.gstatic.com en build-time para
+      # autohospedarlos (ver comentario en frontend/app/layout.tsx) — si el
+      # runner de GitHub Actions tiene un corte transitorio hacia Google justo
+      # en ese momento, el build entero falla por eso y no por un error real.
       - name: Build (verifica que compile para producción)
-        run: npm run build
+        run: |
+          for i in 1 2 3; do
+            npm run build && exit 0
+            echo "Build falló (intento $i/3) — reintentando en 15s (posible falla transitoria al descargar fuentes de Google Fonts)..."
+            sleep 15
+          done
+          exit 1
 
   e2e-smoke:
     runs-on: ubuntu-latest

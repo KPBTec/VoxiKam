@@ -410,8 +410,22 @@ build_frontend() {
     # fuente actual. Limpiar acá, justo antes del build, es obligatorio.
     rm -rf .next
     info "Compilando frontend Next.js..."
-    if ! npm run build >>"$LOG_FILE" 2>&1; then
-        err "Compilando frontend Next.js falló — últimas líneas del log:"
+    # next/font descarga los .woff2 de fonts.gstatic.com en build-time (no en
+    # runtime — ver comentario en frontend/app/layout.tsx) para poder
+    # autohospedarlos. Si la red del servidor tiene un corte transitorio hacia
+    # Google justo en ese momento, el build entero falla por eso y no por un
+    # error real de código. Reintentar unas veces antes de rendirse evita que
+    # un deploy legítimo quede sin aplicarse por una falla de red de 10s.
+    local _build_ok=0 _build_attempt
+    for _build_attempt in 1 2 3; do
+        if npm run build >>"$LOG_FILE" 2>&1; then
+            _build_ok=1
+            break
+        fi
+        [[ "$_build_attempt" -lt 3 ]] && { warn "Build de Next.js falló (intento $_build_attempt/3) — reintentando en 15s (posible falla transitoria al descargar fuentes de Google Fonts)..."; sleep 15; }
+    done
+    if [[ "$_build_ok" -ne 1 ]]; then
+        err "Compilando frontend Next.js falló tras 3 intentos — últimas líneas del log:"
         echo ""; tail -25 "$LOG_FILE"; echo ""
         if [[ -n "$_BUILD_BACKUP" ]]; then
             warn "Restaurando el build anterior que funcionaba — este deploy del frontend NO se aplicó (backend/DB sí quedaron actualizados)."
