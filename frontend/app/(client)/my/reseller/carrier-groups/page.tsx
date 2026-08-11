@@ -20,7 +20,7 @@ interface AssignableCarrier { id: number; name: string; status: string; is_own: 
 interface SubCustomerOpt { id: number; name: string; techprefix: string }
 
 const cardCls  = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
-const inputCls = 'w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-brand-500'
+const inputCls = 'w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus-ring'
 const labelCls = 'block text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1'
 
 const ALGO_LABELS: Record<string, string> = {
@@ -65,6 +65,7 @@ export default function ResellerCarrierGroupsPage() {
     apiGet('/reseller/carriers/assignable').then(setCarriers).catch(() => {})
     apiGet('/reseller/sub-customers').then(setSubCustomers).catch(() => {})
   }, [])
+  useEffect(() => { document.title = 'Grupos de ruteo · VoxiKam' }, [])
 
   async function openDetail(id: number) {
     setError('')
@@ -105,11 +106,12 @@ export default function ResellerCarrierGroupsPage() {
 
   async function deleteGroup(id: number) {
     if (!confirm('¿Eliminar este grupo de ruteo?')) return
+    setError('')
     try {
       await apiDelete(`/reseller/carrier-groups/${id}`)
       if (selected?.id === id) setSelected(null)
       load()
-    } catch (e: any) { alert(e.message) }
+    } catch (e: any) { setError(e.message) }
   }
 
   async function addMember(e: React.FormEvent) {
@@ -128,10 +130,11 @@ export default function ResellerCarrierGroupsPage() {
 
   async function removeMember(carrierId: number) {
     if (!selected) return
+    setError('')
     try {
       await apiDelete(`/reseller/carrier-groups/${selected.id}/members/${carrierId}`)
       await reloadDetail(); await load()
-    } catch (e: any) { alert(e.message) }
+    } catch (e: any) { setError(e.message) }
   }
 
   async function enableForSubCustomer(e: React.FormEvent) {
@@ -173,13 +176,13 @@ export default function ResellerCarrierGroupsPage() {
           <h2 className="font-medium text-[var(--color-text)]">Nuevo grupo</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Nombre</label>
-              <input required className={inputCls} placeholder="ej: Fallback Movistar/Claro"
+              <label htmlFor="cg-create-name" className={labelCls}>Nombre</label>
+              <input id="cg-create-name" required className={inputCls} placeholder="ej: Fallback Movistar/Claro"
                 value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} />
             </div>
             <div>
-              <label className={labelCls}>Algoritmo</label>
-              <select className={inputCls} value={createForm.algorithm}
+              <label htmlFor="cg-create-algo" className={labelCls}>Algoritmo</label>
+              <select id="cg-create-algo" className={inputCls} value={createForm.algorithm}
                 onChange={e => setCreateForm(f => ({ ...f, algorithm: e.target.value as CarrierGroup['algorithm'] }))}>
                 {Object.entries(ALGO_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
@@ -187,11 +190,11 @@ export default function ResellerCarrierGroupsPage() {
           </div>
           <div className="flex gap-3">
             <button type="submit" disabled={creating}
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
+              className="focus-ring px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
               {creating ? 'Creando…' : 'Crear grupo'}
             </button>
             <button type="button" onClick={() => setShowCreate(false)}
-              className="px-4 py-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]">Cancelar</button>
+              className="focus-ring px-4 py-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]">Cancelar</button>
           </div>
         </form>
       )}
@@ -212,24 +215,24 @@ export default function ResellerCarrierGroupsPage() {
               <form onSubmit={saveEdit} className="space-y-3">
                 <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider">Configuración</p>
                 <div>
-                  <label className={labelCls}>Nombre</label>
-                  <input required className={inputCls} value={editForm.name}
+                  <label htmlFor="cg-edit-name" className={labelCls}>Nombre</label>
+                  <input id="cg-edit-name" required className={inputCls} value={editForm.name}
                     onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
                 </div>
                 <div>
-                  <label className={labelCls}>Algoritmo</label>
-                  <select className={inputCls} value={editForm.algorithm}
+                  <label htmlFor="cg-edit-algo" className={labelCls}>Algoritmo</label>
+                  <select id="cg-edit-algo" className={inputCls} value={editForm.algorithm}
                     onChange={e => setEditForm(f => ({ ...f, algorithm: e.target.value as CarrierGroup['algorithm'] }))}>
                     {Object.entries(ALGO_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
                 <div className="flex gap-3">
                   <button type="submit" disabled={saving}
-                    className="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
+                    className="focus-ring px-4 py-1.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
                     {saving ? 'Guardando…' : 'Guardar cambios'}
                   </button>
                   <button type="button" onClick={() => deleteGroup(selected.id)}
-                    className="px-4 py-1.5 text-sm text-red-400 hover:text-red-300">Eliminar grupo</button>
+                    className="focus-ring px-4 py-1.5 text-sm text-danger hover:opacity-80">Eliminar grupo</button>
                 </div>
               </form>
 
@@ -242,7 +245,7 @@ export default function ResellerCarrierGroupsPage() {
                 )}
                 <form onSubmit={addMember} className="flex gap-2 items-end flex-wrap">
                   <div className="flex-1 min-w-40">
-                    <select required value={newCarrierId} onChange={e => setNewCarrierId(e.target.value)} className={inputCls}>
+                    <select aria-label="Carrier a agregar" required value={newCarrierId} onChange={e => setNewCarrierId(e.target.value)} className={inputCls}>
                       <option value="">Seleccionar carrier…</option>
                       {carriers.filter(c => !selected.members.some(m => m.carrier_id === c.id)).map(c => (
                         <option key={c.id} value={c.id}>
@@ -254,19 +257,19 @@ export default function ResellerCarrierGroupsPage() {
                   <div>
                     <input type="number" min={1} max={100} value={newPriority}
                       onChange={e => setNewPriority(e.target.value)}
-                      placeholder="Prio" title="Prioridad (1=mayor)"
-                      className="w-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:border-brand-500" />
+                      placeholder="Prio" title="Prioridad (1=mayor)" aria-label="Prioridad (1=mayor)"
+                      className="focus-ring w-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-center" />
                   </div>
                   {selected.algorithm === 'percent' && (
                     <div>
                       <input type="number" min={1} max={100} value={newWeight}
                         onChange={e => setNewWeight(e.target.value)}
-                        placeholder="%" title="Peso relativo (%)"
-                        className="w-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:border-brand-500" />
+                        placeholder="%" title="Peso relativo (%)" aria-label="Peso relativo (%)"
+                        className="focus-ring w-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-center" />
                     </div>
                   )}
                   <button type="submit" disabled={addingMember || !newCarrierId}
-                    className="px-3 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
+                    className="focus-ring px-3 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
                     {addingMember ? 'Agregando…' : 'Agregar'}
                   </button>
                 </form>
@@ -280,14 +283,14 @@ export default function ResellerCarrierGroupsPage() {
                       <span className="text-[var(--color-text)]">
                         {m.name}
                         <span className="ml-2 font-mono text-xs text-[var(--color-text-2)]">{m.host}</span>
-                        <span className="ml-2 text-[var(--color-muted)] text-xs">
+                        <span className="ml-2 text-[var(--color-muted)] text-xs font-mono tabular-nums">
                           {selected.algorithm === 'percent' ? `${m.weight ?? 1}%` : `prio ${m.priority}`}
                         </span>
                         {m.status !== 'active' && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-zinc-700 text-zinc-400">inactivo</span>
+                          <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-border)] text-[var(--color-muted)]">inactivo</span>
                         )}
                       </span>
-                      <button onClick={() => removeMember(m.carrier_id)} aria-label="Quitar del grupo" className="text-[var(--color-muted)] hover:text-red-400">
+                      <button onClick={() => removeMember(m.carrier_id)} aria-label="Quitar del grupo" className="focus-ring text-[var(--color-muted)] hover:text-danger">
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -335,10 +338,10 @@ export default function ResellerCarrierGroupsPage() {
                     elegís si lo usa como grupo activo del prefijo principal o de algún prefijo de campaña.
                   </p>
                 </div>
-                {enableMsg && <p className="text-xs text-green-400">{enableMsg}</p>}
+                {enableMsg && <p className="text-xs text-success">{enableMsg}</p>}
                 <form onSubmit={enableForSubCustomer} className="flex gap-2 items-end flex-wrap">
                   <div className="flex-1 min-w-48">
-                    <select required value={subCustomerToEnable} onChange={e => setSubCustomerToEnable(e.target.value)} className={inputCls}>
+                    <select aria-label="Sub-cliente a habilitar" required value={subCustomerToEnable} onChange={e => setSubCustomerToEnable(e.target.value)} className={inputCls}>
                       <option value="">Seleccionar sub-cliente…</option>
                       {subCustomers
                         .filter(c => !selected.used_by.some(u => u.customer_id === c.id))
@@ -346,7 +349,7 @@ export default function ResellerCarrierGroupsPage() {
                     </select>
                   </div>
                   <button type="submit" disabled={enablingForSubCustomer || !subCustomerToEnable}
-                    className="px-3 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
+                    className="focus-ring px-3 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
                     {enablingForSubCustomer ? 'Habilitando…' : 'Habilitar'}
                   </button>
                 </form>
@@ -372,10 +375,10 @@ export default function ResellerCarrierGroupsPage() {
                 <ClickableRow key={g.id} onActivate={() => openDetail(g.id)} className="hover:bg-white/2 cursor-pointer">
                   <td className="px-6 py-3 font-medium text-[var(--color-text)]">{g.name}</td>
                   <td className="px-6 py-3 text-[var(--color-text-2)]">{ALGO_LABELS[g.algorithm]}</td>
-                  <td className="px-6 py-3 text-center">{g.member_count}</td>
+                  <td className="px-6 py-3 text-center font-mono tabular-nums">{g.member_count}</td>
                   <td className="px-6 py-3 text-right">
                     <button onClick={e => { e.stopPropagation(); deleteGroup(g.id) }}
-                      className="text-xs text-red-400 hover:text-red-300">Eliminar</button>
+                      className="focus-ring text-xs text-danger hover:opacity-80">Eliminar</button>
                   </td>
                 </ClickableRow>
               ))}

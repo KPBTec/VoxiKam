@@ -3,18 +3,27 @@
 # By KPBTec · https://github.com/KPBTec
 # © 2026 – Todos los derechos reservados.
 
+import hashlib
 import logging
+import secrets
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth import create_token, verify_password, get_current_user, resolve_permissions
+from auth import create_token, verify_password, hash_password, get_current_user, resolve_permissions
 from database import get_db
-from rate_limit import increment, peek_count
+from mailer import send_email
+from rate_limit import increment, peek_count, is_rate_limited
+from routers.system import get_domain
 
 router = APIRouter()
 log = logging.getLogger("voxikam-security")
+
+RESET_TOKEN_TTL_MINUTES = 60
 
 # Auditoría v2.55: middleware/security.py ya limita /api/auth/login a 10/60s,
 # pero eso es POR IP — un atacante rotando IPs (botnet, proxies rotativos)
@@ -116,6 +125,141 @@ async def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), d
 @router.get("/me")
 async def me(user=Depends(get_current_user)):
     return user
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    token: str
+    new_password: str
+
+
+def _build_reset_link(domain: str, web_port: str) -> str:
+    if web_port in ("443", "80", ""):
+        return f"https://{domain}/reset-password"
+    return f"https://{domain}:{web_port}/reset-password"
+
+
+@router.post("/forgot-password")
+async def forgot_password(request: Request, body: ForgotPasswordIn, db: AsyncSession = Depends(get_db)):
+    """
+    Auditoría UX v2.58.0: no había forma de recuperar la contraseña — un
+    usuario bloqueado necesitaba que alguien con acceso a la DB se la
+    reseteara a mano. Responde SIEMPRE el mismo mensaje genérico, exista o
+    no la cuenta — lo contrario permite enumerar emails válidos probando
+    cuáles devuelven una respuesta distinta.
+
+    Rate limit por IP (no por cuenta, a propósito): a diferencia del login,
+    acá "una cuenta" no es el vector de abuso — el vector es alguien
+    generando emails de spam hacia bandejas ajenas escribiendo cualquier
+    email real que conozca. Limitar por IP corta ese abuso sin bloquear a
+    un usuario legítimo reintentando para su propia cuenta.
+    """
+    ip = _get_real_ip(request)
+    if await is_rate_limited(db, f"forgot_password:{ip}", max_count=5, window_seconds=3600):
+        log.warning("SECURITY_REJECT ip=%s reason=forgot_password_rate_limited", ip)
+        return {"ok": True}
+
+    generic_msg = {"ok": True}
+
+    result = await db.execute(
+        text("SELECT id, name, is_active FROM users WHERE email = :email"),
+        {"email": body.email}
+    )
+    user = result.mappings().first()
+    if not user or not user["is_active"]:
+        return generic_msg
+
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    expires_at = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_TTL_MINUTES)
+
+    await db.execute(text("""
+        INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+        VALUES (:uid, :hash, :exp)
+    """), {"uid": user["id"], "hash": token_hash, "exp": expires_at})
+    await db.commit()
+
+    domain, web_port = await get_domain(db)
+    if not domain:
+        log.warning("forgot_password: dominio no configurado (Sistema → Dominio), no se puede armar el link — email no enviado para user_id=%s", user["id"])
+        return generic_msg
+
+    link = f"{_build_reset_link(domain, web_port)}?token={raw_token}"
+    html = f"""
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#070b14;">
+      <div style="background:#0d1526;padding:24px;border-radius:12px 12px 0 0;border:1px solid #1a2744;border-bottom:0;">
+        <h1 style="color:#dd8b3d;margin:0;font-size:18px;">Recuperar contraseña</h1>
+      </div>
+      <div style="background:#070b14;border:1px solid #1a2744;border-top:0;border-radius:0 0 12px 12px;padding:20px 24px;">
+        <p style="color:#e7ecf3;font-size:14px;">Hola {user['name']},</p>
+        <p style="color:#e7ecf3;font-size:14px;">Pediste restablecer tu contraseña de VoxiKam. Este link vence en {RESET_TOKEN_TTL_MINUTES} minutos:</p>
+        <p style="margin:20px 0;"><a href="{link}" style="background:#dd8b3d;color:#070b14;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;">Restablecer contraseña</a></p>
+        <p style="color:#5b7390;font-size:12px;">Si no fuiste vos, ignorá este correo — tu contraseña actual sigue funcionando.</p>
+      </div>
+    </div>
+    """
+    await send_email(db, body.email, "Recuperar contraseña — VoxiKam", html)
+    return generic_msg
+
+
+@router.post("/reset-password")
+async def reset_password(body: ResetPasswordIn, db: AsyncSession = Depends(get_db)):
+    if len(body.new_password) < 8:
+        raise HTTPException(400, "La contraseña debe tener al menos 8 caracteres")
+
+    token_hash = hashlib.sha256(body.token.encode()).hexdigest()
+    result = await db.execute(text("""
+        SELECT id, user_id FROM password_reset_tokens
+        WHERE token_hash = :hash AND used_at IS NULL AND expires_at > NOW()
+    """), {"hash": token_hash})
+    row = result.mappings().first()
+    if not row:
+        raise HTTPException(400, "El link de recuperación es inválido o ya venció — pedí uno nuevo")
+
+    await db.execute(
+        text("UPDATE users SET password_hash = :h WHERE id = :id"),
+        {"h": hash_password(body.new_password), "id": row["user_id"]}
+    )
+    # Invalida TODOS los tokens pendientes del usuario, no solo el usado —
+    # si alguien pidió varios links seguidos, el más viejo no debe seguir
+    # siendo válido después de que uno ya se usó para cambiar la contraseña.
+    await db.execute(
+        text("UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = :uid AND used_at IS NULL"),
+        {"uid": row["user_id"]}
+    )
+    await db.commit()
+    log.info("PASSWORD_RESET_OK user_id=%s", row["user_id"])
+    return {"ok": True}
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.put("/me/password")
+async def change_my_password(body: ChangePasswordIn, user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Cambio de contraseña estando logueado (sabe la actual) — complementa
+    /forgot-password (para cuando NO la sabe). get_current_user() no trae
+    password_hash a propósito (no queda cacheado en memoria 20s), se busca
+    acá puntual."""
+    if len(body.new_password) < 8:
+        raise HTTPException(400, "La contraseña nueva debe tener al menos 8 caracteres")
+
+    row = await db.execute(text("SELECT password_hash FROM users WHERE id = :id"), {"id": user["id"]})
+    current_hash = row.scalar()
+    if not current_hash or not verify_password(body.current_password, current_hash):
+        raise HTTPException(400, "La contraseña actual no es correcta")
+
+    await db.execute(
+        text("UPDATE users SET password_hash = :h WHERE id = :id"),
+        {"h": hash_password(body.new_password), "id": user["id"]}
+    )
+    await db.commit()
+    return {"ok": True}
 
 
 @router.put("/me/theme")

@@ -73,6 +73,7 @@ export default function MyReportsPage() {
   }
 
   useEffect(() => { load(month) }, [])
+  useEffect(() => { document.title = 'Reportes · VoxiKam' }, [])
 
   function handleMonth(val: string) {
     setMonth(val)
@@ -109,11 +110,11 @@ export default function MyReportsPage() {
   }
 
   const selectCls = 'bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg ' +
-                     'px-3 py-1.5 text-sm focus:outline-none focus:border-brand-500 cursor-pointer'
+                     'px-3 py-1.5 text-sm focus-ring cursor-pointer'
 
   const card = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
   const th   = 'px-4 py-2.5 text-xs text-[var(--color-text-2)] uppercase tracking-wider font-medium'
-  const td   = 'px-4 py-3 text-sm font-mono'
+  const td   = 'px-4 py-3 text-sm font-mono tabular-nums'
 
   const mon = data?.monthly
 
@@ -123,12 +124,12 @@ export default function MyReportsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Reportes</h1>
         <div className="flex gap-2">
-          <select value={monthNum} onChange={e => handleMonthNum(Number(e.target.value))} className={selectCls}>
+          <select aria-label="Mes" value={monthNum} onChange={e => handleMonthNum(Number(e.target.value))} className={selectCls}>
             {MONTHS_FOR_YEAR.map(({ name, num }) => (
               <option key={num} value={num}>{name}</option>
             ))}
           </select>
-          <select value={year} onChange={e => handleYear(Number(e.target.value))} className={selectCls}>
+          <select aria-label="Año" value={year} onChange={e => handleYear(Number(e.target.value))} className={selectCls}>
             {YEARS.map(y => (
               <option key={y} value={y}>{y}</option>
             ))}
@@ -141,7 +142,7 @@ export default function MyReportsPage() {
       )}
 
       {error && !loading && (
-        <div className={`${card} p-6 text-center text-red-400 text-sm`}>{error}</div>
+        <div className={`${card} p-6 text-center text-danger text-sm`}>{error}</div>
       )}
 
       {!loading && data && (

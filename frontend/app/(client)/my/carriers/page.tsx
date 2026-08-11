@@ -12,7 +12,7 @@ interface Prefix {
 }
 
 const cardCls  = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
-const selectCls = 'bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-brand-500'
+const selectCls = 'bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus-ring'
 
 export default function MyCarriersPage() {
   const [groups, setGroups]     = useState<GroupOption[]>([])
@@ -27,6 +27,7 @@ export default function MyCarriersPage() {
       .catch((e: any) => setError(e.message))
       .finally(() => setLoading(false))
   useEffect(() => { load() }, [])
+  useEffect(() => { document.title = 'Mis carriers · VoxiKam' }, [])
 
   async function choose(prefixRef: string, groupLabel: string) {
     // Para el prefijo principal, group_label vacío corta el ruteo por completo
@@ -82,11 +83,12 @@ export default function MyCarriersPage() {
                     <td className="px-6 py-3 text-[var(--color-text)] font-medium">
                       {p.label}
                       {noRoute && (
-                        <span className="ml-2 text-[10px] font-semibold text-red-400">⚠ SIN RUTEO</span>
+                        <span className="ml-2 text-[10px] font-semibold text-danger">⚠ SIN RUTEO</span>
                       )}
                     </td>
                     <td className="px-6 py-3">
                       <select
+                        aria-label={`Grupo activo para ${p.label}`}
                         className={selectCls}
                         disabled={saving === p.prefix_ref}
                         value={p.active_group_label || ''}

@@ -312,9 +312,17 @@ function SidebarContent({ role, onNavigate }: { role: "admin" | "client"; onNavi
             </p>
           </div>
         </div>
+        <Link
+          href={role === "admin" ? "/account" : "/my/account"}
+          onClick={onNavigate}
+          className="focus-ring flex items-center gap-2 text-xs transition-colors mb-2"
+          style={{ color: "var(--color-muted)" }}
+        >
+          <UserCog size={13} /> Mi cuenta
+        </Link>
         <button
           onClick={logout}
-          className="flex items-center gap-2 text-xs transition-colors cursor-pointer"
+          className="focus-ring flex items-center gap-2 text-xs transition-colors cursor-pointer"
           style={{ color: "var(--color-muted)" }}
           onMouseEnter={e => (e.currentTarget.style.color = "var(--color-danger)")}
           onMouseLeave={e => (e.currentTarget.style.color = "var(--color-muted)")}

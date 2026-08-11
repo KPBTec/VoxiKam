@@ -53,7 +53,8 @@ export default function Overview() {
   if (!data && error) return <div className="text-danger p-8">{error}</div>;
   if (!data) return <div className="text-[var(--color-muted)] p-8">Cargando...</div>;
 
-  const fmt    = (n: any) => n ? `S/. ${parseFloat(n).toFixed(2)}` : "S/. 0.00";
+  const currency = data.currency || 'PEN'
+  const fmt    = (n: any) => `${currency} ${(n ? parseFloat(n) : 0).toFixed(2)}`;
   const fmtMin = (n: any) => n ? `${parseFloat(n).toFixed(0)} min` : "0 min";
   const sec2str = (s: number) => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 
@@ -69,6 +70,7 @@ export default function Overview() {
       {data.billing_type === "prepago" && parseFloat(data.balance ?? 0) <= 0 && (
         <ErrorBanner>
           Sin saldo disponible — no podés iniciar llamadas nuevas hasta recargar. Las llamadas que ya estaban en curso no se cortan.
+          {" "}Contactá a tu proveedor para recargar tu saldo.
         </ErrorBanner>
       )}
 
@@ -128,7 +130,7 @@ export default function Overview() {
                     </td>
                     <td className="px-6 py-3 font-mono text-xs">{c.dst_number}</td>
                     <td className="px-6 py-3 text-right font-mono text-xs">{sec2str(c.billsec)}</td>
-                    <td className="px-6 py-3 text-right text-xs">S/. {parseFloat(c.sessionbill).toFixed(4)}</td>
+                    <td className="px-6 py-3 text-right text-xs font-mono">{currency} {parseFloat(c.sessionbill).toFixed(4)}</td>
                   </tr>
                 ))}
                 {!data.last_calls?.length && (

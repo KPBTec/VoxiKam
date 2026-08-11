@@ -5,6 +5,7 @@ import { SipLadder, TraceMsg } from '@/components/SipLadder'
 import { StatusBadge, callStateVariant, sipCodeVariant, type BadgeVariant } from '@/components/StatusBadge'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { ClickableRow } from '@/components/ClickableRow'
+import { Button } from '@/components/Button'
 
 interface CDR {
   call_id: string; customer_name: string; carrier_name: string
@@ -107,7 +108,7 @@ function CdrDetailPanel({ row, onClose }: { row: CDR; onClose: () => void }) {
       </div>
 
       <div className="p-5 space-y-5">
-        <table className="w-full text-sm border border-[var(--color-border)] rounded-lg overflow-hidden">
+        <table className="w-full text-sm tabular-nums border border-[var(--color-border)] rounded-lg overflow-hidden">
           <tbody className="divide-y divide-[var(--color-border)]">
             <tr className="bg-[var(--color-surface)]/40">
               <td colSpan={2} className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">Llamada</td>
@@ -216,6 +217,8 @@ function todayStr() {
 }
 
 export default function CdrsPage() {
+  useEffect(() => { document.title = 'CDRs · VoxiKam' }, [])
+
   const [tab, setTab] = useState<'ok' | 'failed'>('ok')
   const [selected, setSelected] = useState<CDR | null>(null)
 
@@ -301,8 +304,9 @@ export default function CdrsPage() {
           <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4">
             <div className="flex flex-wrap gap-3 items-end">
               <div>
-                <label className="block text-xs text-[var(--color-text-2)] mb-1">Teléfono (origen o destino)</label>
+                <label htmlFor="cdr-ok-phone" className="block text-xs text-[var(--color-text-2)] mb-1">Teléfono (origen o destino)</label>
                 <input
+                  id="cdr-ok-phone"
                   type="text" placeholder="51999..." value={fOk.phone}
                   onChange={e => setFOk(v => ({...v, phone: e.target.value}))}
                   onKeyDown={e => e.key === 'Enter' && fOk.phone.trim() && loadOk(0)}
@@ -310,17 +314,16 @@ export default function CdrsPage() {
               </div>
               {[['date_from','Desde','date'],['date_to','Hasta','date']].map(([k,l,t]) => (
                 <div key={k}>
-                  <label className="block text-xs text-[var(--color-text-2)] mb-1">{l}</label>
-                  <input type={t} value={fOk[k as keyof typeof fOk]}
+                  <label htmlFor={`cdr-ok-${k}`} className="block text-xs text-[var(--color-text-2)] mb-1">{l}</label>
+                  <input id={`cdr-ok-${k}`} type={t} value={fOk[k as keyof typeof fOk]}
                     onChange={e => setFOk(v => ({...v, [k]: e.target.value}))}
                     className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text)] focus-ring" />
                 </div>
               ))}
-              <button onClick={() => loadOk(0)} disabled={!fOk.phone.trim()}
-                title={!fOk.phone.trim() ? 'Ingresá un teléfono para buscar' : ''}
-                className="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm rounded focus-ring">Buscar</button>
+              <Button onClick={() => loadOk(0)} disabled={!fOk.phone.trim()}
+                title={!fOk.phone.trim() ? 'Ingresá un teléfono para buscar' : ''}>Buscar</Button>
               <button onClick={() => { setFOk({ date_from: todayStr(), date_to: todayStr(), customer_id:'',carrier_id:'',phone:'' }); setRows([]); setTotal(0); setHasSearchedOk(false) }}
-                className="px-4 py-1.5 bg-[var(--color-card-2)] hover:bg-[var(--color-border-2)] text-[var(--color-text)] text-sm rounded focus-ring">Limpiar</button>
+                className="focus-ring px-4 py-1.5 bg-[var(--color-card-2)] hover:bg-[var(--color-border-2)] text-[var(--color-text)] text-sm rounded">Limpiar</button>
             </div>
           </div>
 
@@ -330,7 +333,7 @@ export default function CdrsPage() {
             ) : !hasSearchedOk ? (
               <p className="p-10 text-center text-[var(--color-muted)] text-sm">Ingresá un teléfono (origen o destino) y hacé clic en Buscar.</p>
             ) : loadingOk ? <p className="p-8 text-center text-[var(--color-text-2)] text-sm">Cargando…</p> : (
-              <table className="w-full text-xs">
+              <table className="w-full text-xs tabular-nums">
                 <thead>
                   <tr className="text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)]">
                     {['Fecha','Origen','Destino','Cliente','Tiempo'].map(h => (
@@ -374,8 +377,9 @@ export default function CdrsPage() {
           <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 space-y-3">
             <div className="flex flex-wrap gap-3 items-end">
               <div>
-                <label className="block text-xs text-[var(--color-text-2)] mb-1">Teléfono (origen o destino)</label>
+                <label htmlFor="cdr-fail-phone" className="block text-xs text-[var(--color-text-2)] mb-1">Teléfono (origen o destino)</label>
                 <input
+                  id="cdr-fail-phone"
                   type="text" placeholder="51999..." value={fFail.phone}
                   onChange={e => setFFail(v => ({...v, phone: e.target.value}))}
                   onKeyDown={e => e.key === 'Enter' && loadFail(0)}
@@ -383,15 +387,15 @@ export default function CdrsPage() {
               </div>
               {[['date_from','Desde','date'],['date_to','Hasta','date']].map(([k,l,t]) => (
                 <div key={k}>
-                  <label className="block text-xs text-[var(--color-text-2)] mb-1">{l}</label>
-                  <input type={t} value={fFail[k as keyof typeof fFail]}
+                  <label htmlFor={`cdr-fail-${k}`} className="block text-xs text-[var(--color-text-2)] mb-1">{l}</label>
+                  <input id={`cdr-fail-${k}`} type={t} value={fFail[k as keyof typeof fFail]}
                     onChange={e => setFFail(v => ({...v, [k]: e.target.value}))}
                     className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text)] focus-ring" />
                 </div>
               ))}
               <div>
-                <label className="block text-xs text-[var(--color-text-2)] mb-1">Código SIP</label>
-                <select value={fFail.sip_code} onChange={e => setFFail(v => ({...v, sip_code: e.target.value}))}
+                <label htmlFor="cdr-fail-sip_code" className="block text-xs text-[var(--color-text-2)] mb-1">Código SIP</label>
+                <select id="cdr-fail-sip_code" value={fFail.sip_code} onChange={e => setFFail(v => ({...v, sip_code: e.target.value}))}
                   className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text)] focus-ring">
                   <option value="">Todos</option>
                   <option value="487">487 – Cancelled</option>
@@ -401,9 +405,9 @@ export default function CdrsPage() {
                   <option value="408">408 – Timeout</option>
                 </select>
               </div>
-              <button onClick={() => loadFail(0)} className="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-sm rounded focus-ring">Buscar</button>
+              <Button onClick={() => loadFail(0)}>Buscar</Button>
               <button onClick={() => { setFFail({ date_from: todayStr(), date_to: todayStr(), sip_code:'',customer_id:'',carrier_id:'',phone:'' }); setFailed([]); setTotalFailed(0); setHasSearchedFail(false) }}
-                className="px-4 py-1.5 bg-[var(--color-card-2)] hover:bg-[var(--color-border-2)] text-[var(--color-text)] text-sm rounded focus-ring">Limpiar</button>
+                className="focus-ring px-4 py-1.5 bg-[var(--color-card-2)] hover:bg-[var(--color-border-2)] text-[var(--color-text)] text-sm rounded">Limpiar</button>
             </div>
             {/* Botones rápidos por código */}
             <div className="flex gap-2">
@@ -425,7 +429,7 @@ export default function CdrsPage() {
             {!hasSearchedFail ? (
               <p className="p-10 text-center text-[var(--color-muted)] text-sm">Buscá por teléfono, fecha o código SIP para ver resultados.</p>
             ) : loadingFail ? <p className="p-8 text-center text-[var(--color-text-2)] text-sm">Cargando…</p> : (
-              <table className="w-full text-xs">
+              <table className="w-full text-xs tabular-nums">
                 <thead>
                   <tr className="text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)]">
                     {['Fecha','Cliente','Carrier','Origen','Destino','Cód SIP','Estado','Traza'].map(h => (

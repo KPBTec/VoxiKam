@@ -3,7 +3,7 @@ import { ErrorBanner } from '@/components/ErrorBanner'
 import { StatusBadge, invoiceStatusVariant } from '@/components/StatusBadge'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { apiGet } from '@/lib/api'
+import { apiGet, apiFetch } from '@/lib/api'
 import { getUser } from '@/lib/auth'
 
 interface Invoice {
@@ -28,6 +28,29 @@ export default function MyInvoices() {
     apiGet('/my/invoices').then(setInvoices).catch((e: any) => setError(e.message || 'Error cargando facturas')).finally(() => setLoading(false))
   }, [])
 
+  // Antes: window.open(`/api/admin/invoices/${id}/pdf`) — dos problemas reales
+  // (auditoría UX): el endpoint era admin-only (un cliente nunca podía bajar su
+  // propia factura), y aunque el endpoint hubiese sido el correcto, window.open
+  // no manda el header Authorization — esta app autentica con Bearer token en
+  // localStorage, no con cookies, así que la descarga habría fallado con 401
+  // igual. Mismo patrón que ya usa el panel admin: apiFetch (manda el token) +
+  // blob + <a download>, no window.open.
+  async function downloadPdf(id: number) {
+    try {
+      const res = await apiFetch(`/my/invoices/${id}/pdf`)
+      if (!res.ok) { setError('PDF no disponible o aún no generado'); return }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = `factura-${id}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError('Error al descargar el PDF')
+    }
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold text-[var(--color-text)]">Mis facturas</h1>
@@ -48,6 +71,7 @@ export default function MyInvoices() {
                 <th className="px-6 py-3 text-right">Llamadas</th>
                 <th className="px-6 py-3 text-right">Minutos</th>
                 <th className="px-6 py-3 text-right">Subtotal</th>
+                <th className="px-6 py-3 text-right">IGV</th>
                 <th className="px-6 py-3 text-right">Total</th>
                 <th className="px-6 py-3 text-left">Estado</th>
                 <th className="px-6 py-3" />
@@ -65,16 +89,19 @@ export default function MyInvoices() {
                     {parseFloat(String(inv.total_minutes)).toFixed(0)} min
                   </td>
                   <td className="px-6 py-3 text-right font-mono text-[var(--color-text-2)]">
-                    S/ {(+inv.subtotal).toFixed(2)}
+                    {inv.currency} {(+inv.subtotal).toFixed(2)}
+                  </td>
+                  <td className="px-6 py-3 text-right font-mono text-[var(--color-text-2)]">
+                    {inv.currency} {(+inv.tax_amount).toFixed(2)}
                   </td>
                   <td className="px-6 py-3 text-right font-mono text-[var(--color-text)] font-semibold">
-                    S/ {(+inv.total).toFixed(2)}
+                    {inv.currency} {(+inv.total).toFixed(2)}
                   </td>
                   <td className="px-6 py-3">
                     <StatusBadge variant={invoiceStatusVariant(inv.status)}>{inv.status}</StatusBadge>
                   </td>
                   <td className="px-6 py-3 text-right">
-                    <button onClick={() => window.open(`/api/admin/invoices/${inv.id}/pdf`, '_blank')}
+                    <button onClick={() => downloadPdf(inv.id)}
                       className="text-xs text-brand-400 hover:text-brand-300 focus-ring">
                       Descargar PDF
                     </button>

@@ -65,6 +65,7 @@ export default function MyCalls() {
   }
 
   useEffect(() => { load(0) }, [])
+  useEffect(() => { document.title = 'Historial de llamadas · VoxiKam' }, [])
 
   function handleFilter(e: React.FormEvent) {
     e.preventDefault()
@@ -92,8 +93,9 @@ export default function MyCalls() {
       {/* Filtros */}
       <form onSubmit={handleFilter} className="flex flex-wrap gap-3 items-end bg-[var(--color-card)] border border-[var(--color-border)] rounded-lg p-4">
         <div>
-          <label className="block text-xs text-[var(--color-text-2)] mb-1">Desde</label>
+          <label htmlFor="calls-date-from" className="block text-xs text-[var(--color-text-2)] mb-1">Desde</label>
           <input
+            id="calls-date-from"
             type="date"
             value={dateFrom}
             onChange={e => setDateFrom(e.target.value)}
@@ -101,8 +103,9 @@ export default function MyCalls() {
           />
         </div>
         <div>
-          <label className="block text-xs text-[var(--color-text-2)] mb-1">Hasta</label>
+          <label htmlFor="calls-date-to" className="block text-xs text-[var(--color-text-2)] mb-1">Hasta</label>
           <input
+            id="calls-date-to"
             type="date"
             value={dateTo}
             onChange={e => setDateTo(e.target.value)}
@@ -150,8 +153,8 @@ export default function MyCalls() {
                   </td>
                   <td className="px-4 py-3 text-[var(--color-text-2)] font-mono">{r.src_number}</td>
                   <td className="px-4 py-3 text-[var(--color-text)] font-mono font-medium">{r.dst_number}</td>
-                  <td className="px-4 py-3 text-[var(--color-text-2)] font-mono">{fmtSec(r.billsec)}</td>
-                  <td className="px-4 py-3 text-brand-400 font-mono">{fmtMoney(r.sessionbill)}</td>
+                  <td className="px-4 py-3 text-[var(--color-text-2)] font-mono tabular-nums">{fmtSec(r.billsec)}</td>
+                  <td className="px-4 py-3 text-brand-400 font-mono tabular-nums">{fmtMoney(r.sessionbill)}</td>
                   <td className="px-4 py-3">
                     <StatusBadge variant={callStateVariant(resolveState(r.disposition))} mono>{r.disposition}</StatusBadge>
                   </td>

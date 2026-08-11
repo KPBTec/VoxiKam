@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiPut, apiFetch } from '@/lib/api'
 import { StatusBadge, invoiceStatusVariant } from '@/components/StatusBadge'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import { Button } from '@/components/Button'
+import { Card } from '@/components/Card'
 
 interface Invoice {
   id: number; customer_name: string; period_start: string; period_end: string
@@ -27,6 +29,7 @@ export default function InvoicesPage() {
   const firstOfMonth = today.slice(0, 8) + '01'
 
   const load = () => apiGet('/admin/invoices').then(setInvoices).catch((e: any) => setError(e.message))
+  useEffect(() => { document.title = 'Facturas · VoxiKam' }, [])
   useEffect(() => {
     load()
     apiGet('/admin/customers').then(setCustomers).catch((e: any) => setError(e.message))
@@ -103,36 +106,35 @@ export default function InvoicesPage() {
             </button>
             Enviar por correo automáticamente al generar
           </label>
-          <button onClick={() => { setShowForm(true); setError('') }}
-            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm rounded-lg focus-ring">
+          <Button onClick={() => { setShowForm(true); setError('') }}>
             + Generar factura
-          </button>
+          </Button>
         </div>
       </div>
 
       {error && !showForm && <ErrorBanner>{error}</ErrorBanner>}
 
       {showForm && (
-        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-6 space-y-4">
+        <Card className="p-6 space-y-4">
           <h2 className="font-medium text-[var(--color-text)]">Nueva factura</h2>
           {error && <ErrorBanner>{error}</ErrorBanner>}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs text-[var(--color-text-2)] mb-1">Cliente</label>
-              <select value={form.customer_id} onChange={e => setForm(f => ({...f, customer_id: e.target.value}))}
+              <label htmlFor="inv-customer" className="block text-xs text-[var(--color-text-2)] mb-1">Cliente</label>
+              <select id="inv-customer" value={form.customer_id} onChange={e => setForm(f => ({...f, customer_id: e.target.value}))}
                 className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)] focus-ring">
                 <option value="">Seleccionar…</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[var(--color-text-2)] mb-1">Período desde</label>
-              <input type="date" value={form.period_start} onChange={e => setForm(f => ({...f, period_start: e.target.value}))}
+              <label htmlFor="inv-period-start" className="block text-xs text-[var(--color-text-2)] mb-1">Período desde</label>
+              <input id="inv-period-start" type="date" value={form.period_start} onChange={e => setForm(f => ({...f, period_start: e.target.value}))}
                 className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)] focus-ring" />
             </div>
             <div>
-              <label className="block text-xs text-[var(--color-text-2)] mb-1">Período hasta</label>
-              <input type="date" value={form.period_end} onChange={e => setForm(f => ({...f, period_end: e.target.value}))}
+              <label htmlFor="inv-period-end" className="block text-xs text-[var(--color-text-2)] mb-1">Período hasta</label>
+              <input id="inv-period-end" type="date" value={form.period_end} onChange={e => setForm(f => ({...f, period_end: e.target.value}))}
                 className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)] focus-ring" />
             </div>
           </div>
@@ -146,11 +148,11 @@ export default function InvoicesPage() {
               Cancelar
             </button>
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl overflow-x-auto">
-        <table className="w-full text-sm">
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm tabular-nums">
           <thead>
             <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)]">
               <th className="px-6 py-3 text-left">#</th>
@@ -171,9 +173,9 @@ export default function InvoicesPage() {
                 <td className="px-6 py-3 text-[var(--color-text)]">{inv.customer_name}</td>
                 <td className="px-6 py-3 text-[var(--color-text-2)] text-xs font-mono">{inv.period_start} → {inv.period_end}</td>
                 <td className="px-6 py-3 text-right font-mono">{inv.nbcall}</td>
-                <td className="px-6 py-3 text-right font-mono text-[var(--color-text-2)]">S/ {(+inv.subtotal).toFixed(2)}</td>
-                <td className="px-6 py-3 text-right font-mono text-[var(--color-text-2)]">S/ {(+inv.tax_amount).toFixed(2)}</td>
-                <td className="px-6 py-3 text-right font-mono text-[var(--color-text)] font-semibold">S/ {(+inv.total).toFixed(2)}</td>
+                <td className="px-6 py-3 text-right font-mono text-[var(--color-text-2)]">{inv.currency} {(+inv.subtotal).toFixed(2)}</td>
+                <td className="px-6 py-3 text-right font-mono text-[var(--color-text-2)]">{inv.currency} {(+inv.tax_amount).toFixed(2)}</td>
+                <td className="px-6 py-3 text-right font-mono text-[var(--color-text)] font-semibold">{inv.currency} {(+inv.total).toFixed(2)}</td>
                 <td className="px-6 py-3">
                   <StatusBadge variant={invoiceStatusVariant(inv.status)}>{inv.status}</StatusBadge>
                   {inv.emailed_at && (
@@ -204,7 +206,7 @@ export default function InvoicesPage() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   )
 }

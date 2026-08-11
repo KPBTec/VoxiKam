@@ -29,6 +29,26 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -----------------------------------------------------------------------------
+-- RECUPERAR CONTRASEÑA — v2.58.0
+-- -----------------------------------------------------------------------------
+-- Guarda el HASH del token (SHA-256), nunca el token crudo — igual criterio
+-- que api_keys.key_hash. El token crudo solo existe en el link del email y en
+-- el POST de reset, nunca queda persistido en texto plano en la DB. expires_at
+-- corto (1h, ver auth.py) — un link viejo en la bandeja de entrada no debe
+-- quedar utilizable indefinidamente. used_at NULL = todavía no usado; se marca
+-- al confirmar el reset, para que un mismo link no sirva dos veces.
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT UNSIGNED  NOT NULL,
+    token_hash  CHAR(64)      NOT NULL UNIQUE,
+    expires_at  DATETIME      NOT NULL,
+    used_at     DATETIME      NULL,
+    created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------------------------------
 -- PERFILES DE CLIENTE (conjuntos de módulos reutilizables)
 -- -----------------------------------------------------------------------------
 -- Los show_* individuales (uno por columna) se reemplazaron por el árbol de

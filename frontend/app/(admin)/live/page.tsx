@@ -5,6 +5,7 @@ import { groupByCustomer } from '@/lib/liveGrouping'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { LiveIndicator } from '@/components/LiveIndicator'
 import { ClickableRow } from '@/components/ClickableRow'
+import { Card } from '@/components/Card'
 
 function sec2str(s: number) {
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
@@ -12,9 +13,9 @@ function sec2str(s: number) {
   return `${m}m ${sec.toString().padStart(2, '0')}s`
 }
 
-const card = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
-
 export default function LivePage() {
+  useEffect(() => { document.title = 'Llamadas en curso · VoxiKam' }, [])
+
   const [data,     setData]     = useState<any>(null)
   const [detail,   setDetail]   = useState<any[]>([])
   const [cleaning, setCleaning] = useState(false)
@@ -133,40 +134,40 @@ export default function LivePage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className={`${card} p-5`}>
+        <Card className="p-5">
           <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Contestadas</p>
-          <p className="text-4xl font-bold text-success mt-1">{ongoing}</p>
+          <p className="text-4xl font-bold text-success mt-1 font-mono tabular-nums">{ongoing}</p>
           <p className="text-xs text-[var(--color-muted)] mt-1">200 OK · confirmadas</p>
-        </div>
+        </Card>
 
-        <div className={`${card} p-5`}>
+        <Card className="p-5">
           <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Timbrando</p>
-          <p className="text-4xl font-bold text-warning mt-1">{timbrando}</p>
+          <p className="text-4xl font-bold text-warning mt-1 font-mono tabular-nums">{timbrando}</p>
           <p className="text-xs text-[var(--color-muted)] mt-1">180 Ringing · sin contestar</p>
-        </div>
+        </Card>
 
-        <div className={`${card} p-5`}>
+        <Card className="p-5">
           <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Clientes activos</p>
-          <p className="text-4xl font-bold text-[var(--color-text)] mt-1">
+          <p className="text-4xl font-bold text-[var(--color-text)] mt-1 font-mono tabular-nums">
             {groupByCustomer(data?.by_customer ?? []).filter((g: any) => g.active_calls > 0).length}
           </p>
-        </div>
+        </Card>
 
-        <div className={`${card} p-5`}>
+        <Card className="p-5">
           <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Mayor tiempo</p>
-          <p className="text-4xl font-bold text-[var(--color-text)] mt-1 font-mono">
+          <p className="text-4xl font-bold text-[var(--color-text)] mt-1 font-mono tabular-nums">
             {maxDur > 0 ? sec2str(maxDur) : '—'}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Por cliente */}
       {(data?.by_customer?.length ?? 0) > 0 && (
-        <div className={`${card} overflow-x-auto`}>
+        <Card className="overflow-x-auto">
           <div className="px-6 py-3 border-b border-[var(--color-border)]">
             <h2 className="text-sm font-medium text-[var(--color-text)]">Activas por cliente</h2>
           </div>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm tabular-nums">
             <thead>
               <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)]">
                 <th className="px-6 py-3 text-left">Cliente</th>
@@ -216,11 +217,11 @@ export default function LivePage() {
               })}
             </tbody>
           </table>
-        </div>
+        </Card>
       )}
 
       {/* Detalle llamadas contestadas */}
-      <div className={`${card} overflow-hidden`}>
+      <Card className="overflow-hidden">
         <div className="px-6 py-3 border-b border-[var(--color-border)]">
           <h2 className="text-sm font-medium text-[var(--color-text)]">
             Llamadas contestadas
@@ -234,7 +235,7 @@ export default function LivePage() {
           <p className="px-6 py-10 text-center text-[var(--color-muted)] text-sm">Sin llamadas activas ahora mismo</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm tabular-nums">
               <thead>
                 <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)]">
                   <th className="px-6 py-3 text-left">Cliente</th>
@@ -270,7 +271,7 @@ export default function LivePage() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

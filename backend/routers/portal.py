@@ -5,6 +5,7 @@
 
 """Portal del cliente — solo ve sus propios datos."""
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -393,6 +394,30 @@ async def my_invoices(
         FROM invoices WHERE customer_id = :cid ORDER BY created_at DESC
     """), {"cid": cid})
     return r.mappings().all()
+
+
+@router.get("/invoices/{inv_id}/pdf")
+async def my_invoice_pdf(
+    inv_id: int,
+    user=Depends(require_permission("invoices")),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Descarga del PDF desde el portal cliente — encontrado en auditoría UX
+    que el frontend apuntaba directo a `/api/admin/invoices/{id}/pdf`
+    (require_admin), así que un cliente nunca podía descargar su propia
+    factura sin loguearse como admin. `WHERE customer_id = :cid` en el
+    mismo SELECT (no un chequeo separado) para que sea imposible pedir el
+    PDF de la factura de otro cliente cambiando el id en la URL.
+    """
+    cid = _customer_id(user)
+    r = await db.execute(text(
+        "SELECT pdf_path FROM invoices WHERE id = :id AND customer_id = :cid"
+    ), {"id": inv_id, "cid": cid})
+    row = r.first()
+    if not row or not row[0]:
+        raise HTTPException(404, "Factura no encontrada")
+    return FileResponse(row[0], media_type="application/pdf", filename=f"factura-{inv_id}.pdf")
 
 
 @router.get("/trunk-guide")

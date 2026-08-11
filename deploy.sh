@@ -202,6 +202,7 @@ MIGRATIONS=(
     "2.55.12"
     "2.56.1"
     "2.56.2"
+    "2.58.0"
 )
 
 # migration_sql <version> — imprime el SQL de db/migrations/<version>.sql, o

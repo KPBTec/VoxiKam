@@ -5,6 +5,9 @@ import { apiGet, apiPost, apiDelete, apiPut } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Plus, Trash2, Layers, Hash } from 'lucide-react'
 import { EntityComments } from '@/components/EntityComments'
+import { StatusBadge, carrierStatusVariant } from '@/components/StatusBadge'
+import { Button } from '@/components/Button'
+import { Card } from '@/components/Card'
 
 interface Carrier {
   id: number; name: string; host: string; port: number
@@ -19,21 +22,21 @@ interface BuyRate {
 interface Prefix { id: number; prefix: string; destination: string; group_name: string }
 interface Group  { group_name: string; prefix_count: number }
 
-const card  = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
 const input = 'w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500'
 const lbl   = 'block text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1'
 
 const GROUP_COLORS: Record<string, string> = {
   'FIJO LIMA':      'bg-info-900/50 text-info-300',
-  'FIJO PROVINCIA': 'bg-purple-900/30 text-purple-300',
-  'MOVILES':        'bg-amber-900/30 text-amber-300',
+  'FIJO PROVINCIA': 'bg-info-100 text-info-400',
+  'MOVILES':        'bg-brand-500/15 text-brand-400',
 }
 function groupBadge(g: string) {
-  return <span className={`px-2 py-0.5 rounded text-xs font-medium ${GROUP_COLORS[g] ?? 'bg-zinc-700 text-zinc-300'}`}>{g || '—'}</span>
+  return <span className={`px-2 py-0.5 rounded text-xs font-medium ${GROUP_COLORS[g] ?? 'bg-[var(--color-border)] text-[var(--color-muted)]'}`}>{g || '—'}</span>
 }
 
 export default function CarrierDetailPage() {
   const { id } = useParams<{ id: string }>()
+  useEffect(() => { document.title = 'Carrier · VoxiKam' }, [])
 
   const [carrier,  setCarrier]  = useState<Carrier | null>(null)
   const [rates,    setRates]    = useState<BuyRate[]>([])
@@ -112,36 +115,34 @@ export default function CarrierDetailPage() {
     loadRates()
   }
 
-  if (!carrier && error) return <div className="p-6 text-red-400">{error}</div>
+  if (!carrier && error) return <div className="p-6 text-danger">{error}</div>
   if (!carrier) return <div className="p-6 text-[var(--color-text-2)]">Cargando…</div>
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/carriers" aria-label="Volver" className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+        <Link href="/carriers" aria-label="Volver" className="focus-ring text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{carrier.name}</h1>
           <p className="text-sm text-[var(--color-text-2)] font-mono">{carrier.host}:{carrier.port}</p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${carrier.status === 'active' ? 'bg-green-900/30 text-green-400' : 'bg-zinc-700 text-zinc-400'}`}>
-          {carrier.status}
-        </span>
+        <StatusBadge variant={carrierStatusVariant(carrier.status)} bordered>{carrier.status}</StatusBadge>
       </div>
 
       {error && (
-        <div className="bg-red-900/30 border border-red-700 text-red-300 text-sm rounded-lg px-4 py-3">{error}</div>
+        <div className="bg-danger/10 border border-danger/30 text-danger text-sm rounded-lg px-4 py-3">{error}</div>
       )}
 
       {/* Info del carrier */}
-      <div className={`${card} p-5 space-y-4`}>
+      <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Configuración</h2>
           {!editMode
-            ? <button onClick={() => setEditMode(true)} className="text-xs text-brand-400 hover:text-brand-300">Editar</button>
-            : <button onClick={() => { setEditMode(false); setForm(carrier) }} className="text-xs text-[var(--color-muted)]">Cancelar</button>
+            ? <button onClick={() => setEditMode(true)} className="focus-ring text-xs text-brand-400 hover:text-brand-300">Editar</button>
+            : <button onClick={() => { setEditMode(false); setForm(carrier) }} className="focus-ring text-xs text-[var(--color-muted)]">Cancelar</button>
           }
         </div>
 
@@ -157,7 +158,7 @@ export default function CarrierDetailPage() {
             ] as [string, string][]).map(([k, v]) => (
               <div key={k} className="flex justify-between border-b border-[var(--color-border)]/40 pb-1">
                 <dt className="text-[var(--color-text-2)]">{k}</dt>
-                <dd className="font-medium font-mono text-xs">{v}</dd>
+                <dd className="font-medium font-mono tabular-nums text-xs">{v}</dd>
               </div>
             ))}
           </dl>
@@ -171,22 +172,22 @@ export default function CarrierDetailPage() {
               ['Prioridad',        'priority',       'number'],
             ] as [string, keyof Carrier, string][]).map(([label, key, type]) => (
               <div key={key}>
-                <label className={lbl}>{label}</label>
-                <input type={type} className={input} value={(form[key] as string) ?? ''}
+                <label htmlFor={`carrier-edit-${key}`} className={lbl}>{label}</label>
+                <input id={`carrier-edit-${key}`} type={type} className={`focus-ring ${input}`} value={(form[key] as string) ?? ''}
                   onChange={e => setForm(f => ({ ...f, [key]: type === 'number' ? +e.target.value : e.target.value }))} />
               </div>
             ))}
             <div>
-              <label className={lbl}>Estado</label>
-              <select className={input} value={form.status ?? 'active'}
+              <label htmlFor="carrier-edit-status" className={lbl}>Estado</label>
+              <select id="carrier-edit-status" className={`focus-ring ${input}`} value={form.status ?? 'active'}
                 onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
                 <option value="active">Activo</option>
                 <option value="inactive">Inactivo</option>
               </select>
             </div>
             <div>
-              <label className={lbl}>Límite CPS (vacío = sin límite)</label>
-              <input type="number" min={1} max={65535} className={input}
+              <label htmlFor="carrier-edit-cps_limit" className={lbl}>Límite CPS (vacío = sin límite)</label>
+              <input id="carrier-edit-cps_limit" type="number" min={1} max={65535} className={`focus-ring ${input}`}
                 value={form.cps_limit ?? ''}
                 onChange={e => setForm(f => ({ ...f, cps_limit: e.target.value === '' ? null : +e.target.value }))} />
               <p className="text-[10px] text-[var(--color-muted)] mt-1">
@@ -194,22 +195,21 @@ export default function CarrierDetailPage() {
               </p>
             </div>
             <div className="col-span-2">
-              <label className={lbl}>Notas</label>
-              <input className={input} value={form.notes ?? ''}
+              <label htmlFor="carrier-edit-notes" className={lbl}>Notas</label>
+              <input id="carrier-edit-notes" className={`focus-ring ${input}`} value={form.notes ?? ''}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
             <div className="col-span-2 flex gap-3 pt-1">
-              <button type="submit" disabled={saving}
-                className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+              <Button type="submit" disabled={saving}>
                 {saving ? 'Guardando…' : 'Guardar'}
-              </button>
+              </Button>
             </div>
           </form>
         )}
-      </div>
+      </Card>
 
       {/* Buy rates */}
-      <div className={`${card} p-5 space-y-4`}>
+      <Card className="p-5 space-y-4">
         <div>
           <h2 className="font-semibold">Tarifas de costo (buy rates)</h2>
           <p className="text-xs text-[var(--color-muted)] mt-0.5">
@@ -221,11 +221,11 @@ export default function CarrierDetailPage() {
         <div className="flex items-center gap-4">
           <div className="flex rounded-lg overflow-hidden border border-[var(--color-border)] text-xs">
             <button onClick={() => setAddMode('group')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${addMode==='group' ? 'bg-brand-600 text-white' : 'text-[var(--color-muted)] hover:text-[var(--color-text)]'}`}>
+              className={`focus-ring flex items-center gap-1.5 px-3 py-1.5 transition-colors ${addMode==='group' ? 'bg-brand-600 text-white' : 'text-[var(--color-muted)] hover:text-[var(--color-text)]'}`}>
               <Layers size={13}/> Por grupo
             </button>
             <button onClick={() => setAddMode('individual')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${addMode==='individual' ? 'bg-brand-600 text-white' : 'text-[var(--color-muted)] hover:text-[var(--color-text)]'}`}>
+              className={`focus-ring flex items-center gap-1.5 px-3 py-1.5 transition-colors ${addMode==='individual' ? 'bg-brand-600 text-white' : 'text-[var(--color-muted)] hover:text-[var(--color-text)]'}`}>
               <Hash size={13}/> Individual
             </button>
           </div>
@@ -234,8 +234,8 @@ export default function CarrierDetailPage() {
         {addMode === 'group' ? (
           <form onSubmit={addGroupRate} className="flex gap-3 flex-wrap items-end">
             <div className="w-52">
-              <label className={lbl}>Grupo</label>
-              <select required value={grpForm.group_name}
+              <label htmlFor="grp-group_name" className={lbl}>Grupo</label>
+              <select id="grp-group_name" required value={grpForm.group_name}
                 onChange={e => setGrpForm(f => ({ ...f, group_name: e.target.value }))}
                 className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
                 <option value="">Seleccionar grupo…</option>
@@ -247,36 +247,35 @@ export default function CarrierDetailPage() {
               </select>
             </div>
             <div>
-              <label className={lbl}>Costo/min</label>
-              <input required type="number" step="0.0001" min="0" placeholder="0.0000"
+              <label htmlFor="grp-buy_rate" className={lbl}>Costo/min</label>
+              <input id="grp-buy_rate" required type="number" step="0.0001" min="0" placeholder="0.0000"
                 value={grpForm.buy_rate}
                 onChange={e => setGrpForm(f => ({ ...f, buy_rate: e.target.value }))}
                 className="w-28 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
             <div>
-              <label className={lbl}>Cargo conexión</label>
-              <input type="number" step="0.0001" min="0" placeholder="0.00"
+              <label htmlFor="grp-connectcharge" className={lbl}>Cargo conexión</label>
+              <input id="grp-connectcharge" type="number" step="0.0001" min="0" placeholder="0.00"
                 value={grpForm.connectcharge}
                 onChange={e => setGrpForm(f => ({ ...f, connectcharge: e.target.value }))}
                 className="w-28 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
             <div>
-              <label className={lbl}>Bloque (seg)</label>
-              <input type="number" min="1" placeholder="60"
+              <label htmlFor="grp-billingblock" className={lbl}>Bloque (seg)</label>
+              <input id="grp-billingblock" type="number" min="1" placeholder="60"
                 value={grpForm.billingblock}
                 onChange={e => setGrpForm(f => ({ ...f, billingblock: e.target.value }))}
                 className="w-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
-            <button type="submit" disabled={grpSaving}
-              className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-              <Layers size={15}/> {grpSaving ? 'Aplicando…' : 'Aplicar al grupo'}
-            </button>
+            <Button type="submit" disabled={grpSaving} icon={<Layers size={15}/>}>
+              {grpSaving ? 'Aplicando…' : 'Aplicar al grupo'}
+            </Button>
           </form>
         ) : (
           <form onSubmit={addRate} className="flex gap-3 flex-wrap items-end">
             <div className="flex-1 min-w-48">
-              <label className={lbl}>Prefijo / Destino</label>
-              <select required value={rateForm.prefix_id}
+              <label htmlFor="rate-prefix_id" className={lbl}>Prefijo / Destino</label>
+              <select id="rate-prefix_id" required value={rateForm.prefix_id}
                 onChange={e => setRateForm(f => ({ ...f, prefix_id: e.target.value }))}
                 className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
                 <option value="">Seleccionar…</option>
@@ -287,36 +286,35 @@ export default function CarrierDetailPage() {
               </select>
             </div>
             <div>
-              <label className={lbl}>Costo/min</label>
-              <input required type="number" step="0.0001" min="0" placeholder="0.0000"
+              <label htmlFor="rate-buy_rate" className={lbl}>Costo/min</label>
+              <input id="rate-buy_rate" required type="number" step="0.0001" min="0" placeholder="0.0000"
                 value={rateForm.buy_rate}
                 onChange={e => setRateForm(f => ({ ...f, buy_rate: e.target.value }))}
                 className="w-28 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
             <div>
-              <label className={lbl}>Cargo conexión</label>
-              <input type="number" step="0.0001" min="0" placeholder="0.00"
+              <label htmlFor="rate-connectcharge" className={lbl}>Cargo conexión</label>
+              <input id="rate-connectcharge" type="number" step="0.0001" min="0" placeholder="0.00"
                 value={rateForm.connectcharge}
                 onChange={e => setRateForm(f => ({ ...f, connectcharge: e.target.value }))}
                 className="w-28 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
             <div>
-              <label className={lbl}>Bloque (seg)</label>
-              <input type="number" min="1" placeholder="60"
+              <label htmlFor="rate-billingblock" className={lbl}>Bloque (seg)</label>
+              <input id="rate-billingblock" type="number" min="1" placeholder="60"
                 value={rateForm.billingblock}
                 onChange={e => setRateForm(f => ({ ...f, billingblock: e.target.value }))}
                 className="w-20 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
-            <button type="submit" disabled={rateSaving}
-              className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-              <Plus size={15}/> {rateSaving ? 'Agregando…' : 'Agregar'}
-            </button>
+            <Button type="submit" disabled={rateSaving} icon={<Plus size={15}/>}>
+              {rateSaving ? 'Agregando…' : 'Agregar'}
+            </Button>
           </form>
         )}
 
         {/* Tabla buy rates */}
         <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm tabular-nums">
             <thead>
               <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)] bg-[var(--color-surface)]">
                 <th className="px-5 py-3 text-left">Prefijo</th>
@@ -337,7 +335,7 @@ export default function CarrierDetailPage() {
                   <td className="px-5 py-2.5 font-mono text-brand-400">{r.prefix}</td>
                   <td className="px-5 py-2.5">{r.destination}</td>
                   <td className="px-5 py-2.5">{groupBadge(r.group_name || '')}</td>
-                  <td className="px-5 py-2.5 text-right font-mono text-red-400">
+                  <td className="px-5 py-2.5 text-right font-mono text-danger">
                     S/ {(+r.buy_rate).toFixed(4)}
                   </td>
                   <td className="px-5 py-2.5 text-right font-mono text-[var(--color-muted)]">
@@ -346,7 +344,7 @@ export default function CarrierDetailPage() {
                   <td className="px-5 py-2.5 text-right text-[var(--color-muted)]">{r.billingblock}s</td>
                   <td className="px-5 py-2.5 text-right">
                     <button onClick={() => delRate(r.id)} aria-label="Eliminar tarifa"
-                      className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
+                      className="focus-ring text-[var(--color-muted)] hover:text-danger transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </td>
@@ -358,7 +356,7 @@ export default function CarrierDetailPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       <EntityComments entity="carrier" entityId={parseInt(id)} />
     </div>

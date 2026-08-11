@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiFetch, getErrorMessage } from '@/lib/api'
 import Link from 'next/link'
 import { Field } from '@/components/Field'
+import { StatusBadge, carrierStatusVariant } from '@/components/StatusBadge'
+import { Button } from '@/components/Button'
+import { Card } from '@/components/Card'
 
 interface Carrier {
   id: number; name: string; host: string; port: number
@@ -17,6 +20,8 @@ interface Provider { id: number; name: string }
 const EMPTY = { name: '', provider_id: null, host: '', port: 5060, priority: 10, outbound_prefix: '', remove_prefix: '', status: 'active', cps_limit: null, notes: '' }
 
 export default function CarriersPage() {
+  useEffect(() => { document.title = 'Carriers · VoxiKam' }, [])
+
   const [carriers, setCarriers] = useState<Carrier[]>([])
   const [providers, setProviders] = useState<Provider[]>([])
   const [form, setForm] = useState<any>(EMPTY)
@@ -66,41 +71,40 @@ export default function CarriersPage() {
               className="rounded border-[var(--color-border)] bg-[var(--color-surface)]" />
             Incluir carriers de resellers
           </label>
-          <button onClick={() => { setShowForm(true); setForm(EMPTY); setEditing(null) }}
-            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm rounded-lg">
+          <Button onClick={() => { setShowForm(true); setForm(EMPTY); setEditing(null) }}>
             + Nuevo carrier
-          </button>
+          </Button>
         </div>
       </div>
 
-      {error && !showForm && <p className="text-red-400 text-sm">{error}</p>}
+      {error && !showForm && <p className="text-danger text-sm">{error}</p>}
 
       {showForm && (
-        <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-6 space-y-4">
+        <Card className="p-6 space-y-4">
           <h2 className="font-medium text-[var(--color-text)]">{editing ? 'Editar carrier' : 'Nuevo carrier'}</h2>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-danger text-sm">{error}</p>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[['Nombre', 'name', 'text'], ['Host / IP', 'host', 'text'], ['Puerto', 'port', 'number'], ['Prefijo saliente', 'outbound_prefix', 'text'], ['Prioridad', 'priority', 'number']].map(([label, key, type]) => (
               <Field
                 key={key} id={`carrier-${key}`} label={label} type={type}
                 value={form[key] ?? ''}
                 onChange={e => setForm((f: any) => ({ ...f, [key]: type === 'number' ? +e.target.value : e.target.value }))}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
+                className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
               />
             ))}
             <div>
-              <label className="block text-xs text-[var(--color-text-2)] mb-1">Proveedor</label>
-              <select value={form.provider_id ?? ''}
+              <label htmlFor="carrier-new-provider" className="block text-xs text-[var(--color-text-2)] mb-1">Proveedor</label>
+              <select id="carrier-new-provider" value={form.provider_id ?? ''}
                 onChange={e => setForm((f: any) => ({ ...f, provider_id: e.target.value ? +e.target.value : null }))}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]">
+                className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]">
                 <option value="">Sin proveedor</option>
                 {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-[var(--color-text-2)] mb-1">Estado</label>
-              <select value={form.status} onChange={e => setForm((f: any) => ({ ...f, status: e.target.value }))}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]">
+              <label htmlFor="carrier-new-status" className="block text-xs text-[var(--color-text-2)] mb-1">Estado</label>
+              <select id="carrier-new-status" value={form.status} onChange={e => setForm((f: any) => ({ ...f, status: e.target.value }))}
+                className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]">
                 <option value="active">Activo</option>
                 <option value="inactive">Inactivo</option>
               </select>
@@ -109,29 +113,27 @@ export default function CarriersPage() {
               id="carrier-cps_limit" label="Límite CPS (vacío = sin límite)" type="number" min={1} max={65535}
               value={form.cps_limit ?? ''}
               onChange={e => setForm((f: any) => ({ ...f, cps_limit: e.target.value === '' ? null : +e.target.value }))}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
+              className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
             />
           </div>
           <Field
             id="carrier-notes" label="Notas"
             value={form.notes ?? ''} onChange={e => setForm((f: any) => ({ ...f, notes: e.target.value }))}
-            className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
+            className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text)]"
           />
           <div className="flex gap-3">
-            <button onClick={save} disabled={saving}
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded">
+            <Button onClick={save} disabled={saving}>
               {saving ? 'Guardando…' : 'Guardar'}
-            </button>
-            <button onClick={() => { setShowForm(false); setEditing(null) }}
-              className="px-4 py-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-text)] px-4 py-2">
+            </Button>
+            <Button variant="ghost" onClick={() => { setShowForm(false); setEditing(null) }}>
               Cancelar
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl overflow-x-auto">
-        <table className="w-full text-sm">
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm tabular-nums">
           <thead>
             <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)]">
               <th className="px-6 py-3 text-left">Nombre</th>
@@ -150,33 +152,31 @@ export default function CarriersPage() {
                 <td className="px-6 py-3 text-[var(--color-text)] font-medium">
                   {c.name}
                   {c.owner_customer_id && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-brand-500/15 text-brand-400 align-middle">
+                    <StatusBadge variant="brand" rounded="md" tight className="ml-2 align-middle">
                       reseller: {c.owner_name || `#${c.owner_customer_id}`}
-                    </span>
+                    </StatusBadge>
                   )}
                   {c.rate_count === 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/15 text-red-400 align-middle">
+                    <StatusBadge variant="danger" rounded="md" tight className="ml-2 align-middle">
                       ⚠ sin tarifas
-                    </span>
+                    </StatusBadge>
                   )}
                 </td>
                 <td className="px-6 py-3 text-[var(--color-text-2)]">{c.provider_name || '—'}</td>
                 <td className="px-6 py-3 font-mono text-xs text-[var(--color-text)]">{c.host}</td>
                 <td className="px-6 py-3 font-mono text-xs text-[var(--color-text-2)]">{c.port}</td>
                 <td className="px-6 py-3 font-mono text-xs text-[var(--color-text-2)]">{c.outbound_prefix || '—'}</td>
-                <td className="px-6 py-3 text-[var(--color-text-2)]">{c.priority}</td>
+                <td className="px-6 py-3 font-mono text-[var(--color-text-2)]">{c.priority}</td>
                 <td className="px-6 py-3">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${c.status === 'active' ? 'bg-green-500/15 text-green-400' : 'bg-zinc-700 text-zinc-400'}`}>
-                    {c.status}
-                  </span>
+                  <StatusBadge variant={carrierStatusVariant(c.status)}>{c.status}</StatusBadge>
                 </td>
                 <td className="px-6 py-3 text-right space-x-3">
                   <Link href={`/carriers/${c.id}`}
-                    className={`text-xs ${c.rate_count === 0 ? 'text-red-400 hover:text-red-300 font-medium' : 'text-brand-400 hover:text-brand-300'}`}>
+                    className={`focus-ring text-xs ${c.rate_count === 0 ? 'text-danger hover:text-danger/80 font-medium' : 'text-brand-400 hover:text-brand-300'}`}>
                     {c.rate_count === 0 ? 'Ajustar tarifas →' : 'Tarifas →'}
                   </Link>
-                  <button onClick={() => edit(c)} className="text-xs text-brand-400 hover:text-brand-300">Editar</button>
-                  <button onClick={() => del(c.id)} className="text-xs text-red-400 hover:text-red-300">Eliminar</button>
+                  <button onClick={() => edit(c)} className="focus-ring text-xs text-brand-400 hover:text-brand-300">Editar</button>
+                  <button onClick={() => del(c.id)} className="focus-ring text-xs text-danger hover:text-danger/80">Eliminar</button>
                 </td>
               </tr>
             ))}
@@ -185,7 +185,7 @@ export default function CarriersPage() {
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   )
 }

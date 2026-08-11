@@ -63,6 +63,7 @@ export default function ResellerBillingRecalcPage() {
     apiGet(`${API}/customers`).then(setCustomers).catch((e: any) => setError(e.message))
     apiGet(`${API}/carriers`).then(setCarriers).catch((e: any) => setError(e.message))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { document.title = 'Recalcular tarifas · VoxiKam' }, [])
 
   function resetTarget(next: 'customer' | 'carrier') {
     setScope(next); setTargetId(''); setPreview(null); setApplied(null); setError('')
@@ -154,8 +155,8 @@ export default function ResellerBillingRecalcPage() {
           </div>
 
           <div className="flex flex-col gap-1 min-w-56">
-            <span className={lbl}>{scope === 'customer' ? 'Sub-cliente' : 'Carrier'}</span>
-            <select value={targetId} onChange={e => { setTargetId(e.target.value); setPreview(null); setApplied(null) }}
+            <label htmlFor="recalc-target" className={lbl}>{scope === 'customer' ? 'Sub-cliente' : 'Carrier'}</label>
+            <select id="recalc-target" value={targetId} onChange={e => { setTargetId(e.target.value); setPreview(null); setApplied(null) }}
               className={`w-full ${input} cursor-pointer`}>
               <option value="">Seleccionar…</option>
               {targets.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -178,16 +179,16 @@ export default function ResellerBillingRecalcPage() {
                 ))}
               </div>
               {periodTab === 'month' ? (
-                <input type="month" value={monthSel} max={thisMonth}
+                <input type="month" aria-label="Mes" value={monthSel} max={thisMonth}
                   onChange={e => { setMonthSel(e.target.value); setPreview(null); setApplied(null) }}
                   className={input} />
               ) : (
                 <div className="flex items-center gap-2">
-                  <input type="date" value={dateFrom} max={today}
+                  <input type="date" aria-label="Desde" value={dateFrom} max={today}
                     onChange={e => { setDateFrom(e.target.value); setPreview(null); setApplied(null) }}
                     className={input} />
                   <span className="text-xs text-[var(--color-muted)]">→</span>
-                  <input type="date" value={dateTo} max={today}
+                  <input type="date" aria-label="Hasta" value={dateTo} max={today}
                     onChange={e => { setDateTo(e.target.value); setPreview(null); setApplied(null) }}
                     className={input} />
                 </div>
@@ -283,13 +284,13 @@ export default function ResellerBillingRecalcPage() {
                 {preview.customers.map(c => (
                   <tr key={c.customer_id} className="border-b border-[var(--color-border)]/50">
                     <td className="px-5 py-2.5 font-medium">{c.customer_name}</td>
-                    <td className="px-5 py-2.5 text-right font-mono">{c.n_cdrs}</td>
-                    <td className="px-5 py-2.5 text-right font-mono text-[var(--color-text-2)]">{fmt(c.old_sessionbill)}</td>
-                    <td className="px-5 py-2.5 text-right font-mono text-[var(--color-text-2)]">{fmt(c.new_sessionbill)}</td>
-                    <td className={`px-5 py-2.5 text-right font-mono ${c.delta_sessionbill >= 0 ? 'text-success' : 'text-danger'}`}>
+                    <td className="px-5 py-2.5 text-right font-mono tabular-nums">{c.n_cdrs}</td>
+                    <td className="px-5 py-2.5 text-right font-mono tabular-nums text-[var(--color-text-2)]">{fmt(c.old_sessionbill)}</td>
+                    <td className="px-5 py-2.5 text-right font-mono tabular-nums text-[var(--color-text-2)]">{fmt(c.new_sessionbill)}</td>
+                    <td className={`px-5 py-2.5 text-right font-mono tabular-nums ${c.delta_sessionbill >= 0 ? 'text-success' : 'text-danger'}`}>
                       {c.delta_sessionbill >= 0 ? '+' : ''}{fmt(c.delta_sessionbill)}
                     </td>
-                    <td className={`px-5 py-2.5 text-right font-mono ${c.delta_buycost <= 0 ? 'text-success' : 'text-danger'}`}>
+                    <td className={`px-5 py-2.5 text-right font-mono tabular-nums ${c.delta_buycost <= 0 ? 'text-success' : 'text-danger'}`}>
                       {c.delta_buycost >= 0 ? '+' : ''}{fmt(c.delta_buycost)}
                     </td>
                   </tr>

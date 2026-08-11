@@ -93,7 +93,7 @@ export default function ResellerSubCustomers() {
       rate_plan_id: row.rate_plan_id ?? '', techprefix: row.techprefix, currency: row.currency,
       billing_type: row.billing_type, notes: row.notes ?? '',
     })
-    setBalanceAmt('')
+    setBalanceAmt(''); setPendingAmt(null)
     setNewPrefixLabel('')
     setEnabledGroups([])
     loadPrefixes(row.id)
@@ -175,12 +175,26 @@ export default function ResellerSubCustomers() {
     finally { setSaving(false) }
   }
 
-  async function adjustBalance(e: React.FormEvent) {
+  // Confirmación con preview antes de aplicar — encontrado en auditoría UX:
+  // este form aplicaba el ajuste al primer submit, sin mostrar "saldo actual
+  // → resultante" ni pedir confirmación. Es plata real de un tercero (el
+  // sub-cliente), un monto mal tipeado (ej. -100 en vez de -10) lo debita al
+  // instante sin forma de deshacer. Mismo criterio de "decir la consecuencia
+  // antes de aplicarla" que ya usan otras acciones de este panel (cortar
+  // ruteo, desactivar cliente).
+  const [pendingAmt, setPendingAmt] = useState<number | null>(null)
+
+  function reviewBalance(e: React.FormEvent) {
     e.preventDefault(); if (!selected || !balanceAmt) return
+    setPendingAmt(Number(balanceAmt))
+  }
+
+  async function confirmAdjustBalance() {
+    if (!selected || pendingAmt == null) return
     setAdjustingBalance(true); setError('')
     try {
-      await apiPost(`/reseller/sub-customers/${selected.id}/balance`, { amount: Number(balanceAmt) })
-      setBalanceAmt('')
+      await apiPost(`/reseller/sub-customers/${selected.id}/balance`, { amount: pendingAmt })
+      setBalanceAmt(''); setPendingAmt(null)
       const fresh = await apiGet('/reseller/sub-customers')
       setRows(fresh)
       const updated = fresh.find((r: SubCustomer) => r.id === selected.id)
@@ -214,7 +228,7 @@ export default function ResellerSubCustomers() {
 
       {showCreate && !selected && (
         <form onSubmit={create} className={`${cardCls} p-5 space-y-3`}>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label className={labelCls}>Nombre</label>
               <input required className={inputCls} value={createForm.name} onChange={e => setCreateForm(f => ({...f, name: e.target.value}))} /></div>
             <div><label className={labelCls}>Email</label>
@@ -278,7 +292,7 @@ export default function ResellerSubCustomers() {
 
             {/* ── TAB: GENERAL ──────────────────────────────────────────── */}
             {tab === 'general' && (
-            <div className="p-5 grid grid-cols-2 gap-6">
+            <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
               <form onSubmit={saveEdit} className="space-y-3">
                 <h2 className="font-semibold text-[var(--color-text)]">Información</h2>
                 <div><label className={labelCls}>Nombre</label>
@@ -311,7 +325,7 @@ export default function ResellerSubCustomers() {
 
               <div className="space-y-3">
                 <h2 className="font-semibold text-[var(--color-text)]">Balance</h2>
-                <p className="text-2xl font-bold"><Balance amount={selected.balance} /></p>
+                <p className="text-2xl font-bold"><Balance amount={selected.balance} currency={selected.currency} /></p>
                 {selected.billing_type === 'prepago' && Number(selected.balance) <= 0 && (
                   <p className="text-xs bg-danger/10 border border-danger/30 text-danger rounded-lg px-3 py-2">
                     Sin saldo — este sub-cliente no puede iniciar llamadas nuevas hasta recargar. No corta llamadas ya en curso.
@@ -319,16 +333,40 @@ export default function ResellerSubCustomers() {
                 )}
                 {selected.status === 'deleted' ? (
                   <p className="text-xs text-[var(--color-muted)]">Este sub-cliente está desactivado — pedile al administrador que lo reactive para poder ajustar su balance.</p>
+                ) : pendingAmt != null ? (
+                  <div className="space-y-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[var(--color-text-2)]">Saldo actual</span>
+                      <Balance amount={selected.balance} currency={selected.currency} />
+                    </div>
+                    <div className="flex items-center justify-between text-sm font-semibold">
+                      <span className="text-[var(--color-text-2)]">Saldo resultante</span>
+                      <Balance amount={Number(selected.balance) + pendingAmt} currency={selected.currency} />
+                    </div>
+                    <p className="text-xs text-[var(--color-muted)]">
+                      {pendingAmt >= 0 ? 'Vas a acreditar' : 'Vas a debitar'} {selected.currency} {Math.abs(pendingAmt).toFixed(2)} a {selected.name}.
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={confirmAdjustBalance} disabled={adjustingBalance} type="button"
+                        className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
+                        {adjustingBalance ? 'Aplicando…' : 'Confirmar ajuste'}
+                      </button>
+                      <button onClick={() => setPendingAmt(null)} disabled={adjustingBalance} type="button"
+                        className="px-4 py-2 text-sm rounded-lg border border-[var(--color-border)] hover:border-[var(--color-text-2)]">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <form onSubmit={adjustBalance} className="flex gap-2 items-end">
+                  <form onSubmit={reviewBalance} className="flex gap-2 items-end">
                     <div className="flex-1">
                       <label className={labelCls}>Monto (+crédito / −débito)</label>
                       <input type="number" step="0.01" placeholder="ej: 50.00 o -10.00" required
                         value={balanceAmt} onChange={e => setBalanceAmt(e.target.value)} className={inputCls} />
                     </div>
-                    <button type="submit" disabled={adjustingBalance}
-                      className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
-                      {adjustingBalance ? 'Aplicando…' : 'Aplicar'}
+                    <button type="submit"
+                      className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm rounded-lg">
+                      Revisar
                     </button>
                   </form>
                 )}
@@ -455,7 +493,7 @@ export default function ResellerSubCustomers() {
                   <td className="px-6 py-3 text-[var(--color-text)]">{r.email}</td>
                   <td className="px-6 py-3 text-center font-mono text-brand-400">{r.techprefix}</td>
                   <td className="px-6 py-3 text-[var(--color-text)]">{r.rate_plan_name ?? '—'}</td>
-                  <td className="px-6 py-3 text-right"><Balance amount={r.balance} /></td>
+                  <td className="px-6 py-3 text-right"><Balance amount={r.balance} currency={r.currency} /></td>
                   <td className="px-6 py-3 text-center">
                     <StatusBadge variant={customerStatusVariant(r.status)}>{r.status}</StatusBadge>
                   </td>

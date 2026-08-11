@@ -11,7 +11,7 @@ interface Rate   { id: number; prefix: string; destination: string; group_name: 
 interface Prefix { id: number; prefix: string; destination: string; group_name: string; country: string | null; owner_customer_id: number | null; is_own: boolean | number }
 
 const cardCls  = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
-const inputCls = 'bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-brand-500'
+const inputCls = 'bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus-ring'
 const labelCls = 'block text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1'
 
 export default function ResellerRates() {
@@ -32,6 +32,7 @@ export default function ResellerRates() {
   const [savingRate, setSavingRate] = useState(false)
   const [grpForm, setGrpForm]   = useState({ group_name: '', rateinitial: '', connectcharge: '0', billingblock: '1' })
   const [savingGrpRate, setSavingGrpRate] = useState(false)
+  const [grpRateMsg, setGrpRateMsg] = useState('')
 
   const groups = Array.from(
     prefixes.reduce((m, p) => {
@@ -52,6 +53,7 @@ export default function ResellerRates() {
     finally { setLoading(false) }
   }
   useEffect(() => { load() }, [])
+  useEffect(() => { document.title = 'Tarifas propias · VoxiKam' }, [])
 
   async function createPlan(e: React.FormEvent) {
     e.preventDefault(); setCreating(true); setError('')
@@ -96,7 +98,7 @@ export default function ResellerRates() {
 
   async function addGroupRate(e: React.FormEvent) {
     e.preventDefault(); if (!selected || !grpForm.group_name || !grpForm.rateinitial) return
-    setSavingGrpRate(true); setError('')
+    setSavingGrpRate(true); setError(''); setGrpRateMsg('')
     try {
       const res: any = await apiPost(`/reseller/rate-plans/${selected.id}/group-rates`, {
         group_name: grpForm.group_name,
@@ -104,9 +106,13 @@ export default function ResellerRates() {
         connectcharge: +grpForm.connectcharge,
         billingblock: +grpForm.billingblock,
       })
+      const groupName = grpForm.group_name
       setGrpForm({ group_name: '', rateinitial: '', connectcharge: '0', billingblock: '60' })
       setRates(await apiGet(`/reseller/rate-plans/${selected.id}/rates`))
-      if (res?.updated !== undefined) alert(`Actualizado en ${res.updated} prefijos del grupo ${grpForm.group_name}`)
+      if (res?.updated !== undefined) {
+        setGrpRateMsg(`Actualizado en ${res.updated} prefijos del grupo ${groupName}`)
+        setTimeout(() => setGrpRateMsg(''), 3000)
+      }
     } catch (e: any) { setError(e.message) }
     finally { setSavingGrpRate(false) }
   }
@@ -134,18 +140,18 @@ export default function ResellerRates() {
       {showCreate && !selected && (
         <form onSubmit={createPlan} className={`${cardCls} p-5 flex flex-wrap gap-3 items-end`}>
           <div>
-            <label className={labelCls}>Nombre del plan</label>
-            <input required className={inputCls} value={planForm.name} onChange={e => setPlanForm(f => ({...f, name: e.target.value}))} />
+            <label htmlFor="rr-plan-name" className={labelCls}>Nombre del plan</label>
+            <input id="rr-plan-name" required className={inputCls} value={planForm.name} onChange={e => setPlanForm(f => ({...f, name: e.target.value}))} />
           </div>
           <div>
-            <label className={labelCls}>Moneda</label>
-            <select className={inputCls} value={planForm.currency} onChange={e => setPlanForm(f => ({...f, currency: e.target.value}))}>
+            <label htmlFor="rr-plan-currency" className={labelCls}>Moneda</label>
+            <select id="rr-plan-currency" className={inputCls} value={planForm.currency} onChange={e => setPlanForm(f => ({...f, currency: e.target.value}))}>
               <option>PEN</option><option>USD</option>
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <label className={labelCls}>Descripción</label>
-            <input className={inputCls + ' w-full'} value={planForm.description} onChange={e => setPlanForm(f => ({...f, description: e.target.value}))} />
+            <label htmlFor="rr-plan-desc" className={labelCls}>Descripción</label>
+            <input id="rr-plan-desc" className={inputCls + ' w-full'} value={planForm.description} onChange={e => setPlanForm(f => ({...f, description: e.target.value}))} />
           </div>
           <button type="submit" disabled={creating}
             className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
@@ -182,39 +188,40 @@ export default function ResellerRates() {
               {addMode === 'group' ? (
                 <form onSubmit={addGroupRate} className="flex gap-3 items-end flex-wrap">
                   <div className="w-52">
-                    <label className={labelCls}>Grupo</label>
-                    <select required value={grpForm.group_name} onChange={e => setGrpForm(f => ({...f, group_name: e.target.value}))}
+                    <label htmlFor="rr-grp-group" className={labelCls}>Grupo</label>
+                    <select id="rr-grp-group" required value={grpForm.group_name} onChange={e => setGrpForm(f => ({...f, group_name: e.target.value}))}
                       className={`w-full ${inputCls}`}>
                       <option value="">Seleccionar grupo…</option>
                       {groups.map(g => <option key={g.group_name} value={g.group_name}>{g.group_name} ({g.prefix_count} prefijos)</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={labelCls}>Tarifa/min</label>
-                    <input required type="number" step="0.0001" min="0" placeholder="0.0000"
+                    <label htmlFor="rr-grp-rate" className={labelCls}>Tarifa/min</label>
+                    <input id="rr-grp-rate" required type="number" step="0.0001" min="0" placeholder="0.0000"
                       value={grpForm.rateinitial} onChange={e => setGrpForm(f => ({...f, rateinitial: e.target.value}))}
                       className={`w-28 ${inputCls}`} />
                   </div>
                   <div>
-                    <label className={labelCls}>Cargo conexión</label>
-                    <input type="number" step="0.0001" min="0" value={grpForm.connectcharge}
+                    <label htmlFor="rr-grp-connect" className={labelCls}>Cargo conexión</label>
+                    <input id="rr-grp-connect" type="number" step="0.0001" min="0" value={grpForm.connectcharge}
                       onChange={e => setGrpForm(f => ({...f, connectcharge: e.target.value}))} className={`w-28 ${inputCls}`} />
                   </div>
                   <div>
-                    <label className={labelCls}>Bloque (s)</label>
-                    <input type="number" min="1" value={grpForm.billingblock}
+                    <label htmlFor="rr-grp-block" className={labelCls}>Bloque (s)</label>
+                    <input id="rr-grp-block" type="number" min="1" value={grpForm.billingblock}
                       onChange={e => setGrpForm(f => ({...f, billingblock: e.target.value}))} className={`w-24 ${inputCls}`} />
                   </div>
                   <button type="submit" disabled={savingGrpRate}
-                    className="px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
+                    className="focus-ring px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
                     {savingGrpRate ? 'Aplicando…' : 'Aplicar a todo el grupo'}
                   </button>
+                  {grpRateMsg && <span className="text-xs text-success">{grpRateMsg}</span>}
                 </form>
               ) : (
                 <form onSubmit={addRate} className="flex gap-3 items-end flex-wrap">
                   <div className="flex-1 min-w-48">
-                    <label className={labelCls}>Prefijo / Destino</label>
-                    <select required value={rateForm.prefix_id} onChange={e => setRateForm(f => ({...f, prefix_id: e.target.value}))}
+                    <label htmlFor="rr-rate-prefix" className={labelCls}>Prefijo / Destino</label>
+                    <select id="rr-rate-prefix" required value={rateForm.prefix_id} onChange={e => setRateForm(f => ({...f, prefix_id: e.target.value}))}
                       className={`w-full ${inputCls}`}>
                       <option value="">Seleccionar…</option>
                       {prefixes.slice().sort((a, b) => a.prefix.localeCompare(b.prefix)).map(p => (
@@ -223,24 +230,26 @@ export default function ResellerRates() {
                     </select>
                   </div>
                   <div>
-                    <label className={labelCls}>Tarifa/min</label>
-                    <input required type="number" step="0.0001" min="0" placeholder="0.0000"
+                    <label htmlFor="rr-rate-rate" className={labelCls}>Tarifa/min</label>
+                    <input id="rr-rate-rate" required type="number" step="0.0001" min="0" placeholder="0.0000"
                       value={rateForm.rateinitial} onChange={e => setRateForm(f => ({...f, rateinitial: e.target.value}))}
                       className={`w-28 ${inputCls}`} />
                   </div>
                   <div>
-                    <label className={labelCls}>Cargo conexión</label>
-                    <input type="number" step="0.0001" min="0" value={rateForm.connectcharge}
+                    <label htmlFor="rr-rate-connect" className={labelCls}>Cargo conexión</label>
+                    <input id="rr-rate-connect" type="number" step="0.0001" min="0" value={rateForm.connectcharge}
                       onChange={e => setRateForm(f => ({...f, connectcharge: e.target.value}))} className={`w-28 ${inputCls}`} />
                   </div>
                   <div>
-                    <label className={labelCls}>Bloque inicial (s)</label>
-                    <input type="number" min="1" value={rateForm.initblock}
+                    <label htmlFor="rr-rate-initblock" className={labelCls}
+                      title="Los primeros segundos de la llamada se cobran completos, aunque dure menos">Bloque inicial (s)</label>
+                    <input id="rr-rate-initblock" type="number" min="1" value={rateForm.initblock}
                       onChange={e => setRateForm(f => ({...f, initblock: e.target.value}))} className={`w-24 ${inputCls}`} />
                   </div>
                   <div>
-                    <label className={labelCls}>Bloque (s)</label>
-                    <input type="number" min="1" value={rateForm.billingblock}
+                    <label htmlFor="rr-rate-block" className={labelCls}
+                      title="Después del bloque inicial, el resto se redondea hacia arriba en tramos de esta cantidad de segundos">Bloque (s)</label>
+                    <input id="rr-rate-block" type="number" min="1" value={rateForm.billingblock}
                       onChange={e => setRateForm(f => ({...f, billingblock: e.target.value}))} className={`w-24 ${inputCls}`} />
                   </div>
                   <button type="submit" disabled={savingRate}
@@ -270,10 +279,10 @@ export default function ResellerRates() {
                       <tr key={r.id} className="hover:bg-white/2">
                         <td className="px-4 py-2 font-mono text-brand-400">{r.prefix}</td>
                         <td className="px-4 py-2 text-[var(--color-text)]">{r.destination}</td>
-                        <td className="px-4 py-2 text-right font-mono">{Number(r.rateinitial).toFixed(4)}</td>
-                        <td className="px-4 py-2 text-right font-mono text-[var(--color-text-2)]">{Number(r.connectcharge).toFixed(4)}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums">{Number(r.rateinitial).toFixed(4)}</td>
+                        <td className="px-4 py-2 text-right font-mono tabular-nums text-[var(--color-text-2)]">{Number(r.connectcharge).toFixed(4)}</td>
                         <td className="px-4 py-2 text-right">
-                          <button onClick={() => delRate(r.id)} aria-label="Eliminar tarifa" className="text-[var(--color-muted)] hover:text-red-400">
+                          <button onClick={() => delRate(r.id)} aria-label="Eliminar tarifa" className="focus-ring text-[var(--color-muted)] hover:text-danger">
                             <Trash2 size={14} />
                           </button>
                         </td>

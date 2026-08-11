@@ -9,6 +9,8 @@ import { StatusBadge, customerStatusVariant } from '@/components/StatusBadge'
 import { Balance } from '@/components/Balance'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { PermissionTree, PermissionResource } from '@/components/PermissionTree'
+import { Button } from '@/components/Button'
+import { Card } from '@/components/Card'
 
 interface CustomerIP { id: number; ip: string; description: string | null }
 interface CustomerPrefix { id: number; techprefix: string; label: string; routing_group_id: number | null }
@@ -50,6 +52,7 @@ const STATUSES = ['active', 'suspended', 'expired']
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
+  useEffect(() => { document.title = 'Cliente · VoxiKam' }, [])
 
   const [tab, setTab] = useState<'general' | 'red'>('general')
 
@@ -260,14 +263,13 @@ export default function CustomerDetailPage() {
   }
 
   if (!customer && error) return (
-    <div className="p-6 text-red-400">{error}</div>
+    <div className="p-6 text-danger">{error}</div>
   )
 
   if (!customer) return (
     <div className="p-6 text-[var(--color-text-2)]">Cargando...</div>
   )
 
-  const cardCls = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-5'
   const inputCls = 'w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500'
   const labelCls = 'block text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1'
 
@@ -275,7 +277,7 @@ export default function CustomerDetailPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4 flex-wrap">
-        <Link href="/customers" aria-label="Volver" className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
+        <Link href="/customers" aria-label="Volver" className="focus-ring text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1 min-w-[10rem]">
@@ -286,29 +288,27 @@ export default function CustomerDetailPage() {
           {customer.status}
         </StatusBadge>
         {customer.is_reseller && (
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-brand-600/20 text-brand-400 border border-brand-700/40">
-            Reseller
-          </span>
+          <StatusBadge variant="brand" bordered>Reseller</StatusBadge>
         )}
         {customer.is_reseller ? (
           <button onClick={removeReseller} disabled={resellerBusy}
-            className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-red-400 disabled:opacity-50 border border-[var(--color-border)] hover:border-red-800 rounded-lg px-3 py-1.5 transition-colors">
+            className="focus-ring flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-danger disabled:opacity-50 border border-[var(--color-border)] hover:border-danger/50 rounded-lg px-3 py-1.5 transition-colors">
             <Building2 size={14} /> {resellerBusy ? 'Quitando...' : 'Quitar reseller'}
           </button>
         ) : (
           <button onClick={makeReseller} disabled={resellerBusy}
-            className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 disabled:opacity-50 border border-brand-900/50 hover:border-brand-700 rounded-lg px-3 py-1.5 transition-colors">
+            className="focus-ring flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 disabled:opacity-50 border border-brand-900/50 hover:border-brand-700 rounded-lg px-3 py-1.5 transition-colors">
             <Building2 size={14} /> {resellerBusy ? 'Convirtiendo...' : 'Convertir en reseller'}
           </button>
         )}
         {customer.status === 'deleted' ? (
           <button onClick={reactivateCustomer} disabled={activationBusy}
-            className="flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 disabled:opacity-50 border border-green-900/50 hover:border-green-700 rounded-lg px-3 py-1.5 transition-colors">
+            className="focus-ring flex items-center gap-1.5 text-xs text-success hover:text-success disabled:opacity-50 border border-success/30 hover:border-success/50 rounded-lg px-3 py-1.5 transition-colors">
             <Power size={14} /> {activationBusy ? 'Reactivando...' : 'Reactivar cliente'}
           </button>
         ) : (
           <button onClick={deactivateCustomer} disabled={activationBusy}
-            className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-red-400 disabled:opacity-50 border border-[var(--color-border)] hover:border-red-800 rounded-lg px-3 py-1.5 transition-colors">
+            className="focus-ring flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-danger disabled:opacity-50 border border-[var(--color-border)] hover:border-danger/50 rounded-lg px-3 py-1.5 transition-colors">
             <PowerOff size={14} /> {activationBusy ? 'Desactivando...' : 'Desactivar cliente'}
           </button>
         )}
@@ -319,33 +319,33 @@ export default function CustomerDetailPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {([
-          ['Prefijo', customer.techprefix, 'font-mono text-brand-400'],
-          ['CPS límite', customer.cpslimit.toString(), 'font-mono'],
-          ['Calls máx', customer.calllimit.toString(), 'font-mono'],
+          ['Prefijo', customer.techprefix, 'font-mono tabular-nums text-brand-400'],
+          ['CPS límite', customer.cpslimit.toString(), 'font-mono tabular-nums'],
+          ['Calls máx', customer.calllimit.toString(), 'font-mono tabular-nums'],
         ] as [string, string, string][]).map(([label, value, cls]) => (
-          <div key={label} className={cardCls}>
+          <Card key={label} className="p-5">
             <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1">{label}</p>
             <p className={`text-xl font-semibold ${cls}`}>{value}</p>
-          </div>
+          </Card>
         ))}
-        <div className={cardCls}>
+        <Card className="p-5">
           <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1">Balance</p>
           <p className="text-xl font-semibold"><Balance amount={customer.balance} /></p>
           <p className="text-[10px] text-[var(--color-muted)] mt-1">Neto: consumo histórico menos pagos registrados</p>
-        </div>
+        </Card>
       </div>
 
       {/* Tabs */}
       <div className="flex rounded-lg overflow-hidden border border-[var(--color-border)] w-fit">
         <button
           onClick={() => setTab('general')}
-          className={`px-4 py-1.5 text-sm font-medium transition-colors ${tab === 'general' ? 'bg-brand-600 text-white' : 'bg-[var(--color-surface)] text-[var(--color-text-2)] hover:text-[var(--color-text)]'}`}
+          className={`focus-ring px-4 py-1.5 text-sm font-medium transition-colors ${tab === 'general' ? 'bg-brand-600 text-white' : 'bg-[var(--color-surface)] text-[var(--color-text-2)] hover:text-[var(--color-text)]'}`}
         >
           General
         </button>
         <button
           onClick={() => setTab('red')}
-          className={`px-4 py-1.5 text-sm font-medium transition-colors ${tab === 'red' ? 'bg-brand-600 text-white' : 'bg-[var(--color-surface)] text-[var(--color-text-2)] hover:text-[var(--color-text)]'}`}
+          className={`focus-ring px-4 py-1.5 text-sm font-medium transition-colors ${tab === 'red' ? 'bg-brand-600 text-white' : 'bg-[var(--color-surface)] text-[var(--color-text-2)] hover:text-[var(--color-text)]'}`}
         >
           Red y Ruteo
         </button>
@@ -355,15 +355,15 @@ export default function CustomerDetailPage() {
       {tab === 'general' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Info del cliente */}
-        <div className={`${cardCls} space-y-4`}>
+        <Card className="p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">Información</h2>
             {!editMode ? (
               <button onClick={() => setEditMode(true)}
-                className="text-xs text-brand-400 hover:text-brand-300">Editar</button>
+                className="focus-ring text-xs text-brand-400 hover:text-brand-300">Editar</button>
             ) : (
               <button onClick={() => { setEditForm(customer); setEditMode(false) }}
-                className="text-xs text-[var(--color-muted)] hover:text-[var(--color-text)]">Cancelar</button>
+                className="focus-ring text-xs text-[var(--color-muted)] hover:text-[var(--color-text)]">Cancelar</button>
             )}
           </div>
 
@@ -425,61 +425,61 @@ export default function CustomerDetailPage() {
           ) : (
             <form onSubmit={saveInfo} className="space-y-3">
               <div>
-                <label className={labelCls}>Nombre</label>
-                <input className={inputCls} value={editForm.name ?? ''} onChange={e => setEditForm(f => ({...f, name: e.target.value}))} required />
+                <label htmlFor="edit-name" className={labelCls}>Nombre</label>
+                <input id="edit-name" className={inputCls} value={editForm.name ?? ''} onChange={e => setEditForm(f => ({...f, name: e.target.value}))} required />
               </div>
               <div>
-                <label className={labelCls}>Email</label>
-                <input type="email" className={inputCls} value={editForm.email ?? ''} onChange={e => setEditForm(f => ({...f, email: e.target.value}))} required />
+                <label htmlFor="edit-email" className={labelCls}>Email</label>
+                <input id="edit-email" type="email" className={inputCls} value={editForm.email ?? ''} onChange={e => setEditForm(f => ({...f, email: e.target.value}))} required />
               </div>
               <div>
-                <label className={labelCls}>Empresa</label>
-                <input className={inputCls} value={editForm.company ?? ''} onChange={e => setEditForm(f => ({...f, company: e.target.value}))} />
+                <label htmlFor="edit-company" className={labelCls}>Empresa</label>
+                <input id="edit-company" className={inputCls} value={editForm.company ?? ''} onChange={e => setEditForm(f => ({...f, company: e.target.value}))} />
               </div>
               <div>
-                <label className={labelCls}>Teléfono</label>
-                <input className={inputCls} value={editForm.phone ?? ''} onChange={e => setEditForm(f => ({...f, phone: e.target.value}))} />
+                <label htmlFor="edit-phone" className={labelCls}>Teléfono</label>
+                <input id="edit-phone" className={inputCls} value={editForm.phone ?? ''} onChange={e => setEditForm(f => ({...f, phone: e.target.value}))} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {/* 2 columnas OK incluso en mobile — son 2 inputs numéricos cortos */}
                 <div>
-                  <label className={labelCls}>CPS límite</label>
-                  <input type="number" className={inputCls} value={editForm.cpslimit ?? 2} onChange={e => setEditForm(f => ({...f, cpslimit: +e.target.value}))} />
+                  <label htmlFor="edit-cpslimit" className={labelCls}>CPS límite</label>
+                  <input id="edit-cpslimit" type="number" className={inputCls} value={editForm.cpslimit ?? 2} onChange={e => setEditForm(f => ({...f, cpslimit: +e.target.value}))} />
                 </div>
                 <div>
-                  <label className={labelCls}>Calls máx</label>
-                  <input type="number" className={inputCls} value={editForm.calllimit ?? 10} onChange={e => setEditForm(f => ({...f, calllimit: +e.target.value}))} />
+                  <label htmlFor="edit-calllimit" className={labelCls}>Calls máx</label>
+                  <input id="edit-calllimit" type="number" className={inputCls} value={editForm.calllimit ?? 10} onChange={e => setEditForm(f => ({...f, calllimit: +e.target.value}))} />
                 </div>
               </div>
               <div>
-                <label className={labelCls}>Plan de tarifas</label>
-                <select required className={inputCls} value={editForm.rate_plan_id ?? ''} onChange={e => setEditForm(f => ({...f, rate_plan_id: e.target.value ? +e.target.value : null}))}>
+                <label htmlFor="edit-rateplan" className={labelCls}>Plan de tarifas</label>
+                <select id="edit-rateplan" required className={inputCls} value={editForm.rate_plan_id ?? ''} onChange={e => setEditForm(f => ({...f, rate_plan_id: e.target.value ? +e.target.value : null}))}>
                   <option value="">Seleccionar plan...</option>
                   {ratePlans.map(rp => <option key={rp.id} value={rp.id}>{rp.name} ({rp.currency})</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Estado</label>
-                <select className={inputCls} value={editForm.status ?? 'active'} onChange={e => setEditForm(f => ({...f, status: e.target.value}))}>
+                <label htmlFor="edit-status" className={labelCls}>Estado</label>
+                <select id="edit-status" className={inputCls} value={editForm.status ?? 'active'} onChange={e => setEditForm(f => ({...f, status: e.target.value}))}>
                   {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Tipo de facturación</label>
-                <select className={inputCls} value={editForm.billing_type ?? 'prepago'} onChange={e => setEditForm(f => ({...f, billing_type: e.target.value}))}>
+                <label htmlFor="edit-billing" className={labelCls}>Tipo de facturación</label>
+                <select id="edit-billing" className={inputCls} value={editForm.billing_type ?? 'prepago'} onChange={e => setEditForm(f => ({...f, billing_type: e.target.value}))}>
                   <option value="prepago">Prepago</option>
                   <option value="postpago">Postpago</option>
                 </select>
               </div>
               <div>
-                <label className={labelCls}>Notas</label>
-                <textarea className={inputCls} rows={2} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({...f, notes: e.target.value}))} />
+                <label htmlFor="edit-notes" className={labelCls}>Notas</label>
+                <textarea id="edit-notes" className={inputCls} rows={2} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({...f, notes: e.target.value}))} />
               </div>
               <div className="space-y-2 pt-1">
                 <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Módulos del portal</p>
                 <div>
-                  <label className={labelCls}>Perfil de módulos</label>
-                  <select className={inputCls}
+                  <label htmlFor="edit-profile" className={labelCls}>Perfil de módulos</label>
+                  <select id="edit-profile" className={inputCls}
                     value={editForm.profile_id ?? ''}
                     onChange={e => setEditForm(f => ({...f, profile_id: e.target.value ? +e.target.value : null}))}>
                     <option value="">Personalizado (módulos manuales)</option>
@@ -493,7 +493,7 @@ export default function CustomerDetailPage() {
                 ) : (
                   <p className="text-xs text-[var(--color-text-2)]">
                     Los módulos habilitados los define el perfil — gestionalos desde{' '}
-                    <Link href="/profiles" className="underline hover:text-brand-400">Perfiles</Link>.
+                    <Link href="/profiles" className="focus-ring underline hover:text-brand-400">Perfiles</Link>.
                   </p>
                 )}
               </div>
@@ -513,17 +513,16 @@ export default function CustomerDetailPage() {
                 </div>
               )}
               <div className="flex gap-3 pt-1">
-                <button type="submit" disabled={saving}
-                  className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-                  <Save size={14} /> {saving ? 'Guardando...' : 'Guardar'}
-                </button>
+                <Button type="submit" disabled={saving} icon={<Save size={14} />}>
+                  {saving ? 'Guardando...' : 'Guardar'}
+                </Button>
               </div>
             </form>
           )}
-        </div>
+        </Card>
 
         {/* Balance */}
-        <div className={`${cardCls} space-y-4`}>
+        <Card className="p-5 space-y-4">
           <h2 className="font-semibold">Ajustar balance</h2>
           <p className="text-sm text-[var(--color-text-2)]">
             Balance actual: <Balance amount={customer.balance} className="font-semibold" />
@@ -535,20 +534,19 @@ export default function CustomerDetailPage() {
           )}
           <form onSubmit={adjustBalance} className="flex gap-3 items-end flex-wrap">
             <div className="flex-1 min-w-[10rem]">
-              <label className={labelCls}>Monto (+crédito / −débito)</label>
-              <input type="number" step="0.01" placeholder="ej: 50.00 o -10.00"
+              <label htmlFor="balance-amt" className={labelCls}>Monto (+crédito / −débito)</label>
+              <input id="balance-amt" type="number" step="0.01" placeholder="ej: 50.00 o -10.00"
                 value={balanceAmt} onChange={e => setBalanceAmt(e.target.value)} required
                 className={inputCls} />
             </div>
-            <button type="submit" disabled={adjustingBalance || !balanceAmt}
-              className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+            <Button type="submit" disabled={adjustingBalance || !balanceAmt}>
               {adjustingBalance ? 'Aplicando...' : 'Aplicar'}
-            </button>
+            </Button>
           </form>
-        </div>
+        </Card>
 
         {/* Historial de balance */}
-        <div className={`${cardCls} space-y-4 lg:col-span-2`}>
+        <Card className="p-5 space-y-4 lg:col-span-2">
           <div>
             <h2 className="font-semibold">Historial de balance</h2>
             <p className="text-xs text-[var(--color-muted)] mt-0.5">
@@ -563,7 +561,7 @@ export default function CustomerDetailPage() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm tabular-nums">
                   <thead>
                     <tr className="text-left text-xs text-[var(--color-text-2)] uppercase tracking-wider border-b border-[var(--color-border)]">
                       <th className="py-2 pr-4">Fecha</th>
@@ -581,7 +579,7 @@ export default function CustomerDetailPage() {
                           {new Date(tx.created_at).toLocaleString('es-PE')}
                         </td>
                         <td className="py-2 pr-4">{BALANCE_TX_LABEL[tx.type] ?? tx.type}</td>
-                        <td className={`py-2 pr-4 text-right font-mono ${parseFloat(tx.amount) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <td className={`py-2 pr-4 text-right font-mono tabular-nums ${parseFloat(tx.amount) >= 0 ? 'text-success' : 'text-danger'}`}>
                           {parseFloat(tx.amount) >= 0 ? '+' : ''}{parseFloat(tx.amount).toFixed(2)}
                         </td>
                         <td className="py-2 pr-4 text-right font-mono">{parseFloat(tx.balance_after).toFixed(2)}</td>
@@ -594,13 +592,13 @@ export default function CustomerDetailPage() {
               </div>
               {balanceTxMore && (
                 <button onClick={() => loadBalanceTx(false)} disabled={loadingBalanceTx}
-                  className="text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50">
+                  className="focus-ring text-sm text-brand-400 hover:text-brand-300 disabled:opacity-50">
                   {loadingBalanceTx ? 'Cargando...' : 'Cargar más'}
                 </button>
               )}
             </>
           )}
-        </div>
+        </Card>
       </div>
       )}
 
@@ -608,7 +606,7 @@ export default function CustomerDetailPage() {
       {tab === 'red' && (
       <>
       {/* Prefijos de campaña */}
-      <div className={`${cardCls} space-y-4`}>
+      <Card className="p-5 space-y-4">
         <div>
           <h2 className="font-semibold">Prefijos de campaña</h2>
           <p className="text-xs text-[var(--color-muted)] mt-0.5">
@@ -620,20 +618,19 @@ export default function CustomerDetailPage() {
         </div>
 
         <form onSubmit={addPrefix} className="flex gap-3 flex-wrap">
-          <input type="text" placeholder="Etiqueta — ej: Campaña Cobranzas"
+          <input type="text" placeholder="Etiqueta — ej: Campaña Cobranzas" aria-label="Etiqueta del prefijo de campaña"
             value={newPrefixLabel} onChange={e => setNewPrefixLabel(e.target.value)}
             className="flex-1 min-w-56 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
-          <button type="submit" disabled={addingPrefix}
-            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-            <Plus size={16} /> {addingPrefix ? 'Agregando...' : 'Agregar prefijo'}
-          </button>
+          <Button type="submit" disabled={addingPrefix} icon={<Plus size={16} />}>
+            {addingPrefix ? 'Agregando...' : 'Agregar prefijo'}
+          </Button>
         </form>
 
         {customer.prefixes.length === 0 ? (
           <p className="text-sm text-[var(--color-muted)] py-2">Sin prefijos de campaña — solo rutea por el principal.</p>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm tabular-nums">
               <thead>
                 <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)] bg-[var(--color-surface)]">
                   <th className="px-4 py-2 text-left">Prefijo</th>
@@ -649,6 +646,7 @@ export default function CustomerDetailPage() {
                     <td className="px-4 py-2.5 text-[var(--color-text-2)]">{p.label || '—'}</td>
                     <td className="px-4 py-2.5">
                       <select
+                        aria-label={`Grupo de ruteo del prefijo ${p.techprefix}`}
                         disabled={routingBusy === String(p.id)}
                         value={p.routing_group_id ?? ''}
                         onChange={e => setPrefixRoutingGroup(p.id, e.target.value)}
@@ -665,7 +663,7 @@ export default function CustomerDetailPage() {
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <button onClick={() => deletePrefix(p.id)} aria-label="Eliminar prefijo"
-                        className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
+                        className="focus-ring text-[var(--color-muted)] hover:text-danger transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </td>
@@ -675,7 +673,7 @@ export default function CustomerDetailPage() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
       </>
       )}
 
@@ -683,7 +681,7 @@ export default function CustomerDetailPage() {
       {tab === 'general' && (
       <>
       {/* Acceso al portal */}
-      <div className={`${cardCls} space-y-4`}>
+      <Card className="p-5 space-y-4">
         <div>
           <h2 className="font-semibold">Acceso al portal</h2>
           <p className="text-xs text-[var(--color-muted)] mt-0.5">
@@ -703,7 +701,7 @@ export default function CustomerDetailPage() {
                 <p className="text-xs text-[var(--color-muted)] truncate">{customer.portal_user.email}</p>
               </div>
               <button onClick={deletePortalUser} disabled={portalBusy}
-                className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-red-400 transition-colors disabled:opacity-50">
+                className="focus-ring flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-danger transition-colors disabled:opacity-50">
                 <UserX size={14} /> Eliminar acceso
               </button>
             </div>
@@ -711,45 +709,43 @@ export default function CustomerDetailPage() {
             {/* Cambiar contraseña */}
             <form onSubmit={resetPortalPassword} className="flex gap-3 items-end flex-wrap">
               <div className="flex-1 min-w-[10rem]">
-                <label className={labelCls}>Nueva contraseña</label>
-                <input type="password" minLength={6} placeholder="Mínimo 6 caracteres"
+                <label htmlFor="portal-reset-pass" className={labelCls}>Nueva contraseña</label>
+                <input id="portal-reset-pass" type="password" minLength={6} placeholder="Mínimo 6 caracteres"
                   value={newPass} onChange={e => setNewPass(e.target.value)} required
                   className={inputCls} />
               </div>
-              <button type="submit" disabled={portalBusy || !newPass}
-                className="flex items-center gap-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] hover:border-brand-500 text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
-                <KeyRound size={14} /> {portalBusy ? 'Cambiando...' : 'Cambiar contraseña'}
-              </button>
+              <Button type="submit" variant="secondary" disabled={portalBusy || !newPass} icon={<KeyRound size={14} />} className="bg-[var(--color-surface)]">
+                {portalBusy ? 'Cambiando...' : 'Cambiar contraseña'}
+              </Button>
             </form>
           </div>
         ) : (
           <form onSubmit={createPortalUser} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Nombre</label>
-                <input className={inputCls} placeholder="Nombre del contacto" required
+                <label htmlFor="portal-new-name" className={labelCls}>Nombre</label>
+                <input id="portal-new-name" className={inputCls} placeholder="Nombre del contacto" required
                   value={portalForm.name} onChange={e => setPortalForm(f => ({...f, name: e.target.value}))} />
               </div>
               <div>
-                <label className={labelCls}>Email (login)</label>
-                <input type="email" className={inputCls} placeholder="cliente@empresa.com" required
+                <label htmlFor="portal-new-email" className={labelCls}>Email (login)</label>
+                <input id="portal-new-email" type="email" className={inputCls} placeholder="cliente@empresa.com" required
                   value={portalForm.email} onChange={e => setPortalForm(f => ({...f, email: e.target.value}))} />
               </div>
             </div>
             <div className="flex gap-3 items-end flex-wrap">
               <div className="flex-1 min-w-[10rem]">
-                <label className={labelCls}>Contraseña inicial</label>
-                <input type="password" minLength={6} className={inputCls} placeholder="Mínimo 6 caracteres" required
+                <label htmlFor="portal-new-password" className={labelCls}>Contraseña inicial</label>
+                <input id="portal-new-password" type="password" minLength={6} className={inputCls} placeholder="Mínimo 6 caracteres" required
                   value={portalForm.password} onChange={e => setPortalForm(f => ({...f, password: e.target.value}))} />
               </div>
-              <button type="submit" disabled={portalBusy}
-                className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-                <UserPlus size={14} /> {portalBusy ? 'Creando...' : 'Crear acceso'}
-              </button>
+              <Button type="submit" disabled={portalBusy} icon={<UserPlus size={14} />}>
+                {portalBusy ? 'Creando...' : 'Crear acceso'}
+              </Button>
             </div>
           </form>
         )}
-      </div>
+      </Card>
       </>
       )}
 
@@ -760,7 +756,7 @@ export default function CustomerDetailPage() {
           habilitados. Habilitar/deshabilitar grupos y asignarle carriers se hace
           desde /carrier-groups (sección "Habilitar para un cliente" en el detalle
           de cada grupo) — ver problema 4 del pase de UI. */}
-      <div className={`${cardCls} space-y-3`}>
+      <Card className="p-5 space-y-3">
         <div>
           <h2 className="font-semibold">Grupo de ruteo</h2>
           <p className="text-xs text-[var(--color-muted)] mt-0.5">
@@ -768,15 +764,16 @@ export default function CustomerDetailPage() {
           </p>
         </div>
 
-        <label className={labelCls}>Grupo del prefijo principal ({customer.techprefix})</label>
+        <label htmlFor="routing-main-group" className={labelCls}>Grupo del prefijo principal ({customer.techprefix})</label>
         {customer.groups.length === 0 ? (
-          <p className="text-sm text-yellow-400">
+          <p className="text-sm text-warning">
             Este cliente todavía no tiene ningún grupo habilitado —{' '}
-            <Link href="/carrier-groups" className="underline hover:text-yellow-300">gestionalo desde Grupos de ruteo</Link>.
+            <Link href="/carrier-groups" className="focus-ring underline hover:text-warning/80">gestionalo desde Grupos de ruteo</Link>.
           </p>
         ) : (
           <>
             <select
+              id="routing-main-group"
               disabled={routingBusy === 'main'}
               value={customer.routing_group_id ?? ''}
               onChange={e => { if (e.target.value) setMainRoutingGroup(e.target.value) }}
@@ -790,13 +787,13 @@ export default function CustomerDetailPage() {
             </select>
             {customer.routing_group_id !== null && (
               <button type="button" onClick={cutMainRouting} disabled={routingBusy === 'main'}
-                className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50">
+                className="focus-ring text-xs text-danger hover:text-danger/80 disabled:opacity-50">
                 Cortar ruteo del cliente (deja de rutear llamadas)
               </button>
             )}
           </>
         )}
-      </div>
+      </Card>
       </>
       )}
 

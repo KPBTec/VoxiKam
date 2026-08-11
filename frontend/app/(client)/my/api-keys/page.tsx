@@ -1,5 +1,6 @@
 'use client'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import { StatusBadge } from '@/components/StatusBadge'
 import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiDelete } from '@/lib/api'
 import { Plus, Trash2, Copy, Check } from 'lucide-react'
@@ -10,7 +11,7 @@ interface ApiKey {
 }
 
 const cardCls  = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
-const inputCls = 'w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:border-brand-500'
+const inputCls = 'w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] focus-ring'
 const labelCls = 'block text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1'
 
 export default function ApiKeysPage() {
@@ -25,6 +26,7 @@ export default function ApiKeysPage() {
   const load = () =>
     apiGet('/my/api-keys').then(k => { setKeys(k); setError('') }).catch((e: any) => setError(e.message)).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
+  useEffect(() => { document.title = 'API Keys · VoxiKam' }, [])
 
   async function create(e: React.FormEvent) {
     e.preventDefault(); setCreating(true); setError(''); setCopied(false)
@@ -70,11 +72,11 @@ export default function ApiKeysPage() {
             <code className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-xs font-mono text-brand-400 overflow-x-auto">
               {newKey}
             </code>
-            <button onClick={copy} className="p-2 rounded-lg border border-[var(--color-border)] hover:border-brand-500 text-[var(--color-text-2)] hover:text-brand-400 transition-colors">
+            <button onClick={copy} aria-label="Copiar API key" className="focus-ring p-2 rounded-lg border border-[var(--color-border)] hover:border-brand-500 text-[var(--color-text-2)] hover:text-brand-400 transition-colors">
               {copied ? <Check size={15} /> : <Copy size={15} />}
             </button>
           </div>
-          <button onClick={() => setNewKey(null)} className="text-xs text-[var(--color-muted)] hover:text-[var(--color-text)]">
+          <button onClick={() => setNewKey(null)} className="focus-ring text-xs text-[var(--color-muted)] hover:text-[var(--color-text)]">
             Ya la copié, cerrar
           </button>
         </div>
@@ -82,12 +84,12 @@ export default function ApiKeysPage() {
 
       <form onSubmit={create} className={`${cardCls} p-5 flex gap-3 items-end`}>
         <div className="flex-1">
-          <label className={labelCls}>Nombre (para identificarla después)</label>
-          <input required className={inputCls} placeholder="ej: integración CRM"
+          <label htmlFor="api-key-label" className={labelCls}>Nombre (para identificarla después)</label>
+          <input id="api-key-label" required className={inputCls} placeholder="ej: integración CRM"
             value={label} onChange={e => setLabel(e.target.value)} />
         </div>
         <button type="submit" disabled={creating}
-          className="flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
+          className="focus-ring flex items-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm rounded-lg">
           <Plus size={15} /> {creating ? 'Creando…' : 'Nueva key'}
         </button>
       </form>
@@ -112,13 +114,13 @@ export default function ApiKeysPage() {
                 <td className="px-6 py-3 text-[var(--color-text-2)]">{new Date(k.created_at).toLocaleDateString()}</td>
                 <td className="px-6 py-3 text-[var(--color-text-2)]">{k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Nunca'}</td>
                 <td className="px-6 py-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${k.revoked ? 'bg-zinc-800 text-zinc-500' : 'bg-green-900/30 text-green-400'}`}>
+                  <StatusBadge variant={k.revoked ? 'muted' : 'success'}>
                     {k.revoked ? 'revocada' : 'activa'}
-                  </span>
+                  </StatusBadge>
                 </td>
                 <td className="px-6 py-3 text-right">
                   {!k.revoked && (
-                    <button onClick={() => revoke(k.id)} aria-label="Revocar" className="text-[var(--color-muted)] hover:text-red-400 transition-colors">
+                    <button onClick={() => revoke(k.id)} aria-label="Revocar" className="focus-ring text-[var(--color-muted)] hover:text-danger transition-colors">
                       <Trash2 size={14} />
                     </button>
                   )}

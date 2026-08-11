@@ -26,9 +26,10 @@ export default function ResellerDashboard() {
   useEffect(() => {
     apiGet('/reseller/dashboard').then(setData).catch((e: any) => setError(e.message || 'Error cargando el resumen')).finally(() => setLoading(false))
   }, [])
+  useEffect(() => { document.title = 'Reseller — Resumen · VoxiKam' }, [])
 
   if (loading) return <div className="p-8 text-center text-[var(--color-text-2)] text-sm">Cargando…</div>
-  if (error) return <div className="p-8 text-center text-red-400 text-sm">{error}</div>
+  if (error) return <div className="p-8 text-center text-danger text-sm">{error}</div>
 
   return (
     <div className="space-y-6">
@@ -39,7 +40,7 @@ export default function ResellerDashboard() {
 
       <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-5">
         <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Margen total del mes</p>
-        <p className="text-3xl font-bold text-green-400 mt-1">{money(data?.total_margin ?? 0)}</p>
+        <p className="text-3xl font-bold font-mono tabular-nums text-success mt-1">{money(data?.total_margin ?? 0)}</p>
       </div>
 
       <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl overflow-x-auto">
@@ -63,10 +64,10 @@ export default function ResellerDashboard() {
               {data.by_customer.map(r => (
                 <tr key={r.customer_id} className="hover:bg-white/2">
                   <td className="px-6 py-3 text-[var(--color-text)]">{r.customer_name}</td>
-                  <td className="px-6 py-3 text-right text-[var(--color-text)]">{r.calls}</td>
-                  <td className="px-6 py-3 text-right font-mono text-[var(--color-text)]">{money(r.revenue)}</td>
-                  <td className="px-6 py-3 text-right font-mono text-red-400">{money(r.cost)}</td>
-                  <td className="px-6 py-3 text-right font-mono text-green-400">{money(r.margin)}</td>
+                  <td className="px-6 py-3 text-right font-mono tabular-nums text-[var(--color-text)]">{r.calls}</td>
+                  <td className="px-6 py-3 text-right font-mono tabular-nums text-[var(--color-text)]">{money(r.revenue)}</td>
+                  <td className="px-6 py-3 text-right font-mono tabular-nums text-danger">{money(r.cost)}</td>
+                  <td className="px-6 py-3 text-right font-mono tabular-nums text-success">{money(r.margin)}</td>
                 </tr>
               ))}
             </tbody>

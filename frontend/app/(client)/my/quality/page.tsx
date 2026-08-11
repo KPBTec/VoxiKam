@@ -43,20 +43,24 @@ export default function MyQualityPage() {
   }
 
   useEffect(() => { load() }, [])
+  useEffect(() => { document.title = 'Calidad de tráfico · VoxiKam' }, [])
 
   return (
     <div className="space-y-5">
       {error && <ErrorBanner>{error}</ErrorBanner>}
       <div>
         <h1 className="text-xl font-semibold text-[var(--color-text)]">Calidad de tráfico</h1>
-        <p className="text-xs text-[var(--color-muted)] mt-0.5">ASR por hora · buzón · desglose de causas</p>
+        <p className="text-xs text-[var(--color-muted)] mt-0.5">
+          <span title="Answer-Seizure Ratio — porcentaje de llamadas que se contestan sobre el total de intentos" className="underline decoration-dotted cursor-help">ASR</span>
+          {' '}por hora · buzón · desglose de causas
+        </p>
       </div>
 
       {/* Filtro fecha */}
       <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4 flex gap-3 items-end">
         <div>
-          <label className="block text-xs text-[var(--color-text-2)] mb-1">Fecha</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          <label htmlFor="quality-date" className="block text-xs text-[var(--color-text-2)] mb-1">Fecha</label>
+          <input id="quality-date" type="date" value={date} onChange={e => setDate(e.target.value)}
             className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text)] focus-ring" />
         </div>
         <button onClick={load}
@@ -70,21 +74,21 @@ export default function MyQualityPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4">
             <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Total intentos</p>
-            <p className="text-3xl font-bold font-mono text-[var(--color-text)] mt-1">{num(totalDay.total)}</p>
+            <p className="text-3xl font-bold font-mono tabular-nums text-[var(--color-text)] mt-1">{num(totalDay.total)}</p>
           </div>
           <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4">
             <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Contestadas</p>
-            <p className="text-3xl font-bold font-mono text-success mt-1">{num(totalDay.answered)}</p>
+            <p className="text-3xl font-bold font-mono tabular-nums text-success mt-1">{num(totalDay.answered)}</p>
             <p className="text-xs text-[var(--color-muted)] mt-1">ASR del día: <AsrBadge asr={totalDay.asr} color={totalDay.asr_color} /></p>
           </div>
           <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4">
             <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Buzón / &lt;5s</p>
-            <p className="text-3xl font-bold font-mono text-warning mt-1">{num(totalDay.short_calls)}</p>
+            <p className="text-3xl font-bold font-mono tabular-nums text-warning mt-1">{num(totalDay.short_calls)}</p>
             <p className="text-xs text-[var(--color-muted)] mt-1">{pct(totalDay.short_pct)} del contestado</p>
           </div>
           <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-4">
             <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">No contestadas</p>
-            <p className="text-3xl font-bold font-mono text-danger mt-1">
+            <p className="text-3xl font-bold font-mono tabular-nums text-danger mt-1">
               {num((totalDay.c_487 || 0) + (totalDay.c_486 || 0) + (totalDay.c_404 || 0) + (totalDay.c_503 || 0) + (totalDay.c_other || 0))}
             </p>
             <p className="text-xs text-[var(--color-muted)] mt-1">{pct(100 - totalDay.asr)} del total</p>
@@ -119,15 +123,15 @@ export default function MyQualityPage() {
             <tbody className="divide-y divide-[var(--color-border)]">
               {rows.map((r, i) => (
                 <tr key={i} className="hover:bg-white/2">
-                  <td className="px-4 py-2 font-mono text-[var(--color-text-2)] font-medium">{r.ts_hour}</td>
-                  <td className="px-4 py-2 text-right font-mono text-[var(--color-text-2)]">{num(r.total)}</td>
-                  <td className="px-4 py-2 text-right font-mono text-success">{num(r.answered)}</td>
+                  <td className="px-4 py-2 font-mono tabular-nums text-[var(--color-text-2)] font-medium">{r.ts_hour}</td>
+                  <td className="px-4 py-2 text-right font-mono tabular-nums text-[var(--color-text-2)]">{num(r.total)}</td>
+                  <td className="px-4 py-2 text-right font-mono tabular-nums text-success">{num(r.answered)}</td>
                   <td className="px-4 py-2 text-right"><AsrBadge asr={r.asr} color={r.asr_color} /></td>
-                  <td className="px-4 py-2 text-right font-mono text-warning">{pct(r.short_pct)}</td>
-                  <td className="px-4 py-2 text-right font-mono text-[var(--color-text-2)]">{num(r.c_487)}</td>
-                  <td className="px-4 py-2 text-right font-mono text-[var(--color-text-2)]">{num(r.c_486)}</td>
-                  <td className="px-4 py-2 text-right font-mono text-warning">{num(r.c_404)}</td>
-                  <td className="px-4 py-2 text-right font-mono text-danger">{num(r.c_503)}</td>
+                  <td className="px-4 py-2 text-right font-mono tabular-nums text-warning">{pct(r.short_pct)}</td>
+                  <td className="px-4 py-2 text-right font-mono tabular-nums text-[var(--color-text-2)]">{num(r.c_487)}</td>
+                  <td className="px-4 py-2 text-right font-mono tabular-nums text-[var(--color-text-2)]">{num(r.c_486)}</td>
+                  <td className="px-4 py-2 text-right font-mono tabular-nums text-warning">{num(r.c_404)}</td>
+                  <td className="px-4 py-2 text-right font-mono tabular-nums text-danger">{num(r.c_503)}</td>
                 </tr>
               ))}
             </tbody>

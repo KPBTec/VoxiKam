@@ -3,6 +3,8 @@ import { Fragment, useEffect, useState } from 'react'
 import { apiGet } from '@/lib/api'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { ClickableRow } from '@/components/ClickableRow'
+import { Button } from '@/components/Button'
+import { Card } from '@/components/Card'
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -39,6 +41,8 @@ function groupBy(rows: any[], key: string): Map<string, any[]> {
 }
 
 export default function ReportsPage() {
+  useEffect(() => { document.title = 'Consumos · VoxiKam' }, [])
+
   const today = new Date().toISOString().slice(0, 10)
   const month = today.slice(0, 7)
 
@@ -107,7 +111,6 @@ export default function ReportsPage() {
   const byProvider = rows ? groupBy(rows, 'provider_name') : null
   const totals     = rows ? sumRows(rows) : null
 
-  const card  = 'bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl'
   const th    = 'px-4 py-2.5 text-xs text-[var(--color-text-2)] uppercase tracking-wider font-medium'
   const td    = 'px-4 py-3 text-sm'
   const tfoot = 'px-4 py-2.5 text-sm font-semibold'
@@ -123,8 +126,8 @@ export default function ReportsPage() {
   ) {
     const entries = Array.from(grouped.entries())
     return (
-      <div className={`${card} overflow-x-auto`}>
-        <table className="w-full text-sm">
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm tabular-nums">
           <thead>
             <tr className="text-left border-b border-[var(--color-border)] bg-[var(--color-surface)]">
               <th className={`${th} text-left`}>{NAME_LABELS[nameKey]}</th>
@@ -160,9 +163,9 @@ export default function ReportsPage() {
                     <td className={`${td} text-right font-mono text-[var(--color-text-2)]`}>
                       {mins(s.sessiontime / 60)}
                     </td>
-                    <td className={`${td} text-right font-mono text-red-400`}>{money(s.buycost)}</td>
+                    <td className={`${td} text-right font-mono text-danger`}>{money(s.buycost)}</td>
                     <td className={`${td} text-right font-mono text-brand-400`}>{money(s.sessionbill)}</td>
-                    <td className={`${td} text-right font-mono text-green-400`}>{money(s.lucro)}</td>
+                    <td className={`${td} text-right font-mono text-success`}>{money(s.lucro)}</td>
                     <td className={`${td} text-right font-mono`}>{pct(asr)}</td>
                   </ClickableRow>
 
@@ -176,9 +179,9 @@ export default function ReportsPage() {
                       <td className={`${td} text-right font-mono text-[var(--color-text-2)]`}>
                         {mins(r.sessiontime / 60)}
                       </td>
-                      <td className={`${td} text-right font-mono text-red-400/70`}>{money(r.buycost)}</td>
+                      <td className={`${td} text-right font-mono text-danger/70`}>{money(r.buycost)}</td>
                       <td className={`${td} text-right font-mono text-brand-400/70`}>{money(r.sessionbill)}</td>
-                      <td className={`${td} text-right font-mono text-green-400/70`}>{money(r.lucro)}</td>
+                      <td className={`${td} text-right font-mono text-success/70`}>{money(r.lucro)}</td>
                       <td className={`${td} text-right font-mono text-[var(--color-text-2)]`}>{pct(r.asr)}</td>
                     </tr>
                   ))}
@@ -194,15 +197,15 @@ export default function ReportsPage() {
                 </td>
                 <td className={`${tfoot} text-right font-mono`}>{totals.nbcall}</td>
                 <td className={`${tfoot} text-right font-mono`}>{mins(totals.sessiontime / 60)}</td>
-                <td className={`${tfoot} text-right font-mono text-red-400`}>{money(totals.buycost)}</td>
+                <td className={`${tfoot} text-right font-mono text-danger`}>{money(totals.buycost)}</td>
                 <td className={`${tfoot} text-right font-mono text-brand-400`}>{money(totals.sessionbill)}</td>
-                <td className={`${tfoot} text-right font-mono text-green-400`}>{money(totals.lucro)}</td>
+                <td className={`${tfoot} text-right font-mono text-success`}>{money(totals.lucro)}</td>
                 <td className={tfoot} />
               </tr>
             </tfoot>
           )}
         </table>
-      </div>
+      </Card>
     )
   }
 
@@ -213,12 +216,12 @@ export default function ReportsPage() {
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {/* Barra de controles */}
-      <div className={`${card} p-4 flex items-center gap-3 flex-wrap`}>
+      <Card className="p-4 flex items-center gap-3 flex-wrap">
         {/* Día / Mes */}
         <div className="flex rounded-lg overflow-hidden border border-[var(--color-border)]">
           {(['day', 'month'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-1.5 text-sm transition-colors ${
+              className={`focus-ring px-4 py-1.5 text-sm transition-colors ${
                 tab === t
                   ? 'bg-brand-600 text-white'
                   : 'bg-[var(--color-surface)] text-[var(--color-text-2)] hover:text-[var(--color-text)]'
@@ -229,19 +232,19 @@ export default function ReportsPage() {
         </div>
 
         {tab === 'day' ? (
-          <input type="date" value={date} min={`${minMonth}-01`} max={today}
+          <input type="date" aria-label="Fecha del reporte" value={date} min={`${minMonth}-01`} max={today}
             onChange={e => setDate(e.target.value)}
-            className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand-500" />
+            className="focus-ring bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand-500" />
         ) : (
           <div className="flex gap-2">
-            <select value={monthNumSel} onChange={e => handleMonthNum(Number(e.target.value))}
-              className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand-500 cursor-pointer">
+            <select aria-label="Mes del reporte" value={monthNumSel} onChange={e => handleMonthNum(Number(e.target.value))}
+              className="focus-ring bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand-500 cursor-pointer">
               {MONTHS_FOR_YEAR.map(({ name, num }) => (
                 <option key={num} value={num}>{name}</option>
               ))}
             </select>
-            <select value={yearSel} onChange={e => handleYear(Number(e.target.value))}
-              className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand-500 cursor-pointer">
+            <select aria-label="Año del reporte" value={yearSel} onChange={e => handleYear(Number(e.target.value))}
+              className="focus-ring bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-brand-500 cursor-pointer">
               {YEARS.map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
@@ -249,10 +252,9 @@ export default function ReportsPage() {
           </div>
         )}
 
-        <button onClick={generate} disabled={loading}
-          className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-sm px-5 py-1.5 rounded-lg transition-colors font-medium">
+        <Button onClick={generate} disabled={loading}>
           {loading ? 'Generando…' : 'Actualizar'}
-        </button>
+        </Button>
 
         {/* Vista: por cliente / carrier / proveedor — quién generó el consumo.
             Agrupar por destino (país/grupo de prefijos/prefijo) vive en su
@@ -265,7 +267,7 @@ export default function ReportsPage() {
             ['provider', 'Por proveedor'],
           ] as const).map(([v, label]) => (
             <button key={v} onClick={() => { setView(v); setExpanded(null) }}
-              className={`px-4 py-1.5 text-sm transition-colors ${
+              className={`focus-ring px-4 py-1.5 text-sm transition-colors ${
                 view === v
                   ? 'bg-brand-600/20 text-brand-400 border-b-2 border-brand-500'
                   : 'bg-[var(--color-surface)] text-[var(--color-text-2)] hover:text-[var(--color-text)]'
@@ -274,18 +276,18 @@ export default function ReportsPage() {
             </button>
           ))}
         </div>
-      </div>
+      </Card>
 
       {loading && (
-        <div className={`${card} p-14 text-center`}>
+        <Card className="p-14 text-center">
           <p className="text-[var(--color-muted)] text-sm">Generando reporte…</p>
-        </div>
+        </Card>
       )}
 
       {!loading && rows !== null && rows.length === 0 && (
-        <div className={`${card} p-14 text-center`}>
+        <Card className="p-14 text-center">
           <p className="text-[var(--color-muted)] text-sm">Sin datos para el período seleccionado.</p>
-        </div>
+        </Card>
       )}
 
       {/* Resultados */}

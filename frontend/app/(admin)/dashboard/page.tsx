@@ -7,20 +7,21 @@ import { Gauge } from "@/components/Gauge";
 import { groupByCustomer } from "@/lib/liveGrouping";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { LiveIndicator } from "@/components/LiveIndicator";
+import { Card } from "@/components/Card";
 
 function KpiCard({ label, value, sub, icon: Icon, color }:
   { label: string; value: string; sub?: string; icon: React.ElementType; color: string }) {
   return (
-    <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-6">
+    <Card className="riveted p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs text-[var(--color-text-2)] uppercase tracking-wider mb-1">{label}</p>
-          <p className="text-2xl font-bold text-[var(--color-text)]">{value}</p>
+          <p className="text-2xl font-bold text-[var(--color-text)] font-mono tabular-nums">{value}</p>
           {sub && <p className="text-xs text-[var(--color-muted)] mt-1">{sub}</p>}
         </div>
         <div className={`p-2.5 rounded-lg ${color}`}><Icon size={20} /></div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -39,6 +40,8 @@ interface TsData {
 }
 
 export default function Dashboard() {
+  useEffect(() => { document.title = "Dashboard · VoxiKam"; }, []);
+
   const [data,  setData]  = useState<any>(null);
   const [live,  setLive]  = useState<any>(null);
   const [ts,    setTs]    = useState<TsData | null>(null);
@@ -91,7 +94,7 @@ export default function Dashboard() {
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {/* Sistema — CPU | RAM | Disco | Red  (siempre arriba de todo) */}
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-6">
+      <Card className="p-6">
         <div className="flex flex-wrap items-center gap-x-10 gap-y-6">
           <Gauge value={sys?.cpu_percent ?? 0} max={100} label="CPU" unit="%" size={128} />
           <Gauge
@@ -107,19 +110,19 @@ export default function Dashboard() {
 
           {/* Red — interfaces, en tabla compacta en vez de columnas apiladas */}
           <div className="flex-1 min-w-[220px] pl-8 border-l border-[var(--color-border)] self-stretch flex flex-col justify-center">
-            <p className="text-xs text-zinc-500 uppercase tracking-wider font-medium mb-3">Red — acumulado desde boot</p>
+            <p className="text-xs text-[var(--color-muted)] uppercase tracking-wider font-medium mb-3">Red — acumulado desde boot</p>
             {(sys?.net ?? []).length > 0 ? (
-              <table className="text-xs w-full">
+              <table className="text-xs w-full tabular-nums">
                 <tbody>
                   {(sys?.net ?? []).map((n: any) => (
                     <tr key={n.iface}>
-                      <td className="font-mono text-zinc-300 py-1 pr-4">{n.iface}</td>
+                      <td className="font-mono text-[var(--color-text-2)] py-1 pr-4">{n.iface}</td>
                       <td className="py-1 pr-4 text-right">
-                        <span className="text-zinc-500">↓ </span>
-                        <span className="text-green-400 font-mono">{n.rx_str}</span>
+                        <span className="text-[var(--color-muted)]">↓ </span>
+                        <span className="text-success font-mono">{n.rx_str}</span>
                       </td>
                       <td className="py-1 text-right">
-                        <span className="text-zinc-500">↑ </span>
+                        <span className="text-[var(--color-muted)]">↑ </span>
                         <span className="text-brand-400 font-mono">{n.tx_str}</span>
                       </td>
                     </tr>
@@ -127,15 +130,15 @@ export default function Dashboard() {
                 </tbody>
               </table>
             ) : (
-              <span className="text-xs text-zinc-600">—</span>
+              <span className="text-xs text-[var(--color-muted)]">—</span>
             )}
           </div>
         </div>
-      </div>
+      </Card>
 
       {live && live?.kamailio?.available === false && (
-        <div className="bg-yellow-950/40 border border-yellow-800/50 rounded-xl px-5 py-3 text-sm text-yellow-300">
-          ⚠ El snapshot de llamadas activas de Kamailio no se actualiza — "Activas ahora" no es confiable ahora mismo. Ver detalle en <a href="/live" className="underline">Live</a>.
+        <div className="bg-warning/10 border border-warning/30 rounded-xl px-5 py-3 text-sm text-warning">
+          ⚠ El snapshot de llamadas activas de Kamailio no se actualiza — "Activas ahora" no es confiable ahora mismo. Ver detalle en <a href="/live" className="underline focus-ring">Live</a>.
         </div>
       )}
 
@@ -144,11 +147,11 @@ export default function Dashboard() {
         <KpiCard label="Activas ahora"    value={loading ? "···" : fmtN(live?.total)}            icon={Activity}    color="bg-brand-600/20 text-brand-400" />
         <KpiCard label="Llamadas hoy"     value={loading ? "···" : fmtN(data?.calls_today)}      icon={PhoneCall}   color="bg-success/15 text-success" />
         <KpiCard label="Facturado hoy"    value={loading ? "···" : fmt(data?.sessionbill_today)} icon={DollarSign}  color="bg-warning/15 text-warning" />
-        <KpiCard label="Ganancia hoy"     value={loading ? "···" : fmt(data?.lucro_today)}       icon={TrendingUp}  color="bg-purple-900/30 text-purple-400" />
+        <KpiCard label="Ganancia hoy"     value={loading ? "···" : fmt(data?.lucro_today)}       icon={TrendingUp}  color="bg-brand-500/15 text-brand-400" />
       </div>
 
       {/* Panel de timeseries */}
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl p-5">
+      <Card padded>
 
         {/* Controles */}
         <div className="flex items-center justify-between mb-5">
@@ -156,10 +159,10 @@ export default function Dashboard() {
           <div className="flex gap-1">
             {RANGES.map(r => (
               <button key={r.value} onClick={() => setRange(r.value)}
-                className={`px-3 py-1 rounded text-xs font-mono font-medium transition-colors ${
+                className={`focus-ring px-3 py-1 rounded text-xs font-mono font-medium transition-colors ${
                   range === r.value
                     ? "bg-brand-600 text-white"
-                    : "bg-zinc-800 text-zinc-400 hover:text-white"
+                    : "bg-[var(--color-card-2)] text-[var(--color-muted)] hover:text-[var(--color-text)]"
                 }`}>
                 {r.label}
               </button>
@@ -170,7 +173,7 @@ export default function Dashboard() {
         {/* Tres charts lado a lado */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
           <div>
-            <p className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Por Proveedor</p>
+            <p className="text-xs font-medium text-[var(--color-muted)] mb-2 uppercase tracking-wider">Por Proveedor</p>
             <CallsChart
               labels={ts?.labels ?? []}
               series={ts?.by_provider ?? []}
@@ -178,7 +181,7 @@ export default function Dashboard() {
             />
           </div>
           <div>
-            <p className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Por Carrier</p>
+            <p className="text-xs font-medium text-[var(--color-muted)] mb-2 uppercase tracking-wider">Por Carrier</p>
             <CallsChart
               labels={ts?.labels ?? []}
               series={ts?.by_carrier ?? []}
@@ -186,7 +189,7 @@ export default function Dashboard() {
             />
           </div>
           <div>
-            <p className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Por Cliente</p>
+            <p className="text-xs font-medium text-[var(--color-muted)] mb-2 uppercase tracking-wider">Por Cliente</p>
             <CallsChart
               labels={ts?.labels ?? []}
               series={ts?.by_customer ?? []}
@@ -195,7 +198,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-      </div>
+      </Card>
 
       {/* Resumen compacto por cliente — el detalle completo (contestadas/timbrando)
           ya vive en Live; acá solo un vistazo rápido, no una tabla duplicada */}
@@ -203,7 +206,7 @@ export default function Dashboard() {
         const activeClients = groupByCustomer(live?.by_customer ?? []).filter((r: any) => r.active_calls > 0);
         if (!activeClients.length) return null;
         return (
-          <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl px-5 py-4">
+          <Card className="px-5 py-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <LiveIndicator
@@ -211,18 +214,18 @@ export default function Dashboard() {
                   className="text-sm text-[var(--color-text-2)]"
                 />
               </div>
-              <a href="/live" className="text-xs text-brand-400 hover:text-brand-300">Ver detalle en Live →</a>
+              <a href="/live" className="focus-ring text-xs text-brand-400 hover:text-brand-300">Ver detalle en Live →</a>
             </div>
             <div className="flex flex-wrap gap-2">
               {activeClients.map((r: any) => (
                 <span key={r.customer_id ?? r.customer_name}
                   className="flex items-center gap-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full pl-3 pr-2 py-1 text-xs">
                   <span className="text-[var(--color-text-2)]">{r.customer_name}</span>
-                  <span className="bg-brand-600/20 text-brand-400 px-1.5 py-0.5 rounded-full font-mono">{r.active_calls}</span>
+                  <span className="bg-brand-600/20 text-brand-400 px-1.5 py-0.5 rounded-full font-mono tabular-nums">{r.active_calls}</span>
                 </span>
               ))}
             </div>
-          </div>
+          </Card>
         );
       })()}
     </div>

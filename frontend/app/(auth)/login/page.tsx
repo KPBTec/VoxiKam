@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
@@ -11,6 +12,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
+
+  useEffect(() => { document.title = "Iniciar sesión · VoxiKam"; }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -51,7 +54,7 @@ export default function LoginPage() {
       </div>
 
       <div
-        className="w-full max-w-sm rounded-2xl p-8 space-y-5"
+        className="riveted w-full max-w-sm p-8 space-y-5"
         style={{
           background: "var(--color-card)",
           border: "1px solid var(--color-border)",
@@ -59,7 +62,7 @@ export default function LoginPage() {
         }}
       >
         <div>
-          <h1 className="text-lg font-semibold" style={{ color: "var(--color-text)" }}>
+          <h1 className="nameplate text-lg" style={{ color: "var(--color-text)" }}>
             Iniciar sesión
           </h1>
           <p className="text-xs mt-0.5" style={{ color: "var(--color-text-2)" }}>
@@ -94,14 +97,12 @@ export default function LoginPage() {
               type="email" required value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="admin@empresa.com"
-              className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all"
+              className="focus-ring w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all"
               style={{
                 background: "var(--color-surface)",
                 border: "1px solid var(--color-border)",
                 color: "var(--color-text)",
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = "var(--color-brand-500)")}
-              onBlur={e  => (e.currentTarget.style.borderColor = "var(--color-border)")}
             />
           </div>
 
@@ -117,21 +118,19 @@ export default function LoginPage() {
               id="login-password"
               type="password" required value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all"
+              className="focus-ring w-full rounded-lg px-4 py-2.5 text-sm outline-none transition-all"
               style={{
                 background: "var(--color-surface)",
                 border: "1px solid var(--color-border)",
                 color: "var(--color-text)",
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = "var(--color-brand-500)")}
-              onBlur={e  => (e.currentTarget.style.borderColor = "var(--color-border)")}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-all mt-2 cursor-pointer"
+            className="focus-ring w-full rounded-lg py-2.5 text-sm font-semibold text-white transition-all mt-2 cursor-pointer"
             style={{
               background: loading ? "var(--color-brand-700)" : "var(--color-brand-600)",
               boxShadow: loading ? "none" : "0 0 24px rgba(221,139,61,.3)",
@@ -141,9 +140,13 @@ export default function LoginPage() {
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
+
+        <Link href="/forgot-password" className="focus-ring block text-center text-xs rounded-lg py-1" style={{ color: "var(--color-text-2)" }}>
+          ¿Olvidaste tu contraseña?
+        </Link>
       </div>
 
-      <p className="mt-5 text-[11px]" style={{ color: "var(--color-muted)", opacity: 0.45 }}>
+      <p className="mt-5 text-[11px]" style={{ color: "var(--color-muted)" }}>
         SIP Class 4 · Billing &amp; Traffic Control
       </p>
     </div>

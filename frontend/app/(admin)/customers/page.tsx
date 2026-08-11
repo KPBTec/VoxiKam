@@ -5,8 +5,12 @@ import { Plus, ChevronRight, Building2 } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge, customerStatusVariant } from "@/components/StatusBadge";
 import { Balance } from "@/components/Balance";
+import { Button } from "@/components/Button";
+import { Card } from "@/components/Card";
 
 export default function CustomersPage() {
+  useEffect(() => { document.title = "Clientes · VoxiKam"; }, []);
+
   const [rows, setRows]         = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
@@ -39,7 +43,7 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">Clientes</h1>
-          <Link href="/resellers" className="flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-brand-400 transition-colors mt-1">
+          <Link href="/resellers" className="focus-ring flex items-center gap-1.5 text-xs text-[var(--color-muted)] hover:text-brand-400 transition-colors mt-1">
             <Building2 size={13} /> Los resellers tienen su propia lista →
           </Link>
         </div>
@@ -49,10 +53,7 @@ export default function CustomersPage() {
             <input type="checkbox" checked={showDeleted} onChange={e => setShowDeleted(e.target.checked)} />
             Mostrar desactivados
           </label>
-          <button onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-            <Plus size={16} /> Nuevo cliente
-          </button>
+          <Button onClick={() => setShowForm(true)} icon={<Plus size={16} />}>Nuevo cliente</Button>
         </div>
       </div>
 
@@ -67,35 +68,35 @@ export default function CustomersPage() {
               ["Prefijo", "techprefix", "text", "Autogenerado si se deja vacío"],
             ].map(([label, key, type, placeholder]) => (
               <div key={key} className="space-y-1">
-                <label className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">{label}</label>
-                <input type={type} placeholder={placeholder} required={key !== "email" && key !== "techprefix"}
+                <label htmlFor={`customer-new-${key}`} className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">{label}</label>
+                <input id={`customer-new-${key}`} type={type} placeholder={placeholder} required={key !== "email" && key !== "techprefix"}
                   value={(form as any)[key]}
                   onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
+                  className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
               </div>
             ))}
             <div className="space-y-1">
-              <label className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">CPS límite</label>
-              <input type="number" value={form.cpslimit}
+              <label htmlFor="customer-new-cpslimit" className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">CPS límite</label>
+              <input id="customer-new-cpslimit" type="number" value={form.cpslimit}
                 onChange={e => setForm(f => ({ ...f, cpslimit: +e.target.value }))}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
+                className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Calls simultáneas</label>
-              <input type="number" value={form.calllimit}
+              <label htmlFor="customer-new-calllimit" className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Calls simultáneas</label>
+              <input id="customer-new-calllimit" type="number" value={form.calllimit}
                 onChange={e => setForm(f => ({ ...f, calllimit: +e.target.value }))}
-                className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
+                className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Plan de tarifas</label>
+              <label htmlFor="customer-new-rate_plan_id" className="text-xs text-[var(--color-text-2)] uppercase tracking-wider">Plan de tarifas</label>
               {ratePlans.length === 0 ? (
-                <p className="text-xs text-yellow-500 py-2">
-                  No hay ningún plan creado todavía — <Link href="/rates" className="underline">creá uno primero en Tarifas</Link>.
+                <p className="text-xs text-warning py-2">
+                  No hay ningún plan creado todavía — <Link href="/rates" className="underline focus-ring">creá uno primero en Tarifas</Link>.
                 </p>
               ) : (
-                <select required value={form.rate_plan_id}
+                <select id="customer-new-rate_plan_id" required value={form.rate_plan_id}
                   onChange={e => setForm(f => ({ ...f, rate_plan_id: e.target.value }))}
-                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
+                  className="focus-ring w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-500">
                   <option value="">Seleccionar plan...</option>
                   {ratePlans.map(rp => <option key={rp.id} value={rp.id}>{rp.name} ({rp.currency})</option>)}
                 </select>
@@ -108,20 +109,18 @@ export default function CustomersPage() {
             Crear como reseller
           </label>
           <div className="flex gap-3">
-            <button type="submit" disabled={saving}
-              className="bg-brand-600 hover:bg-brand-500 text-white text-sm px-4 py-2 rounded-lg transition-colors disabled:opacity-50">
+            <Button type="submit" disabled={saving}>
               {saving ? "Guardando..." : "Crear cliente"}
-            </button>
-            <button type="button" onClick={() => setShowForm(false)}
-              className="text-sm text-[var(--color-muted)] hover:text-[var(--color-text)] px-4 py-2">
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>
               Cancelar
-            </button>
+            </Button>
           </div>
         </form>
       )}
 
-      <div className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-xl overflow-x-auto">
-        <table className="w-full text-sm">
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm tabular-nums">
           <thead>
             <tr className="text-[var(--color-text-2)] text-xs uppercase border-b border-[var(--color-border)]">
               <th className="px-6 py-3 text-left">Nombre</th>
@@ -140,15 +139,15 @@ export default function CustomersPage() {
                 <td className="px-6 py-3 font-medium">{r.name}</td>
                 <td className="px-6 py-3 text-[var(--color-text-2)]">{r.email}</td>
                 <td className="px-6 py-3 text-center font-mono text-brand-400">{r.techprefix}</td>
-                <td className="px-6 py-3 text-center">{r.cpslimit}</td>
-                <td className="px-6 py-3 text-center">{r.calllimit}</td>
+                <td className="px-6 py-3 text-center font-mono">{r.cpslimit}</td>
+                <td className="px-6 py-3 text-center font-mono">{r.calllimit}</td>
                 <td className="px-6 py-3 text-center"><Balance amount={r.balance} /></td>
                 <td className="px-6 py-3 text-center">
                   <StatusBadge variant={customerStatusVariant(r.status)}>{r.status}</StatusBadge>
                 </td>
                 <td className="px-6 py-3 text-right">
                   <Link href={`/customers/${r.id}`} aria-label="Ver detalle"
-                    className="text-[var(--color-muted)] hover:text-brand-400 transition-colors">
+                    className="focus-ring inline-flex text-[var(--color-muted)] hover:text-brand-400 transition-colors">
                     <ChevronRight size={16} />
                   </Link>
                 </td>
@@ -156,7 +155,7 @@ export default function CustomersPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }

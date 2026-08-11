@@ -9,6 +9,21 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.58.0 — 2026-08-11
+
+Resultado de una auditoría independiente de experiencia de usuario y diseño visual, tanto del panel de administrador como del portal de cliente/reseller.
+
+- Corregido (importante): en el portal de cliente, la descarga del PDF de una factura no funcionaba — apuntaba a una ruta solo para administradores. Ahora cada cliente puede descargar sus propias facturas correctamente.
+- Corregido: la moneda mostrada en facturas y balance ahora refleja la moneda real configurada (antes se mostraba siempre en soles, incluso para cuentas en otra moneda).
+- Nuevo: **recuperar contraseña** — tanto en el panel admin como en el portal cliente, ahora se puede solicitar un link de recuperación por correo desde la pantalla de login, y cambiar la contraseña estando logueado desde "Mi cuenta".
+- Mejorado: ajustar el saldo de un sub-cliente (panel reseller) ahora muestra una confirmación con el saldo antes y después de aplicar el cambio, evitando ajustes accidentales.
+- Mejorado: accesibilidad de teclado y lectores de pantalla en formularios de todo el panel — etiquetas correctamente asociadas a sus campos, indicadores de foco visibles, y títulos de página distinguibles en las pestañas del navegador.
+- Mejorado: consistencia visual — colores de estado, tablas numéricas y componentes reutilizables aplicados de forma pareja en todo el panel.
+- Mejorado: textos de ayuda agregados en pantallas de calidad de llamadas y tarifas propias del reseller; el aviso de saldo agotado ahora indica qué hacer.
+- Mejorado: formularios del panel reseller ahora se ven correctamente en pantallas de celular.
+
+---
+
 ## v2.57.5 — 2026-08-10
 
 - Nuevo: la frecuencia con la que se actualiza el snapshot de llamadas en vivo (4, 8 o 12 segundos) ahora se puede cambiar directamente desde el panel "Llamadas en curso", sin necesidad de actualizar el sistema.

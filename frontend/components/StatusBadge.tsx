@@ -136,6 +136,12 @@ export function draftStatusVariant(status: string): BadgeVariant {
   switch (status) {
     case 'draft':     return 'warning'
     case 'published': return 'success'
-    default:           return 'muted' // discarded / desconocido
+    default:          return 'muted' // discarded / desconocido
   }
+}
+
+/** Estado de carriers (active/inactive) — antes carriers/page.tsx y
+ * carriers/[id]/page.tsx armaban este pill a mano con bg-green-x / bg-zinc-x. */
+export function carrierStatusVariant(status: string): BadgeVariant {
+  return status === 'active' ? 'success' : 'muted'
 }
