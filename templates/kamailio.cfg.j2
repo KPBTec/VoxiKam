@@ -214,6 +214,19 @@ modparam("dialog", "db_url", "mysql://{{ db_user }}:{{ db_pass }}@127.0.0.1:{{ d
 modparam("dialog", "db_mode", 0)
 modparam("dialog", "enable_stats", 1)
 modparam("dialog", "hash_size", 4096)
+# default_timeout — techo de seguridad para diálogos que Kamailio nunca ve
+# terminar del todo (ej: relay de BYE sin respuesta final del otro lado, ver
+# CHANGELOG). Sin este modparam quedaba en el default de Kamailio (43200s =
+# 12h) — encontrado en producción: un diálogo con BYE ya visto (dlg_var
+# bye_seen=1, hangup_cause ya en el CDR) que Kamailio siguió reportando como
+# activo 7+ horas después, hasta que este mismo límite lo forzó a cerrar.
+# Verificado contra CDRs reales de producción antes de bajarlo: CERO llamadas
+# contestadas duraron entre 1h y 7h en todo el historial — el único cluster
+# ahí arriba son 5 CDRs pegados a centímetros de este mismo límite (43199-
+# 43204s), o sea más casos de este bug, no conversaciones reales. 4800s
+# (1h20min) da margen de sobra sobre cualquier llamada real vista, y si este
+# bug vuelve a pasar, se autolimpia en 80 minutos en vez de 12 horas.
+modparam("dialog", "default_timeout", 4800)
 
 ####### Ruta principal #######
 

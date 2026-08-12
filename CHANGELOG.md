@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.58.7 — 2026-08-12 — requiere actualizar con `install.sh --upgrade` (reinicia Kamailio)
+
+- Corregido: en casos raros, una llamada que ya terminó podía seguir contando como "activa" en Live/Dashboard hasta 12 horas. Ahora se autolimpia en 80 minutos como máximo.
+
+---
+
 ## v2.58.6 — 2026-08-12
 
 - Corregido: los switches de encender/apagar (Alertas de balance, Webhooks, Políticas de desconexión, Sincronización externa, Facturas) tenían el círculo desalineado al estar encendidos, y en tres de esas pantallas tocar el switch recargaba toda la página. Ahora cambian al instante, sin parpadeo.
