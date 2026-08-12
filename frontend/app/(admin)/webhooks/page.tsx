@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api'
 import { Plus, Trash2, RefreshCw, Webhook } from 'lucide-react'
+import { Toggle } from '@/components/Toggle'
 
 interface WebhookRow {
   id: number
@@ -60,9 +61,16 @@ export default function WebhooksPage() {
     } finally { setCreating(false) }
   }
 
+  // Optimista — antes recargaba TODA la lista con un setLoading(true) de
+  // por medio, reemplazando la página entera por "Cargando..." en cada click.
   async function toggle(h: WebhookRow) {
-    await apiPut(`/admin/webhooks/${h.id}`, { url: h.url, event: h.event, enabled: !h.enabled })
-    load()
+    setHooks(hs => hs.map(x => x.id === h.id ? { ...x, enabled: !x.enabled } : x))
+    try {
+      await apiPut(`/admin/webhooks/${h.id}`, { url: h.url, event: h.event, enabled: !h.enabled })
+    } catch (e: any) {
+      setHooks(hs => hs.map(x => x.id === h.id ? { ...x, enabled: h.enabled } : x))
+      setError(e.message || 'Error actualizando el webhook')
+    }
   }
 
   async function remove(h: WebhookRow) {
@@ -149,10 +157,7 @@ export default function WebhooksPage() {
                     <td className="px-5 py-2.5 font-mono text-xs truncate max-w-[280px]">{h.url}</td>
                     <td className="px-5 py-2.5 text-xs text-orange-400">{h.event}</td>
                     <td className="px-5 py-2.5 text-center">
-                      <button onClick={() => toggle(h)}
-                        className={`relative w-9 h-5 rounded-full transition-colors ${h.enabled ? 'bg-brand-600' : 'bg-zinc-700'}`}>
-                        <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${h.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                      </button>
+                      <Toggle checked={h.enabled} onChange={() => toggle(h)} label={`Activar webhook ${h.url}`} />
                     </td>
                     <td className="px-5 py-2.5">
                       <div className="flex justify-end gap-3">

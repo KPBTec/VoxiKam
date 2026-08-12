@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.58.6 — 2026-08-12
+
+- Corregido: los switches de encender/apagar (Alertas de balance, Webhooks, Políticas de desconexión, Sincronización externa, Facturas) tenían el círculo desalineado al estar encendidos, y en tres de esas pantallas tocar el switch recargaba toda la página. Ahora cambian al instante, sin parpadeo.
+
+---
+
 ## v2.58.5 — 2026-08-12
 
 - Corregido: el texto de ejemplo del campo "Razón social" en Plantilla de factura mostraba el nombre de una empresa real que no tiene relación con VoxiKam — cambiado a un texto de ejemplo genérico.

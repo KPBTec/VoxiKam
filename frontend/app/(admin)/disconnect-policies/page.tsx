@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api'
 import { Plus, Trash2, PhoneOff } from 'lucide-react'
+import { Toggle } from '@/components/Toggle'
 
 interface Policy {
   id: number
@@ -64,9 +65,16 @@ export default function DisconnectPoliciesPage() {
     } finally { setCreating(false) }
   }
 
+  // Optimista — antes recargaba TODA la lista con un setLoading(true) de
+  // por medio, reemplazando la página entera por "Cargando..." en cada click.
   async function toggle(p: Policy) {
-    await apiPut(`/admin/disconnect-policies/${p.id}`, { active: !p.active })
-    load()
+    setPolicies(ps => ps.map(x => x.id === p.id ? { ...x, active: !x.active } : x))
+    try {
+      await apiPut(`/admin/disconnect-policies/${p.id}`, { active: !p.active })
+    } catch (e: any) {
+      setPolicies(ps => ps.map(x => x.id === p.id ? { ...x, active: p.active } : x))
+      setError(e.message || 'Error actualizando la política')
+    }
   }
 
   async function remove(p: Policy) {
@@ -146,10 +154,7 @@ export default function DisconnectPoliciesPage() {
                   <td className="px-5 py-2.5 text-right font-mono">{p.threshold_pct}%</td>
                   <td className="px-5 py-2.5 text-right">{p.min_calls}</td>
                   <td className="px-5 py-2.5 text-center">
-                    <button onClick={() => toggle(p)}
-                      className={`relative w-9 h-5 rounded-full transition-colors ${p.active ? 'bg-brand-600' : 'bg-zinc-700'}`}>
-                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${p.active ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                    </button>
+                    <Toggle checked={p.active} onChange={() => toggle(p)} label={`Activar política ${p.label}`} />
                   </td>
                   <td className="px-5 py-2.5 text-right">
                     <button onClick={() => remove(p)} aria-label="Eliminar política" className="text-[var(--color-muted)] hover:text-red-400">

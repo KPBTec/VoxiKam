@@ -5,6 +5,7 @@ import { StatusBadge, invoiceStatusVariant } from '@/components/StatusBadge'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { Button } from '@/components/Button'
 import { Card } from '@/components/Card'
+import { Toggle } from '@/components/Toggle'
 
 interface Invoice {
   id: number; customer_name: string; period_start: string; period_end: string
@@ -99,13 +100,10 @@ export default function InvoicesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-[var(--color-text)]">Facturas</h1>
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-[var(--color-text-2)] cursor-pointer">
-            <button type="button" onClick={toggleAutoEmail}
-              className={`relative w-9 h-5 rounded-full transition-colors focus-ring ${autoEmail ? 'bg-brand-600' : 'bg-[var(--color-border-2)]'}`}>
-              <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${autoEmail ? 'translate-x-4' : 'translate-x-0.5'}`} />
-            </button>
+          <div className="flex items-center gap-2 text-sm text-[var(--color-text-2)]">
+            <Toggle checked={autoEmail} onChange={toggleAutoEmail} label="Enviar por correo automáticamente" />
             Enviar por correo automáticamente al generar
-          </label>
+          </div>
           <Button onClick={() => { setShowForm(true); setError('') }}>
             + Generar factura
           </Button>

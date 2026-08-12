@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { apiGet, apiPut } from '@/lib/api'
 import { Mail, Save } from 'lucide-react'
+import { Toggle } from '@/components/Toggle'
 
 interface Rule {
   id: number
@@ -52,9 +53,20 @@ export default function AlertConsumptionPage() {
   }
   useEffect(() => { load() }, [])
 
+  // Optimista — antes recargaba TODO (rules + affected + notify-email) con
+  // un setLoading(true) de por medio, que reemplazaba la página entera por
+  // "Cargando..." en cada click. Ahora solo se actualiza localmente la
+  // regla tocada, y de fondo se refresca "affected" (lo único que puede
+  // cambiar de verdad al tocar una regla) sin ningún flash de pantalla.
   async function toggleRule(rule: Rule) {
-    await apiPut(`/admin/alerts/rules/${rule.id}`, { active: !rule.active })
-    load()
+    setRules(rs => rs.map(r => r.id === rule.id ? { ...r, active: !r.active } : r))
+    try {
+      await apiPut(`/admin/alerts/rules/${rule.id}`, { active: !rule.active })
+      setAffected(await apiGet('/admin/alerts/affected'))
+    } catch (e: any) {
+      setRules(rs => rs.map(r => r.id === rule.id ? { ...r, active: rule.active } : r))
+      setError(e.message || 'Error actualizando la regla')
+    }
   }
 
   async function updateThreshold(rule: Rule, value: string) {
@@ -62,8 +74,12 @@ export default function AlertConsumptionPage() {
   }
 
   async function saveThreshold(rule: Rule) {
-    await apiPut(`/admin/alerts/rules/${rule.id}`, { threshold: parseFloat(rule.threshold) })
-    load()
+    try {
+      await apiPut(`/admin/alerts/rules/${rule.id}`, { threshold: parseFloat(rule.threshold) })
+      setAffected(await apiGet('/admin/alerts/affected'))
+    } catch (e: any) {
+      setError(e.message || 'Error guardando el umbral')
+    }
   }
 
   async function saveNotifyEmail(e: React.FormEvent) {
@@ -94,12 +110,7 @@ export default function AlertConsumptionPage() {
                 />
                 <span className="text-xs text-[var(--color-muted)] w-4">{r.billing_type === 'prepago' ? '%' : ''}</span>
               </div>
-              <button
-                onClick={() => toggleRule(r)}
-                className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${r.active ? 'bg-brand-600' : 'bg-zinc-700'}`}
-              >
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${r.active ? 'translate-x-4' : 'translate-x-0.5'}`} />
-              </button>
+              <Toggle checked={r.active} onChange={() => toggleRule(r)} label={`Activar regla ${r.label}`} />
             </div>
           ))}
           {items.length === 0 && <p className="text-xs text-[var(--color-muted)]">Sin reglas</p>}
