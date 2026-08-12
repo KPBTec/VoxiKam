@@ -9,6 +9,13 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.58.4 — 2026-08-12
+
+- Mejorado: editar un carrier ahora abre en una ventana propia (modal) en vez de mostrarse arriba de la lista completa — evita confundir cuál se está editando.
+- Nuevo: la tabla de Carriers se puede ordenar por columna (nombre, proveedor, host, puerto, prefijo, prioridad, estado) haciendo click en el encabezado.
+
+---
+
 ## v2.58.3 — 2026-08-11
 
 - Mejorado: en el detalle de una llamada, "Colgó" ahora dice "Origen"/"Destino" en vez de "Cliente"/"Proveedor" — mismo dato de siempre, mismo vocabulario que ya usa la traza SIP.

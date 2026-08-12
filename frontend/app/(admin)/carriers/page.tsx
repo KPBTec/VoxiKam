@@ -1,11 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { apiGet, apiPost, apiFetch, getErrorMessage } from '@/lib/api'
 import Link from 'next/link'
 import { Field } from '@/components/Field'
 import { StatusBadge, carrierStatusVariant } from '@/components/StatusBadge'
 import { Button } from '@/components/Button'
 import { Card } from '@/components/Card'
+import { Modal } from '@/components/Modal'
 
 interface Carrier {
   id: number; name: string; host: string; port: number
@@ -30,6 +31,43 @@ export default function CarriersPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [showReseller, setShowReseller] = useState(false)
+
+  // Orden por columna — el orden que trae el backend (prioridad DESC, nombre)
+  // sigue siendo el default hasta que se toca un header; a partir de ahí el
+  // orden lo decide el usuario, no el servidor.
+  type SortKey = 'name' | 'provider_name' | 'host' | 'port' | 'outbound_prefix' | 'priority' | 'status'
+  const [sortKey, setSortKey] = useState<SortKey | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  const sortedCarriers = useMemo(() => {
+    if (!sortKey) return carriers
+    const sign = sortDir === 'asc' ? 1 : -1
+    return [...carriers].sort((a, b) => {
+      const av = a[sortKey] ?? '', bv = b[sortKey] ?? ''
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sign
+      return String(av).localeCompare(String(bv)) * sign
+    })
+  }, [carriers, sortKey, sortDir])
+
+  function SortableTh({ label, sortableKey }: { label: string; sortableKey: SortKey }) {
+    const active = sortKey === sortableKey
+    return (
+      <th className="px-6 py-3 text-left">
+        <button onClick={() => toggleSort(sortableKey)}
+          className="focus-ring flex items-center gap-1 hover:text-[var(--color-text)] transition-colors">
+          {label}
+          <span className={`text-[10px] ${active ? 'text-brand-400' : 'text-[var(--color-muted)]/40'}`}>
+            {active ? (sortDir === 'asc' ? '▲' : '▼') : '▲'}
+          </span>
+        </button>
+      </th>
+    )
+  }
 
   const load = (withReseller = showReseller) =>
     apiGet<Carrier[]>(`/admin/carriers?include_reseller=${withReseller}`).then(setCarriers)
@@ -80,8 +118,10 @@ export default function CarriersPage() {
       {error && !showForm && <p className="text-danger text-sm">{error}</p>}
 
       {showForm && (
-        <Card className="p-6 space-y-4">
-          <h2 className="font-medium text-[var(--color-text)]">{editing ? 'Editar carrier' : 'Nuevo carrier'}</h2>
+        <Modal onClose={() => { setShowForm(false); setEditing(null) }} labelledBy="carrier-modal-title"
+          className="bg-[var(--color-card)] border border-[var(--color-border)] rounded-2xl w-full max-w-2xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <Card className="p-6 space-y-4 rounded-none border-none">
+          <h2 id="carrier-modal-title" className="font-medium text-[var(--color-text)]">{editing ? 'Editar carrier' : 'Nuevo carrier'}</h2>
           {error && <p className="text-danger text-sm">{error}</p>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[['Nombre', 'name', 'text'], ['Host / IP', 'host', 'text'], ['Puerto', 'port', 'number'], ['Prefijo saliente', 'outbound_prefix', 'text'], ['Prioridad', 'priority', 'number']].map(([label, key, type]) => (
@@ -130,24 +170,25 @@ export default function CarriersPage() {
             </Button>
           </div>
         </Card>
+        </Modal>
       )}
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm tabular-nums">
           <thead>
             <tr className="text-xs text-[var(--color-text-2)] uppercase border-b border-[var(--color-border)]">
-              <th className="px-6 py-3 text-left">Nombre</th>
-              <th className="px-6 py-3 text-left">Proveedor</th>
-              <th className="px-6 py-3 text-left">Host</th>
-              <th className="px-6 py-3 text-left">Puerto</th>
-              <th className="px-6 py-3 text-left">Prefijo</th>
-              <th className="px-6 py-3 text-left">Prioridad</th>
-              <th className="px-6 py-3 text-left">Estado</th>
+              <SortableTh label="Nombre" sortableKey="name" />
+              <SortableTh label="Proveedor" sortableKey="provider_name" />
+              <SortableTh label="Host" sortableKey="host" />
+              <SortableTh label="Puerto" sortableKey="port" />
+              <SortableTh label="Prefijo" sortableKey="outbound_prefix" />
+              <SortableTh label="Prioridad" sortableKey="priority" />
+              <SortableTh label="Estado" sortableKey="status" />
               <th className="px-6 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border)]">
-            {carriers.map(c => (
+            {sortedCarriers.map(c => (
               <tr key={c.id} className="hover:bg-white/2">
                 <td className="px-6 py-3 text-[var(--color-text)] font-medium">
                   {c.name}
