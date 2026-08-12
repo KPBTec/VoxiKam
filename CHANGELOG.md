@@ -9,6 +9,12 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.58.5 — 2026-08-12
+
+- Corregido: el texto de ejemplo del campo "Razón social" en Plantilla de factura mostraba el nombre de una empresa real que no tiene relación con VoxiKam — cambiado a un texto de ejemplo genérico.
+
+---
+
 ## v2.58.4 — 2026-08-12
 
 - Mejorado: editar un carrier ahora abre en una ventana propia (modal) en vez de mostrarse arriba de la lista completa — evita confundir cuál se está editando.

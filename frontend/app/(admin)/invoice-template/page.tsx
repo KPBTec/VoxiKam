@@ -165,7 +165,7 @@ export default function InvoiceTemplatePage() {
         >
           <div>
             <label className="block text-xs text-[var(--color-text-2)] mb-1">Razón social</label>
-            <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Corporación Turística Perú S.A.C." className={inputCls} />
+            <input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Empresa S.A.C." className={inputCls} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
