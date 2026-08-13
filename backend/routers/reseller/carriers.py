@@ -167,11 +167,20 @@ async def add_carrier_group_buy_rate(cid: int, body: CarrierGroupBuyRateIn, user
     prefix_ids = [row[0] for row in r.fetchall()]
     # Auditoría v2.55: antes un INSERT por prefijo en loop — mismo criterio que
     # carriers.py::add_group_buy_rate (executemany en un solo round-trip).
+    #
+    # Bug real de producción (v2.58.8): el ON DUPLICATE KEY UPDATE NO puede
+    # reusar los placeholders del VALUES acá — aiomysql reescribe executemany()
+    # armando un solo INSERT con múltiples VALUES(...) y pega el resto de la
+    # sentencia una sola vez al final; si esa cola tiene placeholders con
+    # nombres repetidos del VALUES, sobran al aplicar el %-formatting final →
+    # TypeError: not all arguments converted during string formatting.
+    # VALUES(columna) lee el valor de la fila que se está insertando sin
+    # necesitar re-bindear el parámetro.
     if prefix_ids:
         await db.execute(text("""
             INSERT INTO carrier_rates (carrier_id, prefix_id, buy_rate, connectcharge, billingblock)
             VALUES (:cid, :pfx, :rate, :cc, :bb)
-            ON DUPLICATE KEY UPDATE buy_rate=:rate, connectcharge=:cc, billingblock=:bb
+            ON DUPLICATE KEY UPDATE buy_rate=VALUES(buy_rate), connectcharge=VALUES(connectcharge), billingblock=VALUES(billingblock)
         """), [{"cid": cid, "pfx": pfx_id, "rate": body.buy_rate, "cc": body.connectcharge, "bb": body.billingblock}
                for pfx_id in prefix_ids])
     await record_event(db, "carrier", cid, "group_buy_rate_set", user.get("name") or user.get("email"),

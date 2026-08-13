@@ -9,6 +9,13 @@ Todas las versiones siguen el esquema `MAJOR.MINOR.PATCH`:
 
 ---
 
+## v2.58.8 — 2026-08-13
+
+- Corregido: aplicar una tarifa a un grupo completo de prefijos (en Carriers y en Planes de tarifa, tanto en el panel admin como en el de reseller) podía devolver un error 500 en vez de guardar. Ya funciona correctamente.
+- Corregido: al editar un carrier, un perfil o las IPs de un cliente, el foco del formulario volvía al primer campo con cada letra escrita, haciendo imposible completar los campos. Ya se puede escribir con normalidad.
+
+---
+
 ## v2.58.7 — 2026-08-12 — requiere actualizar con `install.sh --upgrade` (reinicia Kamailio)
 
 - Corregido: en casos raros, una llamada que ya terminó podía seguir contando como "activa" en Live/Dashboard hasta 12 horas. Ahora se autolimpia en 80 minutos como máximo.
